@@ -7,6 +7,7 @@ from django.views.generic import ListView, DetailView, CreateView
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from core.correlation import get_full_vendor_context
 from .models import Vendor, VendorAssessment
+from .forms import VendorAssessmentForm
 
 
 class VendorListView(DepartmentScopedMixin, CsvExportMixin, ListView):
@@ -67,8 +68,8 @@ class VendorDetailView(DepartmentScopedMixin, DetailView):
 
 class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
     model = VendorAssessment
+    form_class = VendorAssessmentForm
     template_name = 'vendors/assessment_form.html'
-    fields = ['assessment_date', 'score', 'status', 'findings']
 
     def dispatch(self, request, *args, **kwargs):
         self.vendor = Vendor.objects.get(pk=kwargs['vendor_pk'])

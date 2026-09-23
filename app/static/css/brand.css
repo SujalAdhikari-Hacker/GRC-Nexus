@@ -690,3 +690,31 @@ hr { border-color: var(--border-soft); opacity: 1; }
     border-radius: 3px;
     margin-right: 4px;
 }
+
+/* ---------- Date input styling (native calendar) ---------- */
+input[type="date"] {
+    width: 100%;
+    padding: .375rem .75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+}
+input[type="date"]:focus {
+    border-color: var(--accent-500);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    outline: none;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    filter: invert(0);
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+[data-bs-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}

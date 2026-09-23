@@ -10,6 +10,7 @@ from core.mixins import DepartmentScopedMixin, HODOrSuperuserMixin, CsvExportMix
 from core.correlation import get_full_risk_context
 from .models import Risk, RiskCategory, RiskAppetite, RiskTreatment
 from .services import recalculate_risk
+from .forms import RiskForm, RiskTreatmentForm, RiskTreatmentUpdateForm
 
 
 class RiskListView(DepartmentScopedMixin, CsvExportMixin, ListView):
@@ -76,12 +77,8 @@ class RiskDetailView(DepartmentScopedMixin, DetailView):
 
 class RiskCreateView(DepartmentScopedMixin, CreateView):
     model = Risk
+    form_class = RiskForm
     template_name = 'risks/risk_form.html'
-    fields = [
-        'title', 'description', 'category', 'owner_dept', 'owner_user',
-        'likelihood', 'impact', 'treatment_strategy', 'status',
-        'assets', 'controls', 'identified_date', 'target_close_date',
-    ]
     success_url = reverse_lazy('risks:list')
 
     def form_valid(self, form):
@@ -92,12 +89,8 @@ class RiskCreateView(DepartmentScopedMixin, CreateView):
 
 class RiskUpdateView(DepartmentScopedMixin, UpdateView):
     model = Risk
+    form_class = RiskForm
     template_name = 'risks/risk_form.html'
-    fields = [
-        'title', 'description', 'category', 'owner_dept', 'owner_user',
-        'likelihood', 'impact', 'treatment_strategy', 'status',
-        'assets', 'controls', 'identified_date', 'target_close_date',
-    ]
     success_url = reverse_lazy('risks:list')
 
     def form_valid(self, form):
@@ -141,8 +134,8 @@ def risk_score_preview(request):
 
 class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
     model = RiskTreatment
+    form_class = RiskTreatmentForm
     template_name = 'risks/treatment_form.html'
-    fields = ['action_plan', 'owner_user', 'due_date', 'status', 'notes']
 
     def dispatch(self, request, *args, **kwargs):
         self.risk = Risk.objects.get(pk=kwargs['risk_pk'])
@@ -163,8 +156,8 @@ class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
 
 class RiskTreatmentUpdateView(LoginRequiredMixin, UpdateView):
     model = RiskTreatment
+    form_class = RiskTreatmentUpdateForm
     template_name = 'risks/treatment_form.html'
-    fields = ['action_plan', 'owner_user', 'due_date', 'completed_date', 'status', 'notes']
 
     def get_success_url(self):
         return reverse_lazy('risks:detail', kwargs={'pk': self.object.risk.pk})
