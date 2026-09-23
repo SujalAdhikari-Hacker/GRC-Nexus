@@ -1,0 +1,80 @@
+﻿{% extends "base.html" %}
+{% block title %}Vulnerabilities{% endblock %}
+{% block breadcrumb %}<h5 class="mb-0">Vulnerability Findings</h5>{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-bug"></i> Total findings</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-danger">{{ open_count }}</div><div class="label"><i class="bi bi-exclamation-circle"></i> Open</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-danger">{{ critical_count }}</div><div class="label"><i class="bi bi-shield-exclamation"></i> Critical severity</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-danger">{{ kev_count }}</div><div class="label"><i class="bi bi-fire"></i> CISA KEV</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-4"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search CVE, title, asset..." value="{{ search_query }}"></div>
+            <div class="col-md-2">
+                <select name="severity" class="form-select form-select-sm">
+                    <option value="">All severities</option>
+                    {% for val, label in severities %}<option value="{{ val }}" {% if selected_severity == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All statuses</option>
+                    {% for val, label in statuses %}<option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="form-check mt-1">
+                    <input class="form-check-input" type="checkbox" name="kev" value="1" id="kev" {% if kev_filter == '1' %}checked{% endif %}>
+                    <label class="form-check-label small" for="kev">KEV only</label>
+                </div>
+            </div>
+            <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
+        </form>
+        <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{ k }}={{ v }}&{% endif %}{% endfor %}export=csv" class="btn btn-sm btn-outline-dark text-nowrap me-2"><i class="bi bi-download"></i> CSV</a>
+        <a href="{% url 'vulnerabilities:vulnerability_list' %}" class="btn btn-sm btn-outline-dark text-nowrap">CVE Catalog</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>CVE</th><th>Vulnerability</th><th>Asset</th>
+                    <th class="text-center">CVSS</th><th class="text-center">EPSS</th>
+                    <th class="text-center">KEV</th><th class="text-center">Composite</th>
+                    <th class="text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for f in findings %}
+                <tr>
+                    <td><a href="{% url 'vulnerabilities:finding_detail' f.pk %}"><code>{{ f.vulnerability.cve_id|default:"—" }}</code></a></td>
+                    <td><small>{{ f.vulnerability.title|truncatechars:60 }}</small></td>
+                    <td><a href="{% url 'assets:detail' f.asset.pk %}">{{ f.asset.name|truncatechars:35 }}</a></td>
+                    <td class="text-center">
+                        <span class="badge {% if f.vulnerability.cvss_severity == 'critical' %}bg-danger{% elif f.vulnerability.cvss_severity == 'high' %}bg-warning text-dark{% elif f.vulnerability.cvss_severity == 'medium' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                            {{ f.vulnerability.cvss_score }}
+                        </span>
+                    </td>
+                    <td class="text-center"><small>{{ f.vulnerability.epss_score|floatformat:2|default:"—" }}</small></td>
+                    <td class="text-center">{% if f.vulnerability.kev_status %}<span class="badge bg-danger"><i class="bi bi-fire"></i> KEV</span>{% else %}—{% endif %}</td>
+                    <td class="text-center"><strong>{{ f.composite_score }}</strong></td>
+                    <td class="text-center">
+                        {% if f.status == 'open' %}<span class="badge bg-danger">Open</span>
+                        {% elif f.status == 'in_progress' %}<span class="badge bg-warning text-dark">In Progress</span>
+                        {% elif f.status == 'remediated' %}<span class="badge bg-success">Remediated</span>
+                        {% elif f.status == 'accepted' %}<span class="badge bg-info text-dark">Accepted</span>
+                        {% else %}<span class="badge bg-secondary">{{ f.get_status_display }}</span>{% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No findings match your filters.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

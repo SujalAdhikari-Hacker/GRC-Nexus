@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
 <head>
@@ -7,6 +7,7 @@
     <title>{% block title %}Dashboard{% endblock %} · Aegis</title>
     <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
     <script>
+        // No-flash theme init — runs before CSS
         (function(){
             try {
                 var t = localStorage.getItem('aegis-theme');
@@ -27,6 +28,7 @@
 
 <div class="app-layout">
 
+    {# ─────────── SIDEBAR ─────────── #}
     <aside class="sidebar">
         <div class="brand">
             <img src="{% static 'img/logo.svg' %}" class="brand-mark" alt="">
@@ -57,6 +59,9 @@
                 {% endif %}
                 <a href="{% url 'controls:list' %}" class="nav-link {% if 'controls' in request.resolver_match.namespace %}active{% endif %}">
                     <i class="bi bi-shield-check"></i><span>Controls</span>
+                </a>
+                                <a href="{% url 'vulnerabilities:finding_list' %}" class="nav-link {% if 'vulnerabilities' in request.resolver_match.namespace %}active{% endif %}">
+                    <i class="bi bi-bug"></i><span>Vulnerabilities</span>
                 </a>
             </div>
 
@@ -97,6 +102,7 @@
         </div>
     </aside>
 
+    {# ─────────── MAIN ─────────── #}
     <main class="main-panel">
         <header class="topbar">
             <div class="topbar-title">
@@ -164,6 +170,7 @@
     </main>
 </div>
 
+{# ─────────── COMMAND PALETTE ─────────── #}
 <div class="palette-overlay" id="commandPalette">
     <div class="palette-modal">
         <div class="palette-input-row">
@@ -196,6 +203,7 @@
 <script src="{% static 'js/theme.js' %}"></script>
 <script src="{% static 'js/command-palette.js' %}"></script>
 <script>
+    // User menu dropdown
     (function(){
         const trigger = document.getElementById('userMenuTrigger');
         const menu = document.getElementById('userMenu');

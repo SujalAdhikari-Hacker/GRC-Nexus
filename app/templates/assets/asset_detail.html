@@ -110,4 +110,33 @@
         </div>
     </div>
 </div>
+<div class="row g-3 mt-1">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Vulnerability findings ({{ asset.findings.count }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for f in asset.findings.all %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <div>
+                            <a href="{% url 'vulnerabilities:finding_detail' f.pk %}">
+                                <code>{{ f.vulnerability.cve_id|default:"—" }}</code>
+                                {{ f.vulnerability.title|truncatechars:50 }}
+                            </a>
+                            <div class="small text-muted">
+                                CVSS {{ f.vulnerability.cvss_score }}
+                                {% if f.vulnerability.kev_status %}<span class="badge bg-danger ms-1">KEV</span>{% endif %}
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <strong>{{ f.composite_score }}</strong>
+                            <div><span class="badge {% if f.status == 'open' %}bg-danger{% else %}bg-secondary{% endif %}">{{ f.get_status_display }}</span></div>
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center">No findings on this asset.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
 {% endblock %}

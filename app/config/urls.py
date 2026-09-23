@@ -19,6 +19,7 @@ urlpatterns = [
     path('policies/', include('policies.urls')),
     path('vendors/', include('vendors.urls')),
     path('frameworks/', include('frameworks.urls')),
+    path('vulnerabilities/', include('vulnerabilities.urls')),
 ]
 
 # Serve static files in dev — Django's built-in runserver handler
