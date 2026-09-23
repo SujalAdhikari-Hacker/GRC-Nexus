@@ -18,6 +18,7 @@ urlpatterns = [
     path('controls/', include('controls.urls')),
     path('policies/', include('policies.urls')),
     path('vendors/', include('vendors.urls')),
+    path('frameworks/', include('frameworks.urls')),
 ]
 
 if settings.DEBUG:

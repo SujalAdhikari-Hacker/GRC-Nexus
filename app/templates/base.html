@@ -73,6 +73,11 @@
             <a href="{% url 'risks:list' %}" class="{% if 'risks' in request.resolver_match.namespace %}active{% endif %}">
     <i class="bi bi-exclamation-triangle"></i> Risks
 </a>
+{% if user.is_hod or user.is_superuser %}
+<a href="{% url 'risks:appetite_list' %}" class="{% if request.resolver_match.url_name == 'appetite_list' %}active{% endif %}">
+    <i class="bi bi-sliders"></i> Risk Appetite
+</a>
+{% endif %}
 <a href="{% url 'controls:list' %}" class="{% if 'controls' in request.resolver_match.namespace %}active{% endif %}">
     <i class="bi bi-shield-check"></i> Controls
 </a>
@@ -84,7 +89,9 @@
 <a href="{% url 'vendors:list' %}" class="{% if 'vendors' in request.resolver_match.namespace %}active{% endif %}">
     <i class="bi bi-truck"></i> Vendors
 </a>
-<a href="/admin/frameworks/framework/"><i class="bi bi-diagram-3"></i> Frameworks</a>
+<a href="{% url 'frameworks:list' %}" class="{% if 'frameworks' in request.resolver_match.namespace %}active{% endif %}">
+    <i class="bi bi-diagram-3"></i> Frameworks
+</a>
 
             {% if user.is_superuser %}
             <div class="section-title">Admin</div>

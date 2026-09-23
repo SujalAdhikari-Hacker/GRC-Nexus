@@ -1,4 +1,4 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 
 class DepartmentScopedMixin(LoginRequiredMixin):
@@ -17,3 +17,11 @@ class DepartmentScopedMixin(LoginRequiredMixin):
         if not user.department_id:
             return qs.none()
         return qs.filter(**{self.department_field: user.department})
+
+
+class HODOrSuperuserMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Only HOD users or superusers may access these views."""
+
+    def test_func(self):
+        user = self.request.user
+        return user.is_authenticated and (user.is_superuser or user.is_hod)

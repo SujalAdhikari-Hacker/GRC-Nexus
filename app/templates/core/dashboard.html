@@ -107,4 +107,32 @@
         </div>
     </div>
 </div>
+<div class="row g-3 mt-1">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Framework coverage</strong>
+                <a href="{% url 'frameworks:list' %}" class="btn btn-sm btn-outline-dark">View all</a>
+            </div>
+            <div class="card-body">
+                {% if framework_rows %}
+                    {% for fw, cov in framework_rows %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <a href="{% url 'frameworks:detail' fw.pk %}">{{ fw.name }} {{ fw.version }}</a>
+                            <span>{{ cov.covered }}/{{ cov.total }} · <strong>{{ cov.percent }}%</strong></span>
+                        </div>
+                        <div class="progress" style="height:8px;">
+                            <div class="progress-bar {% if cov.percent >= 75 %}bg-success{% elif cov.percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                                 role="progressbar" style="width: {{ cov.percent }}%;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-muted text-center py-3">No frameworks configured.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

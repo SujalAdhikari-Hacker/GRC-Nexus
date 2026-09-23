@@ -140,3 +140,43 @@ def risk_score_preview(request):
         'band': band,
         'color': color,
     })
+from django.views.generic import ListView, CreateView, UpdateView
+from django.urls import reverse_lazy
+
+from core.mixins import HODOrSuperuserMixin
+from .models import RiskAppetite
+
+
+class RiskAppetiteListView(HODOrSuperuserMixin, ListView):
+    model = RiskAppetite
+    template_name = 'risks/appetite_list.html'
+    context_object_name = 'appetites'
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if user.is_superuser:
+            return qs
+        # HOD sees appetites for their department only
+        return qs.filter(department=user.department)
+
+
+class RiskAppetiteCreateView(HODOrSuperuserMixin, CreateView):
+    model = RiskAppetite
+    template_name = 'risks/appetite_form.html'
+    fields = ['department', 'category', 'max_inherent_score', 'max_residual_score', 'description']
+    success_url = reverse_lazy('risks:appetite_list')
+
+    def get_initial(self):
+        initial = super().get_initial()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            initial['department'] = user.department
+        return initial
+
+
+class RiskAppetiteUpdateView(HODOrSuperuserMixin, UpdateView):
+    model = RiskAppetite
+    template_name = 'risks/appetite_form.html'
+    fields = ['department', 'category', 'max_inherent_score', 'max_residual_score', 'description']
+    success_url = reverse_lazy('risks:appetite_list')

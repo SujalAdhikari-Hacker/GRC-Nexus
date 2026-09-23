@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}{{ framework.name }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'frameworks:list' %}">Frameworks</a></li>
+    <li class="breadcrumb-item active">{{ framework.name }} {{ framework.version }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">{{ framework.name }} {{ framework.version }}</h4>
+        <small class="text-muted">{{ framework.description|default:""|truncatechars:200 }}</small>
+    </div>
+    <a href="/admin/frameworks/framework/{{ framework.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ coverage.total }}</div>
+            <div class="label">Total requirements</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value text-success">{{ coverage.covered }}</div>
+            <div class="label">Covered</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" {% if coverage.gap %}style="border-color:#dc3545"{% endif %}>
+            <div class="value text-danger">{{ coverage.gap }}</div>
+            <div class="label">Gaps</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ coverage.percent }}%</div>
+            <div class="label">Coverage</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white"><strong>Requirement coverage map</strong></div>
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:10%;">Code</th>
+                    <th style="width:35%;">Requirement</th>
+                    <th style="width:15%;">Status</th>
+                    <th>Covered by</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for fc, controls in control_rows %}
+                <tr>
+                    <td><code>{{ fc.code }}</code></td>
+                    <td>{{ fc.title }}</td>
+                    <td>
+                        {% if controls %}
+                            <span class="badge bg-success">Covered</span>
+                        {% else %}
+                            <span class="badge bg-danger">Gap</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% for c in controls %}
+                            <a href="{% url 'controls:detail' c.pk %}" class="badge bg-dark text-decoration-none me-1 mb-1">
+                                {{ c.code }}
+                            </a>
+                        {% empty %}
+                            <span class="text-muted small">No internal control maps to this requirement</span>
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4" class="text-center text-muted py-4">No requirements defined.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

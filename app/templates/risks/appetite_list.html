@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Risk Appetite{% endblock %}
+{% block breadcrumb %}<h5 class="mb-0">Risk Appetite Configuration</h5>{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="text-muted mb-0">
+        Thresholds for acceptable risk. Risks whose residual score exceeds these values are flagged as breaches.
+    </p>
+    <a href="{% url 'risks:appetite_create' %}" class="btn btn-sm btn-primary">+ New Appetite</a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Scope</th>
+                    <th>Category</th>
+                    <th class="text-center">Max inherent</th>
+                    <th class="text-center">Max residual</th>
+                    <th>Description</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for a in appetites %}
+                <tr>
+                    <td>
+                        {% if a.department %}
+                            <span class="badge bg-dark">{{ a.department.name }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Org-wide</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if a.category %}
+                            {{ a.category.name }}
+                        {% else %}
+                            <em class="text-muted">All categories</em>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ a.max_inherent_score }}</td>
+                    <td class="text-center">{{ a.max_residual_score }}</td>
+                    <td><small class="text-muted">{{ a.description|default:"—"|truncatechars:80 }}</small></td>
+                    <td class="text-end">
+                        <a href="{% url 'risks:appetite_update' a.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">
+                    No appetite thresholds configured. All risks default to "in appetite".
+                </td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

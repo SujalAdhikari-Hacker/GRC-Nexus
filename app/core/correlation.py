@@ -165,3 +165,45 @@ def get_full_vendor_context(vendor):
         'risks': get_risks_for_vendor(vendor),
         'assessments': vendor.assessments.all(),
     }
+# ------------------------------------------------------------------
+# FRAMEWORK COVERAGE
+# ------------------------------------------------------------------
+
+def get_framework_coverage(framework):
+    """
+    Returns dict with total controls in the framework, how many are
+    satisfied by at least one internal control, and coverage percent.
+    """
+    from controls.models import Control
+
+    all_fc = framework.controls.all()
+    total = all_fc.count()
+
+    # A FrameworkControl is "covered" if any internal Control maps to it
+    covered_ids = set(
+        Control.objects.filter(framework_controls__framework=framework)
+        .values_list('framework_controls__pk', flat=True)
+    )
+    covered = len(covered_ids)
+    percent = round(covered / total * 100) if total else 0
+
+    return {
+        'total': total,
+        'covered': covered,
+        'gap': total - covered,
+        'percent': percent,
+    }
+
+
+def get_control_coverage_by_control_for_framework(framework):
+    """
+    For a framework, return list of (FrameworkControl, [Control, ...])
+    so templates can show which internal control covers each requirement.
+    """
+    from controls.models import Control
+
+    rows = []
+    for fc in framework.controls.all().order_by('code'):
+        covering = Control.objects.filter(framework_controls=fc).distinct()
+        rows.append((fc, list(covering)))
+    return rows

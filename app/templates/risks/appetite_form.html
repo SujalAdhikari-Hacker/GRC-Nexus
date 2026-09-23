@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Appetite{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'risks:appetite_list' %}">Risk Appetite</a></li>
+    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Appetite threshold</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text small">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="text-danger small">{{ field.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save</button>
+                    <a href="{% url 'risks:appetite_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>How this works</strong></div>
+            <div class="card-body small text-muted">
+                <p>When a risk's <strong>residual score</strong> exceeds the threshold defined here, it is flagged with a <span class="badge bg-danger">Breach</span> badge.</p>
+                <p>Matching order (most specific wins):</p>
+                <ol class="ps-3">
+                    <li>Department + Category</li>
+                    <li>Department only</li>
+                    <li>Category only</li>
+                    <li>Org-wide (blank both)</li>
+                </ol>
+                <p class="mb-0">Max score is 25 (likelihood 5 × impact 5).</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="number"], select, textarea {
+        width: 100%;
+        padding: .375rem .75rem;
+        border: 1px solid #ced4da;
+        border-radius: .375rem;
+    }
+</style>
+{% endblock %}

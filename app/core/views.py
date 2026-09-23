@@ -6,6 +6,8 @@ from risks.models import Risk
 from controls.models import Control
 from policies.models import Policy
 from vendors.models import Vendor
+from frameworks.models import Framework
+from core.correlation import get_framework_coverage
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -29,6 +31,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             policies = policies.filter(owner_dept=user.department)
             vendors = vendors.filter(owner_dept=user.department)
 
+        # Framework coverage — always org-wide (frameworks are shared)
+        framework_rows = []
+        for fw in Framework.objects.all():
+            framework_rows.append((fw, get_framework_coverage(fw)))
+
         ctx.update({
             'asset_count': assets.count(),
             'risk_count': risks.count(),
@@ -40,6 +47,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'vendor_count': vendors.count(),
             'top_risks': risks.order_by('-residual_score')[:5],
             'recent_assets': assets.order_by('-created_at')[:5],
+            'framework_rows': framework_rows,
             'is_super': is_super,
         })
         return ctx
