@@ -1,44 +1,71 @@
-{% extends "base.html" %}
-{% block title %}Sign In{% endblock %}
+{% extends "base_auth.html" %}
+{% load static %}
+{% block title %}Sign in{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center" style="margin-top: 8vh;">
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-body p-4">
-                <div class="text-center mb-4">
-                    <i class="bi bi-shield-lock" style="font-size: 2.5rem; color: #1e293b;"></i>
-                    <h4 class="mt-2 mb-0">GRC Platform</h4>
-                    <small class="text-muted">Sign in to continue</small>
+<div class="auth-shell">
+
+    {# ─── Left: brand panel ─── #}
+    <div class="auth-brand-panel">
+        <div class="auth-brand">
+            <img src="{% static 'img/logo.svg' %}" class="brand-mark" alt="">
+            <span class="brand-name">Aegis</span>
+        </div>
+
+        <div class="auth-hero">
+            <h1>Governance. Risk.<br>Compliance. Unified.</h1>
+            <p>
+                One platform for asset inventory, risk register, control mapping,
+                policy management, and vendor risk — connected end to end.
+            </p>
+
+            <div class="auth-features">
+                <div class="auth-feature"><i class="bi bi-check2-circle"></i> Auto-cascading risk engine</div>
+                <div class="auth-feature"><i class="bi bi-check2-circle"></i> ISO 27001 · NIST CSF · CIS v8 coverage</div>
+                <div class="auth-feature"><i class="bi bi-check2-circle"></i> Department-scoped RBAC &amp; audit trail</div>
+            </div>
+        </div>
+
+        <div style="position:relative; z-index:1; font-size:12px; color:var(--brand-500);">
+            © 2026 Aegis · GRC Platform
+        </div>
+    </div>
+
+    {# ─── Right: form panel ─── #}
+    <div class="auth-form-panel">
+        <div class="auth-form-inner">
+            <h2>Sign in</h2>
+            <p class="subtitle">Access your governance workspace.</p>
+
+            {% if form.errors %}
+                <div class="alert alert-danger py-2 small mb-3">
+                    Invalid username or password.
                 </div>
+            {% endif %}
 
-                {% if form.errors %}
-                    <div class="alert alert-danger small py-2">
-                        Invalid username or password.
-                    </div>
-                {% endif %}
-
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label">Username</label>
-                        <input type="text" name="username" class="form-control" required autofocus>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" required>
-                    </div>
-                    <input type="hidden" name="next" value="{{ next }}">
-                    <button type="submit" class="btn btn-dark w-100">Sign In</button>
-                </form>
-
-                <hr class="my-4">
-                <div class="text-muted small text-center">
-                    Demo accounts (password: <code>demo1234</code>):<br>
-                    <code>it_hod</code> · <code>fin_hod</code> · <code>hr_hod</code> · <code>admin</code>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" required autofocus autocomplete="username">
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" required autocomplete="current-password">
+                </div>
+                <input type="hidden" name="next" value="{{ next }}">
+                <button type="submit" class="auth-submit">Sign in</button>
+            </form>
+
+            <div class="auth-demo">
+                <div class="mb-2" style="font-weight:500; color:var(--text);">Demo accounts · password <code>demo1234</code></div>
+                <div class="demo-row"><span><code>admin</code> · superadmin</span></div>
+                <div class="demo-row"><span><code>it_hod</code> · IT department HOD</span></div>
+                <div class="demo-row"><span><code>fin_hod</code> · Finance department HOD</span></div>
+                <div class="demo-row"><span><code>hr_hod</code> · HR department HOD</span></div>
             </div>
         </div>
     </div>
+
 </div>
 {% endblock %}
