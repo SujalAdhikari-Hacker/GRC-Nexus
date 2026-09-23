@@ -1,16 +1,32 @@
 from django.db.models import Q
 from django.views.generic import ListView, DetailView
 
-from core.mixins import DepartmentScopedMixin
+from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from core.correlation import get_full_asset_context
 from .models import Asset, AssetCategory
 
 
-class AssetListView(DepartmentScopedMixin, ListView):
+class AssetListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Asset
     template_name = 'assets/asset_list.html'
     context_object_name = 'assets'
     paginate_by = 20
+
+    csv_filename = 'assets.csv'
+    csv_fields = [
+        ('Name', 'name'),
+        ('Category', lambda a: a.category.name),
+        ('Department', lambda a: a.owner_dept.name),
+        ('Criticality', 'get_criticality_display'),
+        ('Confidentiality', 'confidentiality'),
+        ('Integrity', 'integrity'),
+        ('Availability', 'availability'),
+        ('CIA Avg', 'cia_score'),
+        ('Value', 'value'),
+        ('Active', lambda a: 'Yes' if a.is_active else 'No'),
+        ('Risk Count', lambda a: a.risks.count()),
+        ('Created', lambda a: a.created_at.strftime('%Y-%m-%d')),
+    ]
 
     def get_queryset(self):
         qs = super().get_queryset()

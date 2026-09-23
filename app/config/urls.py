@@ -21,5 +21,8 @@ urlpatterns = [
     path('frameworks/', include('frameworks.urls')),
 ]
 
+# Serve static files in dev — Django's built-in runserver handler
+# sometimes fails, so we serve them explicitly through URLs.
 if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

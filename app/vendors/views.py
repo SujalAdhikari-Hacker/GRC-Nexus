@@ -1,16 +1,32 @@
-from django.db.models import Q
+﻿from django.db.models import Q
 from django.views.generic import ListView, DetailView
 
-from core.mixins import DepartmentScopedMixin
+from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from core.correlation import get_full_vendor_context
 from .models import Vendor
 
 
-class VendorListView(DepartmentScopedMixin, ListView):
+class VendorListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Vendor
     template_name = 'vendors/vendor_list.html'
     context_object_name = 'vendors'
     paginate_by = 20
+
+    csv_filename = 'vendors.csv'
+    csv_fields = [
+        ('Name', 'name'),
+        ('Tier', 'get_tier_display'),
+        ('Data Sensitivity', 'get_data_sensitivity_display'),
+        ('Owner Dept', lambda v: v.owner_dept.name),
+        ('Contact Name', 'contact_name'),
+        ('Contact Email', 'contact_email'),
+        ('Contact Phone', 'contact_phone'),
+        ('Latest Score', lambda v: v.latest_score if v.latest_score is not None else ''),
+        ('Assets', lambda v: v.provides_assets.count()),
+        ('Contract Start', lambda v: v.contract_start or ''),
+        ('Contract End', lambda v: v.contract_end or ''),
+        ('Active', lambda v: 'Yes' if v.is_active else 'No'),
+    ]
 
     def get_queryset(self):
         qs = super().get_queryset()

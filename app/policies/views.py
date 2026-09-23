@@ -1,16 +1,29 @@
-from django.db.models import Q
+﻿from django.db.models import Q
 from django.views.generic import ListView, DetailView
 
-from core.mixins import DepartmentScopedMixin
+from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from core.correlation import get_full_policy_context
 from .models import Policy, PolicyCategory
 
 
-class PolicyListView(DepartmentScopedMixin, ListView):
+class PolicyListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Policy
     template_name = 'policies/policy_list.html'
     context_object_name = 'policies'
     paginate_by = 20
+
+    csv_filename = 'policies.csv'
+    csv_fields = [
+        ('Code', 'code'),
+        ('Title', 'title'),
+        ('Category', lambda p: p.category.name if p.category else ''),
+        ('Department', lambda p: p.owner_dept.name),
+        ('Version', 'version'),
+        ('Status', 'get_status_display'),
+        ('Approved By', lambda p: p.approved_by.username if p.approved_by else ''),
+        ('Approval Date', lambda p: p.approval_date or ''),
+        ('Next Review', lambda p: p.next_review_date or ''),
+    ]
 
     def get_queryset(self):
         qs = super().get_queryset()

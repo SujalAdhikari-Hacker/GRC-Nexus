@@ -1,0 +1,61 @@
+{% if not q %}
+    <div class="palette-empty">
+        Start typing to search across assets, risks, controls, policies, and vendors.
+    </div>
+{% elif total == 0 %}
+    <div class="palette-empty">
+        No results for "<strong>{{ q }}</strong>".
+    </div>
+{% else %}
+    {% if results.assets %}
+        <div class="palette-section-title">Assets</div>
+        {% for a in results.assets %}
+            <a href="{% url 'assets:detail' a.pk %}" class="palette-item">
+                <i class="bi bi-hdd-stack"></i>
+                <span>{{ a.name }}</span>
+                <span class="item-meta">{{ a.category.name }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+
+    {% if results.risks %}
+        <div class="palette-section-title">Risks</div>
+        {% for r in results.risks %}
+            <a href="{% url 'risks:detail' r.pk %}" class="palette-item">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span>{{ r.title }}</span>
+                <span class="item-meta">residual {{ r.residual_score }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+
+    {% if results.controls %}
+        <div class="palette-section-title">Controls</div>
+        {% for c in results.controls %}
+            <a href="{% url 'controls:detail' c.pk %}" class="palette-item">
+                <i class="bi bi-shield-check"></i>
+                <span>{{ c.code }} · {{ c.name }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+
+    {% if results.policies %}
+        <div class="palette-section-title">Policies</div>
+        {% for p in results.policies %}
+            <a href="{% url 'policies:detail' p.pk %}" class="palette-item">
+                <i class="bi bi-file-earmark-text"></i>
+                <span>{{ p.code }} · {{ p.title }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+
+    {% if results.vendors %}
+        <div class="palette-section-title">Vendors</div>
+        {% for v in results.vendors %}
+            <a href="{% url 'vendors:detail' v.pk %}" class="palette-item">
+                <i class="bi bi-truck"></i>
+                <span>{{ v.name }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+{% endif %}

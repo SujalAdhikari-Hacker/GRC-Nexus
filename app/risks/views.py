@@ -1,18 +1,38 @@
 from django.db.models import Q
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.urls import reverse_lazy
+from django.http import HttpResponse
+from django.shortcuts import render
 
-from core.mixins import DepartmentScopedMixin
+from core.mixins import DepartmentScopedMixin, HODOrSuperuserMixin, CsvExportMixin
 from core.correlation import get_full_risk_context
-from .models import Risk, RiskCategory
+from .models import Risk, RiskCategory, RiskAppetite
 from .services import recalculate_risk
 
 
-class RiskListView(DepartmentScopedMixin, ListView):
+class RiskListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Risk
     template_name = 'risks/risk_list.html'
     context_object_name = 'risks'
     paginate_by = 20
+
+    csv_filename = 'risks.csv'
+    csv_fields = [
+        ('Title', 'title'),
+        ('Category', lambda r: r.category.name),
+        ('Department', lambda r: r.owner_dept.name),
+        ('Owner', lambda r: r.owner_user.username if r.owner_user else ''),
+        ('Likelihood', 'likelihood'),
+        ('Impact', 'impact'),
+        ('Inherent', 'inherent_score'),
+        ('Residual', 'residual_score'),
+        ('Appetite Breach', lambda r: 'Yes' if r.appetite_breached else 'No'),
+        ('Treatment', 'get_treatment_strategy_display'),
+        ('Status', 'get_status_display'),
+        ('Identified', lambda r: r.identified_date or ''),
+        ('Assets', lambda r: ', '.join(a.name for a in r.assets.all())),
+        ('Controls', lambda r: ', '.join(c.code for c in r.controls.all())),
+    ]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -62,14 +82,6 @@ class RiskCreateView(DepartmentScopedMixin, CreateView):
     ]
     success_url = reverse_lazy('risks:list')
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            form.fields['owner_dept'].initial = user.department
-            form.fields['owner_dept'].widget.attrs['disabled'] = 'disabled'
-        return form
-
     def form_valid(self, form):
         response = super().form_valid(form)
         recalculate_risk(self.object)
@@ -91,15 +103,9 @@ class RiskUpdateView(DepartmentScopedMixin, UpdateView):
         recalculate_risk(self.object)
         return response
 
-    from django.http import HttpResponse
-from django.shortcuts import render
-
 
 def risk_score_preview(request):
-    """
-    HTMX endpoint — returns an HTML fragment showing the live score
-    preview as the user changes likelihood/impact/controls.
-    """
+    """HTMX endpoint — returns live score preview fragment."""
     try:
         likelihood = int(request.GET.get('likelihood', 1))
         impact = int(request.GET.get('impact', 1))
@@ -108,10 +114,8 @@ def risk_score_preview(request):
 
     likelihood = max(1, min(5, likelihood))
     impact = max(1, min(5, impact))
-
     inherent = likelihood * impact
 
-    # Simple residual preview if control IDs are provided
     control_ids = request.GET.getlist('controls')
     residual = inherent
     if control_ids:
@@ -122,7 +126,6 @@ def risk_score_preview(request):
             residual = round(inherent * (1 - avg_eff))
             residual = max(0, min(25, residual))
 
-    # Severity band
     if inherent >= 20:
         band, color = 'Critical', '#dc3545'
     elif inherent >= 12:
@@ -140,11 +143,6 @@ def risk_score_preview(request):
         'band': band,
         'color': color,
     })
-from django.views.generic import ListView, CreateView, UpdateView
-from django.urls import reverse_lazy
-
-from core.mixins import HODOrSuperuserMixin
-from .models import RiskAppetite
 
 
 class RiskAppetiteListView(HODOrSuperuserMixin, ListView):
@@ -157,7 +155,6 @@ class RiskAppetiteListView(HODOrSuperuserMixin, ListView):
         user = self.request.user
         if user.is_superuser:
             return qs
-        # HOD sees appetites for their department only
         return qs.filter(department=user.department)
 
 
