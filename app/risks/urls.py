@@ -1,7 +1,8 @@
-from django.urls import path
+﻿from django.urls import path
 from .views import (
     RiskListView, RiskDetailView, RiskCreateView, RiskUpdateView,
     risk_score_preview,
+    RiskTreatmentCreateView, RiskTreatmentUpdateView,
     RiskAppetiteListView, RiskAppetiteCreateView, RiskAppetiteUpdateView,
 )
 
@@ -15,6 +16,9 @@ urlpatterns = [
     path('appetite/', RiskAppetiteListView.as_view(), name='appetite_list'),
     path('appetite/new/', RiskAppetiteCreateView.as_view(), name='appetite_create'),
     path('appetite/<int:pk>/edit/', RiskAppetiteUpdateView.as_view(), name='appetite_update'),
+
+    path('<int:risk_pk>/treatments/new/', RiskTreatmentCreateView.as_view(), name='treatment_create'),
+    path('treatments/<int:pk>/edit/', RiskTreatmentUpdateView.as_view(), name='treatment_update'),
 
     path('<int:pk>/', RiskDetailView.as_view(), name='detail'),
     path('<int:pk>/edit/', RiskUpdateView.as_view(), name='update'),

@@ -1,0 +1,54 @@
+﻿{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Treatment · {{ risk.title|truncatechars:40 }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'risks:list' %}">Risks</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'risks:detail' risk.pk %}">{{ risk.title|truncatechars:40 }}</a></li>
+    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %} Treatment</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit{% else %}New{% endif %} treatment plan</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save Treatment</button>
+                    <a href="{% url 'risks:detail' risk.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Risk context</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Risk</span><span class="text-end">{{ risk.title|truncatechars:30 }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Residual</span><span>{{ risk.residual_score }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Strategy</span><span>{{ risk.get_treatment_strategy_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Breach?</span><span>{% if risk.appetite_breached %}<span class="badge bg-danger">Yes</span>{% else %}<span class="badge bg-success">No</span>{% endif %}</span></li>
+            </ul>
+        </div>
+    </div>
+</div>
+<style>
+    input[type="text"], input[type="date"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+</style>
+{% endblock %}

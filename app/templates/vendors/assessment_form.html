@@ -1,0 +1,64 @@
+﻿{% extends "base.html" %}
+{% block title %}New Assessment · {{ vendor.name }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'vendors:list' %}">Vendors</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'vendors:detail' vendor.pk %}">{{ vendor.name }}</a></li>
+    <li class="breadcrumb-item active">New Assessment</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>New vendor assessment</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save Assessment</button>
+                    <a href="{% url 'vendors:detail' vendor.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Vendor context</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Vendor</span><span>{{ vendor.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Tier</span><span>{{ vendor.get_tier_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Data sensitivity</span><span>{{ vendor.get_data_sensitivity_display }}</span></li>
+            </ul>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Scoring guide</strong></div>
+            <div class="card-body small text-muted">
+                <ul class="ps-3 mb-0">
+                    <li><strong>0&ndash;29:</strong> Low risk</li>
+                    <li><strong>30&ndash;59:</strong> Moderate</li>
+                    <li><strong>60&ndash;79:</strong> High</li>
+                    <li><strong>80&ndash;100:</strong> Critical</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    input[type="text"], input[type="number"], input[type="date"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+</style>
+{% endblock %}

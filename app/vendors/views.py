@@ -1,9 +1,12 @@
-﻿from django.db.models import Q
-from django.views.generic import ListView, DetailView
+﻿from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.views.generic import ListView, DetailView, CreateView
 
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from core.correlation import get_full_vendor_context
-from .models import Vendor
+from .models import Vendor, VendorAssessment
 
 
 class VendorListView(DepartmentScopedMixin, CsvExportMixin, ListView):
@@ -59,4 +62,29 @@ class VendorDetailView(DepartmentScopedMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_vendor_context(self.object))
+        return ctx
+
+
+class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
+    model = VendorAssessment
+    template_name = 'vendors/assessment_form.html'
+    fields = ['assessment_date', 'score', 'status', 'findings']
+
+    def dispatch(self, request, *args, **kwargs):
+        self.vendor = Vendor.objects.get(pk=kwargs['vendor_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.vendor = self.vendor
+        form.instance.assessed_by = self.request.user
+        if not form.instance.assessment_date:
+            form.instance.assessment_date = timezone.now().date()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('vendors:detail', kwargs={'pk': self.vendor.pk})
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['vendor'] = self.vendor
         return ctx

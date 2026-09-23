@@ -1,12 +1,14 @@
+﻿from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
-from django.urls import reverse_lazy
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
 
 from core.mixins import DepartmentScopedMixin, HODOrSuperuserMixin, CsvExportMixin
 from core.correlation import get_full_risk_context
-from .models import Risk, RiskCategory, RiskAppetite
+from .models import Risk, RiskCategory, RiskAppetite, RiskTreatment
 from .services import recalculate_risk
 
 
@@ -105,17 +107,14 @@ class RiskUpdateView(DepartmentScopedMixin, UpdateView):
 
 
 def risk_score_preview(request):
-    """HTMX endpoint — returns live score preview fragment."""
     try:
         likelihood = int(request.GET.get('likelihood', 1))
         impact = int(request.GET.get('impact', 1))
     except ValueError:
         likelihood, impact = 1, 1
-
     likelihood = max(1, min(5, likelihood))
     impact = max(1, min(5, impact))
     inherent = likelihood * impact
-
     control_ids = request.GET.getlist('controls')
     residual = inherent
     if control_ids:
@@ -125,7 +124,6 @@ def risk_score_preview(request):
             avg_eff = sum(c.effectiveness for c in controls) / (controls.count() * 5.0)
             residual = round(inherent * (1 - avg_eff))
             residual = max(0, min(25, residual))
-
     if inherent >= 20:
         band, color = 'Critical', '#dc3545'
     elif inherent >= 12:
@@ -134,15 +132,47 @@ def risk_score_preview(request):
         band, color = 'Medium', '#ffc107'
     else:
         band, color = 'Low', '#198754'
-
     return render(request, 'risks/_score_preview.html', {
-        'likelihood': likelihood,
-        'impact': impact,
-        'inherent': inherent,
-        'residual': residual,
-        'band': band,
-        'color': color,
+        'likelihood': likelihood, 'impact': impact,
+        'inherent': inherent, 'residual': residual,
+        'band': band, 'color': color,
     })
+
+
+class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
+    model = RiskTreatment
+    template_name = 'risks/treatment_form.html'
+    fields = ['action_plan', 'owner_user', 'due_date', 'status', 'notes']
+
+    def dispatch(self, request, *args, **kwargs):
+        self.risk = Risk.objects.get(pk=kwargs['risk_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.risk = self.risk
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('risks:detail', kwargs={'pk': self.risk.pk})
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['risk'] = self.risk
+        return ctx
+
+
+class RiskTreatmentUpdateView(LoginRequiredMixin, UpdateView):
+    model = RiskTreatment
+    template_name = 'risks/treatment_form.html'
+    fields = ['action_plan', 'owner_user', 'due_date', 'completed_date', 'status', 'notes']
+
+    def get_success_url(self):
+        return reverse_lazy('risks:detail', kwargs={'pk': self.object.risk.pk})
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['risk'] = self.object.risk
+        return ctx
 
 
 class RiskAppetiteListView(HODOrSuperuserMixin, ListView):

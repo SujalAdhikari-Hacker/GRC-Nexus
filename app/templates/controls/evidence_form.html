@@ -1,0 +1,56 @@
+﻿{% extends "base.html" %}
+{% block title %}New Evidence · {{ control.code }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'controls:list' %}">Controls</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'controls:detail' control.pk %}">{{ control.code }}</a></li>
+    <li class="breadcrumb-item active">New Evidence</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Upload control evidence</strong></div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Upload Evidence</button>
+                    <a href="{% url 'controls:detail' control.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Control context</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Code</span><span>{{ control.code }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Name</span><span>{{ control.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Status</span><span>{{ control.get_status_display }}</span></li>
+            </ul>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>What is evidence?</strong></div>
+            <div class="card-body small text-muted">
+                Screenshots, logs, config exports, signed attestations, or any artifact proving this control is implemented and operating.
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    input[type="text"], textarea { width: 100%; padding: .375rem .75rem; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); color: var(--text); font-size: 13px; }
+    input[type="file"] { font-size: 13px; }
+</style>
+{% endblock %}

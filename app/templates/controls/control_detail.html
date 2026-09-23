@@ -30,7 +30,10 @@
         </div>
 
         <div class="card mt-3">
-            <div class="card-header bg-white"><strong>Framework mapping ({{ framework_controls|length }})</strong></div>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <strong>Framework mapping ({{ framework_controls|length }})</strong>
+    <a href="{% url 'controls:evidence_create' control.pk %}" class="btn btn-sm btn-primary">+ Evidence</a>
+</div>
             <ul class="list-group list-group-flush">
                 {% for fc in framework_controls %}
                     <li class="list-group-item">

@@ -1,9 +1,11 @@
-﻿from django.db.models import Q
-from django.views.generic import ListView, DetailView
+﻿from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
+from django.urls import reverse_lazy
+from django.views.generic import ListView, DetailView, CreateView
 
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from core.correlation import get_full_control_context
-from .models import Control
+from .models import Control, ControlEvidence
 
 
 class ControlListView(DepartmentScopedMixin, CsvExportMixin, ListView):
@@ -57,4 +59,27 @@ class ControlDetailView(DepartmentScopedMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_control_context(self.object))
+        return ctx
+
+
+class ControlEvidenceCreateView(LoginRequiredMixin, CreateView):
+    model = ControlEvidence
+    template_name = 'controls/evidence_form.html'
+    fields = ['file', 'description']
+
+    def dispatch(self, request, *args, **kwargs):
+        self.control = Control.objects.get(pk=kwargs['control_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.control = self.control
+        form.instance.uploaded_by = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('controls:detail', kwargs={'pk': self.control.pk})
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['control'] = self.control
         return ctx
