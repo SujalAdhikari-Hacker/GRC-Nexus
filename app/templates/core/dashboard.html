@@ -3,6 +3,8 @@
 {% block breadcrumb %}<h5 class="mb-0">Dashboard</h5>{% endblock %}
 
 {% block content %}
+
+{# ─────────────── STAT CARDS ─────────────── #}
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="stat-card">
@@ -21,7 +23,7 @@
     </div>
     <div class="col-md-3">
         <div class="stat-card" {% if breached_count %}style="border-color:#dc3545"{% endif %}>
-            <div class="value text-danger">{{ breached_count }}</div>
+            <div class="value {% if breached_count %}text-danger{% endif %}">{{ breached_count }}</div>
             <div class="label"><i class="bi bi-shield-exclamation"></i> Appetite breaches</div>
         </div>
     </div>
@@ -33,6 +35,146 @@
     </div>
 </div>
 
+{# ─────────────── RISK HEATMAP + SEVERITY SUMMARY ─────────────── #}
+<div class="row g-3 mb-3">
+    <div class="col-md-7">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Risk heatmap <small class="text-muted">(inherent score)</small></strong>
+                <div class="small">
+                    <span class="badge" style="background:#198754;">Low</span>
+                    <span class="badge" style="background:#ffc107; color:#000;">Medium</span>
+                    <span class="badge" style="background:#fd7e14;">High</span>
+                    <span class="badge" style="background:#dc3545;">Critical</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered mb-0" style="table-layout:fixed;">
+                    <tbody>
+                    {% for row in heatmap %}
+                        <tr>
+                            <td class="text-center align-middle bg-light fw-bold" style="width:60px;">
+                                I{{ row.0.impact }}
+                            </td>
+                            {% for cell in row %}
+                                <td class="text-center align-middle
+                                    {% if cell.band == 'critical' %}hm-critical
+                                    {% elif cell.band == 'high' %}hm-high
+                                    {% elif cell.band == 'medium' %}hm-medium
+                                    {% else %}hm-low{% endif %}"
+                                    style="height:60px;">
+                                    {% if cell.count %}
+                                        <div style="font-size:1.4rem; font-weight:700;">{{ cell.count }}</div>
+                                        <div style="font-size:.7rem; opacity:.8;">score {{ cell.score }}</div>
+                                    {% else %}
+                                        <div class="text-muted" style="font-size:.75rem;">{{ cell.score }}</div>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                    <tr>
+                        <td class="bg-light"></td>
+                        <td class="text-center bg-light fw-bold">L1</td>
+                        <td class="text-center bg-light fw-bold">L2</td>
+                        <td class="text-center bg-light fw-bold">L3</td>
+                        <td class="text-center bg-light fw-bold">L4</td>
+                        <td class="text-center bg-light fw-bold">L5</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="text-center text-muted small mt-2">
+                    Likelihood (1 = rare, 5 = almost certain) →
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card h-100">
+            <div class="card-header bg-white"><strong>Severity breakdown</strong></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span><i class="bi bi-circle-fill" style="color:#dc3545;"></i> Critical (20–25)</span>
+                        <strong>{{ severity_summary.critical }}</strong>
+                    </div>
+                    <div class="progress" style="height:8px;">
+                        <div class="progress-bar bg-danger" style="width: {% widthratio severity_summary.critical risk_count 100 %}%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span><i class="bi bi-circle-fill" style="color:#fd7e14;"></i> High (12–19)</span>
+                        <strong>{{ severity_summary.high }}</strong>
+                    </div>
+                    <div class="progress" style="height:8px;">
+                        <div class="progress-bar" style="background:#fd7e14; width: {% widthratio severity_summary.high risk_count 100 %}%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span><i class="bi bi-circle-fill" style="color:#ffc107;"></i> Medium (6–11)</span>
+                        <strong>{{ severity_summary.medium }}</strong>
+                    </div>
+                    <div class="progress" style="height:8px;">
+                        <div class="progress-bar bg-warning" style="width: {% widthratio severity_summary.medium risk_count 100 %}%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span><i class="bi bi-circle-fill" style="color:#198754;"></i> Low (1–5)</span>
+                        <strong>{{ severity_summary.low }}</strong>
+                    </div>
+                    <div class="progress" style="height:8px;">
+                        <div class="progress-bar bg-success" style="width: {% widthratio severity_summary.low risk_count 100 %}%"></div>
+                    </div>
+                </div>
+
+                <hr>
+                <div class="text-center">
+                    <div class="text-muted small">Total risks</div>
+                    <div style="font-size:2rem; font-weight:700;">{{ risk_count }}</div>
+                    <div class="text-muted small">{{ breached_count }} breaching appetite</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ─────────────── CHARTS ROW 1 ─────────────── #}
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Risks by category</strong></div>
+            <div class="card-body" style="height:280px;">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Control implementation status</strong></div>
+            <div class="card-body" style="height:280px;">
+                <canvas id="controlChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ─────────────── TREND ─────────────── #}
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Risks added (last 6 months)</strong></div>
+            <div class="card-body" style="height:260px;">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ─────────────── TOP RISKS + RECENT ASSETS ─────────────── #}
 <div class="row g-3">
     <div class="col-md-7">
         <div class="card">
@@ -50,7 +192,7 @@
                     <tbody>
                     {% for r in top_risks %}
                         <tr>
-                            <td>{{ r.title }}</td>
+                            <td><a href="{% url 'risks:detail' r.pk %}">{{ r.title }}</a></td>
                             <td class="text-center">{{ r.inherent_score }}</td>
                             <td class="text-center"><strong>{{ r.residual_score }}</strong></td>
                             <td class="text-center">
@@ -87,26 +229,7 @@
     </div>
 </div>
 
-<div class="row g-3 mt-1">
-    <div class="col-md-4">
-        <div class="stat-card">
-            <div class="value">{{ policy_count }}</div>
-            <div class="label"><i class="bi bi-file-earmark-text"></i> Policies</div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="stat-card">
-            <div class="value">{{ vendor_count }}</div>
-            <div class="label"><i class="bi bi-truck"></i> Vendors</div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="stat-card">
-            <div class="value">{{ control_count }}</div>
-            <div class="label"><i class="bi bi-shield-check"></i> Total controls</div>
-        </div>
-    </div>
-</div>
+{# ─────────────── FRAMEWORK COVERAGE ─────────────── #}
 <div class="row g-3 mt-1">
     <div class="col-12">
         <div class="card">
@@ -135,4 +258,104 @@
         </div>
     </div>
 </div>
+
+{# ─────────────── HEATMAP CELL STYLES ─────────────── #}
+<style>
+    .hm-low      { background: #d1e7dd; }
+    .hm-medium   { background: #fff3cd; }
+    .hm-high     { background: #ffe5cc; }
+    .hm-critical { background: #f8d7da; }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ─────────────── Category doughnut ───────────────
+    const categoryLabels = {{ category_labels|safe }};
+    const categoryValues = {{ category_values|safe }};
+
+    if (categoryLabels.length) {
+        new Chart(document.getElementById('categoryChart'), {
+            type: 'doughnut',
+            data: {
+                labels: categoryLabels,
+                datasets: [{
+                    data: categoryValues,
+                    backgroundColor: [
+                        '#0d6efd', '#dc3545', '#ffc107', '#198754', '#6f42c1',
+                        '#fd7e14', '#20c997', '#6c757d'
+                    ],
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 12, padding: 10 } },
+                }
+            }
+        });
+    } else {
+        document.getElementById('categoryChart').parentElement.innerHTML =
+            '<div class="text-muted text-center pt-5">No risk data yet.</div>';
+    }
+
+    // ─────────────── Control status bar ───────────────
+    const controlData = {{ control_status_data|safe }};
+
+    new Chart(document.getElementById('controlChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Planned', 'Implemented', 'Not implemented', 'N/A'],
+            datasets: [{
+                label: 'Controls',
+                data: [
+                    controlData.planned,
+                    controlData.implemented,
+                    controlData.not_implemented,
+                    controlData.not_applicable
+                ],
+                backgroundColor: ['#ffc107', '#198754', '#dc3545', '#6c757d'],
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+        }
+    });
+
+    // ─────────────── Risk trend line ───────────────
+    const monthLabels = {{ month_labels|safe }};
+    const monthValues = {{ month_values|safe }};
+
+    new Chart(document.getElementById('trendChart'), {
+        type: 'line',
+        data: {
+            labels: monthLabels,
+            datasets: [{
+                label: 'Risks added',
+                data: monthValues,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 5,
+                pointBackgroundColor: '#0d6efd',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+        }
+    });
+</script>
 {% endblock %}
