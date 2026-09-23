@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Risk{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'risks:list' %}">Risks</a></li>
+    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit{% else %}Create{% endif %} Risk</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text small">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="text-danger small">{{ field.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save Risk</button>
+                    <a href="{% url 'risks:list' %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card sticky-top" style="top: 1rem;">
+            <div class="card-header bg-white"><strong>Live score preview</strong></div>
+            <div class="card-body"
+                 hx-get="{% url 'risks:score_preview' %}"
+                 hx-trigger="load, change from:#id_likelihood, change from:#id_impact, change from:#id_controls"
+                 hx-include="#id_likelihood, #id_impact, #id_controls"
+                 hx-swap="innerHTML">
+                <div class="text-muted text-center small py-3">Loading preview...</div>
+            </div>
+            <div class="card-footer small text-muted bg-white">
+                <i class="bi bi-info-circle"></i>
+                Change likelihood, impact, or controls to see the score update live.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Style Django's default form widgets to Bootstrap */
+    input[type="text"], input[type="number"], input[type="date"],
+    input[type="email"], input[type="url"], input[type="password"],
+    select, textarea {
+        width: 100%;
+        padding: .375rem .75rem;
+        border: 1px solid #ced4da;
+        border-radius: .375rem;
+    }
+    select[multiple] { min-height: 130px; }
+</style>
+{% endblock %}

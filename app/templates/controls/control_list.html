@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Controls{% endblock %}
+{% block breadcrumb %}<h5 class="mb-0">Controls</h5>{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-4">
+                <input type="text" name="q" class="form-control form-control-sm" placeholder="Search code or name..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All statuses</option>
+                    {% for val, label in statuses %}
+                        <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="category" class="form-select form-select-sm">
+                    <option value="">All categories</option>
+                    {% for val, label in categories_choices %}
+                        <option value="{{ val }}" {% if selected_category == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-sm btn-dark w-100">Filter</button>
+            </div>
+        </form>
+        <a href="/admin/controls/control/add/" class="btn btn-sm btn-primary text-nowrap">+ New Control</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Owner</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Effectiveness</th>
+                    <th class="text-center">Risks</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for c in controls %}
+                <tr>
+                    <td><code>{{ c.code }}</code></td>
+                    <td><a href="{% url 'controls:detail' c.pk %}">{{ c.name }}</a></td>
+                    <td><small>{{ c.get_control_type_display }}</small></td>
+                    <td><small>{{ c.get_category_display }}</small></td>
+                    <td><small>{{ c.owner_dept.name }}</small></td>
+                    <td class="text-center">
+                        {% if c.status == 'implemented' %}<span class="badge bg-success">Implemented</span>
+                        {% elif c.status == 'planned' %}<span class="badge bg-warning text-dark">Planned</span>
+                        {% elif c.status == 'not_implemented' %}<span class="badge bg-danger">Not Impl.</span>
+                        {% else %}<span class="badge bg-secondary">{{ c.get_status_display }}</span>{% endif %}
+                    </td>
+                    <td class="text-center">{{ c.effectiveness }}/5</td>
+                    <td class="text-center">{{ c.risks.count }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'controls:detail' c.pk %}" class="btn btn-sm btn-outline-dark">View</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="9" class="text-center text-muted py-4">No controls match your filters.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

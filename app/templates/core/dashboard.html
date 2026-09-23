@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block breadcrumb %}<h5 class="mb-0">Dashboard</h5>{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ asset_count }}</div>
+            <div class="label"><i class="bi bi-hdd-stack"></i> Assets</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ risk_count }}</div>
+            <div class="label">
+                <i class="bi bi-exclamation-triangle"></i> Risks
+                <span class="text-muted">· {{ open_risk_count }} open</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" {% if breached_count %}style="border-color:#dc3545"{% endif %}>
+            <div class="value text-danger">{{ breached_count }}</div>
+            <div class="label"><i class="bi bi-shield-exclamation"></i> Appetite breaches</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ implemented_control_count }}/{{ control_count }}</div>
+            <div class="label"><i class="bi bi-shield-check"></i> Controls implemented</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Top 5 risks by residual score</strong></div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Risk</th>
+                            <th class="text-center">Inherent</th>
+                            <th class="text-center">Residual</th>
+                            <th class="text-center">Breach</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for r in top_risks %}
+                        <tr>
+                            <td>{{ r.title }}</td>
+                            <td class="text-center">{{ r.inherent_score }}</td>
+                            <td class="text-center"><strong>{{ r.residual_score }}</strong></td>
+                            <td class="text-center">
+                                {% if r.appetite_breached %}
+                                    <span class="badge bg-danger">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-success">No</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">No risks yet.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Recently added assets</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for a in recent_assets %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>
+                        <small class="text-muted">{{ a.category.name }}</small>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center">No assets yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="value">{{ policy_count }}</div>
+            <div class="label"><i class="bi bi-file-earmark-text"></i> Policies</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="value">{{ vendor_count }}</div>
+            <div class="label"><i class="bi bi-truck"></i> Vendors</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="value">{{ control_count }}</div>
+            <div class="label"><i class="bi bi-shield-check"></i> Total controls</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

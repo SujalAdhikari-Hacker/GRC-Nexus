@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{{ policy.code }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'policies:list' %}">Policies</a></li>
+    <li class="breadcrumb-item active">{{ policy.code }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">{{ policy.code }} — {{ policy.title }}</h4>
+        <small class="text-muted">Version {{ policy.version }} · {{ policy.get_status_display }}</small>
+    </div>
+    <div>
+        {% if policy.document %}
+            <a href="{{ policy.document.url }}" target="_blank" class="btn btn-sm btn-outline-dark">
+                <i class="bi bi-file-pdf"></i> Download PDF
+            </a>
+        {% endif %}
+        <a href="/admin/policies/policy/{{ policy.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Details</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Category</span><span>{{ policy.category.name|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ policy.owner_dept.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Approved by</span><span>{{ policy.approved_by|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Approval date</span><span>{{ policy.approval_date|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Next review</span><span>{{ policy.next_review_date|default:"—" }}</span></li>
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Applies to ({{ departments|length }} depts)</strong></div>
+            <div class="card-body">
+                {% for d in departments %}
+                    <span class="badge bg-secondary me-1 mb-1">{{ d.name }}</span>
+                {% empty %}
+                    <span class="text-muted small">Org-wide (no specific departments)</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Description</strong></div>
+            <div class="card-body">{{ policy.description|default:"—"|linebreaks }}</div>
+        </div>
+
+        {% if policy.content %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Policy content</strong></div>
+            <div class="card-body">{{ policy.content|linebreaks }}</div>
+        </div>
+        {% endif %}
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Governed assets ({{ assets|length }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for a in assets %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>
+                        <small class="text-muted">{{ a.category.name }} · {{ a.owner_dept.name }}</small>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center">No assets linked yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

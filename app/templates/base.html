@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GRC Platform{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #f5f6fa; }
+        .sidebar {
+            min-height: 100vh;
+            background: #1e293b;
+            color: #cbd5e1;
+            padding-top: 1rem;
+        }
+        .sidebar a {
+            color: #cbd5e1;
+            text-decoration: none;
+            display: block;
+            padding: .6rem 1rem;
+            border-radius: .35rem;
+            margin: .15rem .5rem;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background: #334155;
+            color: #fff;
+        }
+        .sidebar .section-title {
+            font-size: .75rem;
+            text-transform: uppercase;
+            color: #64748b;
+            padding: 1rem 1rem .25rem;
+            letter-spacing: .05em;
+        }
+        .topbar {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: .75rem 1.5rem;
+        }
+        .content { padding: 1.5rem; }
+        .stat-card {
+            background: #fff;
+            border-radius: .5rem;
+            padding: 1.25rem;
+            border: 1px solid #e2e8f0;
+        }
+        .stat-card .value { font-size: 1.75rem; font-weight: 600; }
+        .stat-card .label { color: #64748b; font-size: .875rem; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        {# ---------- Sidebar ---------- #}
+        {% if user.is_authenticated %}
+        <nav class="col-md-2 sidebar">
+            <div class="px-3 mb-3">
+                <h5 class="text-white mb-0"><i class="bi bi-shield-lock"></i> GRC</h5>
+                <small class="text-secondary">{{ user.department.name|default:"—" }}</small>
+            </div>
+
+            <div class="section-title">Overview</div>
+            <a href="{% url 'core:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+
+            <div class="section-title">Assets & Risk</div>
+            <a href="{% url 'assets:list' %}" class="{% if 'assets' in request.resolver_match.namespace %}active{% endif %}">
+                <i class="bi bi-hdd-stack"></i> Assets
+            </a>
+            <a href="{% url 'risks:list' %}" class="{% if 'risks' in request.resolver_match.namespace %}active{% endif %}">
+    <i class="bi bi-exclamation-triangle"></i> Risks
+</a>
+<a href="{% url 'controls:list' %}" class="{% if 'controls' in request.resolver_match.namespace %}active{% endif %}">
+    <i class="bi bi-shield-check"></i> Controls
+</a>
+
+            <div class="section-title">Governance</div>
+            <a href="{% url 'policies:list' %}" class="{% if 'policies' in request.resolver_match.namespace %}active{% endif %}">
+    <i class="bi bi-file-earmark-text"></i> Policies
+</a>
+<a href="{% url 'vendors:list' %}" class="{% if 'vendors' in request.resolver_match.namespace %}active{% endif %}">
+    <i class="bi bi-truck"></i> Vendors
+</a>
+<a href="/admin/frameworks/framework/"><i class="bi bi-diagram-3"></i> Frameworks</a>
+
+            {% if user.is_superuser %}
+            <div class="section-title">Admin</div>
+            <a href="/admin/"><i class="bi bi-gear"></i> Django Admin</a>
+            {% endif %}
+
+            <div class="section-title">Account</div>
+            <form method="post" action="{% url 'logout' %}" class="px-3 py-2">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-light w-100">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            </form>
+        </nav>
+        {% endif %}
+
+        {# ---------- Main ---------- #}
+        <main class="{% if user.is_authenticated %}col-md-10{% else %}col-12{% endif %} p-0">
+            {% if user.is_authenticated %}
+            <div class="topbar d-flex justify-content-between align-items-center">
+                <div>{% block breadcrumb %}{% endblock %}</div>
+                <div class="text-muted small">
+                    Logged in as <strong>{{ user.username }}</strong>
+                    {% if user.is_hod %}<span class="badge bg-info">HOD</span>{% endif %}
+                    {% if user.is_superuser %}<span class="badge bg-danger">Superadmin</span>{% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="content">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

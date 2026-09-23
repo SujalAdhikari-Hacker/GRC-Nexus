@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ control.code }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'controls:list' %}">Controls</a></li>
+    <li class="breadcrumb-item active">{{ control.code }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">{{ control.code }} — {{ control.name }}</h4>
+    <a href="/admin/controls/control/{{ control.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Details</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Type</span><span>{{ control.get_control_type_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Category</span><span>{{ control.get_category_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Status</span><span>{{ control.get_status_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Effectiveness</span><span>{{ control.effectiveness }}/5</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ control.owner_dept.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Shared</span><span>{{ control.is_shared|yesno:"Yes,No" }}</span></li>
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Framework mapping ({{ framework_controls|length }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for fc in framework_controls %}
+                    <li class="list-group-item">
+                        <span class="badge bg-dark">{{ fc.framework.name }}</span>
+                        <code class="ms-1">{{ fc.code }}</code>
+                        <div class="small text-muted">{{ fc.title }}</div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center">Not mapped to any framework.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Description</strong></div>
+            <div class="card-body">{{ control.description|default:"—"|linebreaks }}</div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Mitigates risks ({{ risks|length }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for r in risks %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <a href="{% url 'risks:detail' r.pk %}">{{ r.title }}</a>
+                        <small>residual {{ r.residual_score }}</small>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center">No linked risks.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Protects assets ({{ assets|length }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for a in assets %}
+                    <li class="list-group-item">
+                        <a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>
+                        <small class="text-muted">· {{ a.category.name }}</small>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center">No protected assets.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

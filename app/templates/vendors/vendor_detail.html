@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}{{ vendor.name }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'vendors:list' %}">Vendors</a></li>
+    <li class="breadcrumb-item active">{{ vendor.name }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">{{ vendor.name }}</h4>
+        <small class="text-muted">Tier {{ vendor.tier }} · {{ vendor.get_data_sensitivity_display }} data</small>
+    </div>
+    <a href="/admin/vendors/vendor/{{ vendor.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Contact</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Name</span><span>{{ vendor.contact_name|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Email</span><span>{{ vendor.contact_email|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Phone</span><span>{{ vendor.contact_phone|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ vendor.owner_dept.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Active</span><span>{{ vendor.is_active|yesno:"Yes,No" }}</span></li>
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Contract</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Start</span><span>{{ vendor.contract_start|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">End</span><span>{{ vendor.contract_end|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Latest risk score</span>
+                    <span>
+                        {% if vendor.latest_score is not None %}
+                            {% if vendor.latest_score >= 60 %}<span class="badge bg-danger">{{ vendor.latest_score }}</span>
+                            {% elif vendor.latest_score >= 40 %}<span class="badge bg-warning text-dark">{{ vendor.latest_score }}</span>
+                            {% else %}<span class="badge bg-success">{{ vendor.latest_score }}</span>{% endif %}
+                        {% else %}<span class="text-muted">—</span>{% endif %}
+                    </span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Description</strong></div>
+            <div class="card-body">{{ vendor.description|default:"—"|linebreaks }}</div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Supplied assets ({{ assets|length }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for a in assets %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>
+                        <small class="text-muted">{{ a.category.name }} · {{ a.owner_dept.name }}</small>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center">No linked assets.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Associated risks ({{ risks|length }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for r in risks %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <a href="{% url 'risks:detail' r.pk %}">{{ r.title }}</a>
+                        <small>
+                            residual {{ r.residual_score }}
+                            {% if r.appetite_breached %}<span class="badge bg-danger ms-1">Breach</span>{% endif %}
+                        </small>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center">No risks through linked assets.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Assessment history ({{ assessments|length }})</strong></div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th class="text-center">Score</th>
+                            <th class="text-center">Status</th>
+                            <th>Findings</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for a in assessments %}
+                        <tr>
+                            <td>{{ a.assessment_date }}</td>
+                            <td class="text-center">
+                                {% if a.score >= 60 %}<span class="badge bg-danger">{{ a.score }}</span>
+                                {% elif a.score >= 40 %}<span class="badge bg-warning text-dark">{{ a.score }}</span>
+                                {% else %}<span class="badge bg-success">{{ a.score }}</span>{% endif %}
+                            </td>
+                            <td class="text-center"><small>{{ a.get_status_display }}</small></td>
+                            <td><small>{{ a.findings|truncatechars:80|default:"—" }}</small></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">No assessments yet.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

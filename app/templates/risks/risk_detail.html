@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}{{ risk.title }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'risks:list' %}">Risks</a></li>
+    <li class="breadcrumb-item active">{{ risk.title|truncatechars:50 }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">{{ risk.title }}</h4>
+    <div>
+        <a href="{% url 'risks:update' risk.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        <a href="/admin/risks/risk/{{ risk.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ risk.inherent_score }}</div>
+            <div class="label">Inherent (L{{ risk.likelihood }} × I{{ risk.impact }})</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ risk.residual_score }}</div>
+            <div class="label">Residual</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" {% if risk.appetite_breached %}style="border-color:#dc3545"{% endif %}>
+            <div class="value">
+                {% if risk.appetite_breached %}
+                    <span class="text-danger">Breach</span>
+                {% else %}
+                    <span class="text-success">In appetite</span>
+                {% endif %}
+            </div>
+            <div class="label">Appetite status</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ risk.get_treatment_strategy_display }}</div>
+            <div class="label">Treatment strategy</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Description</strong></div>
+            <div class="card-body">
+                {{ risk.description|default:"—"|linebreaks }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Metadata</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Category</span><span>{{ risk.category.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ risk.owner_dept.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner user</span><span>{{ risk.owner_user|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Status</span><span>{{ risk.get_status_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Identified</span><span>{{ risk.identified_date|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Target close</span><span>{{ risk.target_close_date|default:"—" }}</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Affected assets ({{ assets|length }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for a in assets %}
+                    <li class="list-group-item">
+                        <a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>
+                        <small class="text-muted">· {{ a.category.name }}</small>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center">No linked assets.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Mitigating controls ({{ controls|length }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for c in controls %}
+                    <li class="list-group-item">
+                        <strong>{{ c.code }}</strong> — {{ c.name }}
+                        <div class="small text-muted">
+                            {{ c.get_status_display }} · effectiveness {{ c.effectiveness }}/5
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center">No mitigating controls.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Treatment plans ({{ treatments|length }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for t in treatments %}
+                    <li class="list-group-item">
+                        {{ t.action_plan|truncatechars:120 }}
+                        <div class="small text-muted">
+                            {{ t.get_status_display }} · due {{ t.due_date|default:"—" }}
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center">No treatments yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Related risks ({{ related_risks|length }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for r in related_risks %}
+                    <li class="list-group-item">
+                        <a href="{% url 'risks:detail' r.pk %}">{{ r.title }}</a>
+                        <div class="small text-muted">residual {{ r.residual_score }}</div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center">No correlated risks.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Vendors{% endblock %}
+{% block breadcrumb %}<h5 class="mb-0">Vendor Register</h5>{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-4">
+                <input type="text" name="q" class="form-control form-control-sm"
+                       placeholder="Search vendor name or contact..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-3">
+                <select name="tier" class="form-select form-select-sm">
+                    <option value="">All tiers</option>
+                    {% for val, label in tiers %}
+                        <option value="{{ val }}" {% if selected_tier == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="sensitivity" class="form-select form-select-sm">
+                    <option value="">All sensitivity levels</option>
+                    {% for val, label in sensitivities %}
+                        <option value="{{ val }}" {% if selected_sensitivity == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-sm btn-dark w-100">Filter</button>
+            </div>
+        </form>
+        <a href="/admin/vendors/vendor/add/" class="btn btn-sm btn-primary text-nowrap">+ New Vendor</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Vendor</th>
+                    <th class="text-center">Tier</th>
+                    <th class="text-center">Data sensitivity</th>
+                    <th>Owner dept</th>
+                    <th class="text-center">Latest score</th>
+                    <th class="text-center">Assets</th>
+                    <th>Contract end</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for v in vendors %}
+                <tr>
+                    <td><a href="{% url 'vendors:detail' v.pk %}"><strong>{{ v.name }}</strong></a></td>
+                    <td class="text-center">
+                        {% if v.tier == 1 %}<span class="badge bg-danger">Tier 1</span>
+                        {% elif v.tier == 2 %}<span class="badge bg-warning text-dark">Tier 2</span>
+                        {% else %}<span class="badge bg-secondary">Tier 3</span>{% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if v.data_sensitivity == 4 %}<span class="badge bg-danger">Restricted</span>
+                        {% elif v.data_sensitivity == 3 %}<span class="badge bg-warning text-dark">Confidential</span>
+                        {% elif v.data_sensitivity == 2 %}<span class="badge bg-info text-dark">Internal</span>
+                        {% else %}<span class="badge bg-secondary">Public</span>{% endif %}
+                    </td>
+                    <td><small>{{ v.owner_dept.name }}</small></td>
+                    <td class="text-center">
+                        {% if v.latest_score is not None %}
+                            {% if v.latest_score >= 60 %}<span class="badge bg-danger">{{ v.latest_score }}</span>
+                            {% elif v.latest_score >= 40 %}<span class="badge bg-warning text-dark">{{ v.latest_score }}</span>
+                            {% else %}<span class="badge bg-success">{{ v.latest_score }}</span>{% endif %}
+                        {% else %}<span class="text-muted small">—</span>{% endif %}
+                    </td>
+                    <td class="text-center">{{ v.provides_assets.count }}</td>
+                    <td><small>{{ v.contract_end|default:"—" }}</small></td>
+                    <td class="text-end">
+                        <a href="{% url 'vendors:detail' v.pk %}" class="btn btn-sm btn-outline-dark">View</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No vendors match your filters.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
