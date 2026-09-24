@@ -809,3 +809,391 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 [data-bs-theme="dark"] .nav-section-title:hover {
     color: #FFFFFF !important;
 }
+
+/* ============================================================
+   SIDEBAR FIX — HIGH PRIORITY OVERRIDES
+   Kills collapse gaps, brightens text
+   ============================================================ */
+
+/* --- Kill all spacing on section wrappers --- */
+.nav-section {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+}
+
+/* --- Section headers: tight, white, no leftover button styling --- */
+.nav-section-title,
+button.nav-section-title,
+.sidebar .nav-section-title {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 12px 14px 4px !important;
+    background: transparent !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    color: #F9FAFB !important;
+    font-family: inherit !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1.2 !important;
+    cursor: pointer !important;
+    text-align: left !important;
+}
+.nav-section-title:hover {
+    color: #FFFFFF !important;
+}
+.nav-section-title .section-caret {
+    font-size: 10px !important;
+    opacity: 0.85 !important;
+    transition: transform 0.15s ease !important;
+    margin-left: 8px !important;
+}
+
+/* --- Collapsed body hides completely, no whitespace --- */
+.nav-section-body {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+.nav-section.is-open .nav-section-body {
+    display: block !important;
+}
+
+/* --- Nav links: BRIGHT text, tight spacing --- */
+.sidebar .nav-link,
+aside .nav-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 6px 12px !important;
+    margin: 1px 8px !important;
+    border-radius: 4px !important;
+    color: #D1D5DB !important;
+    background: transparent !important;
+    font-size: 13px !important;
+    font-weight: 450 !important;
+    line-height: 1.4 !important;
+    text-decoration: none !important;
+    border: 0 !important;
+    position: relative !important;
+}
+.sidebar .nav-link i,
+aside .nav-link i {
+    color: #9CA3AF !important;
+    font-size: 14px !important;
+    width: 16px !important;
+    text-align: center !important;
+    opacity: 1 !important;
+    flex-shrink: 0 !important;
+}
+.sidebar .nav-link span,
+aside .nav-link span {
+    color: inherit !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* --- Hover --- */
+.sidebar .nav-link:hover,
+aside .nav-link:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #FFFFFF !important;
+}
+.sidebar .nav-link:hover i,
+aside .nav-link:hover i {
+    color: #FFFFFF !important;
+}
+
+/* --- Active --- */
+.sidebar .nav-link.active,
+aside .nav-link.active {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #FFFFFF !important;
+    font-weight: 500 !important;
+}
+.sidebar .nav-link.active i,
+aside .nav-link.active i {
+    color: #F59E0B !important;
+}
+.sidebar .nav-link.active::before,
+aside .nav-link.active::before {
+    content: '' !important;
+    position: absolute !important;
+    left: -8px !important;
+    top: 8px !important;
+    bottom: 8px !important;
+    width: 3px !important;
+    background: #F59E0B !important;
+    border-radius: 0 2px 2px 0 !important;
+}
+
+/* --- Top of nav list: tighter first section --- */
+.nav {
+    padding: 8px 0 !important;
+}
+.nav > .nav-section:first-child .nav-section-title {
+    padding-top: 4px !important;
+}
+
+/* --- User block at bottom: tight --- */
+.user-block {
+    margin: 0 !important;
+    padding: 12px 14px !important;
+}
+
+/* ============================================================
+   SIDEBAR — NATIVE details/summary implementation
+   ============================================================ */
+
+/* Kill all spacing on section wrappers */
+.nav-section {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    display: block;
+}
+
+/* Remove default details marker triangle */
+details.nav-section > summary {
+    list-style: none;
+    cursor: pointer;
+}
+details.nav-section > summary::-webkit-details-marker,
+details.nav-section > summary::marker {
+    display: none;
+    content: '';
+}
+
+/* Section title styling (applies to both button.summary and div.static) */
+.nav-section-title {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 14px 14px 6px !important;
+    background: transparent !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    color: #F9FAFB !important;
+    font-family: inherit !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1.2 !important;
+    text-align: left !important;
+}
+
+.nav-section-title.static {
+    cursor: default !important;
+}
+
+.nav-section-title:hover {
+    color: #FFFFFF !important;
+}
+
+.nav-section-title .section-caret {
+    font-size: 10px !important;
+    opacity: 0.85 !important;
+    transition: transform 0.15s ease !important;
+    margin-left: 8px !important;
+    color: inherit !important;
+}
+
+/* Rotate caret: open = 0deg, closed = -90deg */
+details.nav-section[open] > summary .section-caret {
+    transform: rotate(0deg) !important;
+}
+details.nav-section:not([open]) > summary .section-caret {
+    transform: rotate(-90deg) !important;
+}
+
+/* Nav links — bright, tight */
+.sidebar .nav-link,
+aside .nav-link,
+details.nav-section > a.nav-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 6px 12px !important;
+    margin: 1px 8px !important;
+    border-radius: 4px !important;
+    color: #D1D5DB !important;
+    background: transparent !important;
+    font-size: 13px !important;
+    font-weight: 450 !important;
+    line-height: 1.4 !important;
+    text-decoration: none !important;
+    border: 0 !important;
+    position: relative !important;
+}
+
+.sidebar .nav-link i,
+aside .nav-link i,
+details.nav-section > a.nav-link i {
+    color: #9CA3AF !important;
+    font-size: 14px !important;
+    width: 16px !important;
+    text-align: center !important;
+    opacity: 1 !important;
+    flex-shrink: 0 !important;
+}
+
+.sidebar .nav-link span {
+    color: inherit !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.sidebar .nav-link:hover,
+details.nav-section > a.nav-link:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #FFFFFF !important;
+}
+.sidebar .nav-link:hover i,
+details.nav-section > a.nav-link:hover i {
+    color: #FFFFFF !important;
+}
+
+.sidebar .nav-link.active,
+details.nav-section > a.nav-link.active {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #FFFFFF !important;
+    font-weight: 500 !important;
+}
+.sidebar .nav-link.active i,
+details.nav-section > a.nav-link.active i {
+    color: #F59E0B !important;
+}
+.sidebar .nav-link.active::before,
+details.nav-section > a.nav-link.active::before {
+    content: '' !important;
+    position: absolute !important;
+    left: -8px !important;
+    top: 8px !important;
+    bottom: 8px !important;
+    width: 3px !important;
+    background: #F59E0B !important;
+    border-radius: 0 2px 2px 0 !important;
+}
+
+/* Nav list spacing */
+.nav {
+    padding: 6px 0 !important;
+}
+
+/* ---------- FORCE-HIDE children of closed <details> sections ---------- */
+details.nav-section:not([open]) > a,
+details.nav-section:not([open]) > div {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+}
+
+/* ============================================================
+   SIDEBAR v3 — flat structure, no wrappers, inline-layout
+   ============================================================ */
+
+.sidebar .nav {
+    padding: 6px 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    flex: 1 !important;
+    overflow-y: auto !important;
+}
+
+.sidebar-section-head {
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 4px;
+    margin: 0;
+    color: #F9FAFB;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: inherit;
+    line-height: 1.2;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+}
+.sidebar-section-head:hover { color: #FFFFFF; }
+.sidebar-section-head .section-caret {
+    font-size: 10px;
+    opacity: 0.9;
+    transition: transform 0.15s ease;
+    margin-left: 8px;
+}
+
+.sidebar-link {
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    margin: 1px 8px;
+    border-radius: 4px;
+    color: #D1D5DB;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 450;
+    line-height: 1.4;
+    position: relative;
+}
+.sidebar-link i {
+    color: #9CA3AF;
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.sidebar-link span {
+    color: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #FFFFFF !important;
+}
+.sidebar-link:hover i { color: #FFFFFF !important; }
+.sidebar-link.active {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #FFFFFF !important;
+    font-weight: 500;
+}
+.sidebar-link.active i { color: #F59E0B !important; }
+.sidebar-link.active::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    background: #F59E0B;
+    border-radius: 0 2px 2px 0;
+}
