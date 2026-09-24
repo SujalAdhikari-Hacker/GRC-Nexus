@@ -430,3 +430,52 @@ class FindingUpdateView(DepartmentScopedMixin, UpdateView):
     template_name = 'audits/finding_form.html'
     success_url = reverse_lazy('audits:finding_list')
     department_field = 'owner_dept'
+
+class EvidenceScoreListView(DepartmentScopedMixin, ListView):
+    model = EvidenceScore
+    template_name = 'audits/score_list.html'
+    context_object_name = 'scores'
+    paginate_by = 30
+    department_field = 'evidence__owner_dept'
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related(
+            'evidence', 'evidence__related_control', 'evidence__owner_dept', 'assessor'
+        )
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(evidence__title__icontains=q)
+                | Q(evidence__related_control__code__icontains=q)
+            )
+        rating = self.request.GET.get('rating')
+        if rating == 'excellent':
+            qs = qs.filter(total_score__gte=90)
+        elif rating == 'good':
+            qs = qs.filter(total_score__gte=75, total_score__lt=90)
+        elif rating == 'partial':
+            qs = qs.filter(total_score__gte=50, total_score__lt=75)
+        elif rating == 'weak':
+            qs = qs.filter(total_score__lt=50)
+        return qs.order_by('-total_score')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_rating'] = self.request.GET.get('rating', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(evidence__owner_dept=user.department)
+        all_scores = list(base)
+        ctx['total_count'] = len(all_scores)
+        ctx['excellent_count'] = sum(1 for s in all_scores if s.total_score >= 90)
+        ctx['good_count'] = sum(1 for s in all_scores if 75 <= s.total_score < 90)
+        ctx['partial_count'] = sum(1 for s in all_scores if 50 <= s.total_score < 75)
+        ctx['weak_count'] = sum(1 for s in all_scores if s.total_score < 50)
+        if all_scores:
+            ctx['avg_score'] = round(sum(s.total_score for s in all_scores) / len(all_scores), 1)
+        else:
+            ctx['avg_score'] = 0
+        return ctx

@@ -2,7 +2,7 @@
 from .views import (
     AuditListView, AuditDetailView, AuditCreateView, AuditUpdateView, AuditTimelineView,
     EvidenceListView, EvidenceDetailView, EvidenceCreateView, EvidenceUpdateView,
-    EvidenceScoreCreateView, EvidenceScoreUpdateView,
+    EvidenceScoreCreateView, EvidenceScoreUpdateView, EvidenceScoreListView,
     ControlTestListView, ControlTestCreateView, ControlTestUpdateView,
     FindingListView, FindingDetailView, FindingCreateView, FindingUpdateView,
 )
@@ -22,6 +22,8 @@ urlpatterns = [
     path('evidence/<int:pk>/edit/', EvidenceUpdateView.as_view(), name='evidence_update'),
     path('evidence/<int:evidence_pk>/score/new/', EvidenceScoreCreateView.as_view(), name='evidence_score_create'),
     path('evidence/score/<int:pk>/edit/', EvidenceScoreUpdateView.as_view(), name='evidence_score_update'),
+
+    path('scoring/', EvidenceScoreListView.as_view(), name='score_list'),
 
     path('tests/', ControlTestListView.as_view(), name='test_list'),
     path('tests/new/', ControlTestCreateView.as_view(), name='test_create'),

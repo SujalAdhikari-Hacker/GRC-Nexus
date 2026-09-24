@@ -1,0 +1,132 @@
+﻿{% extends "base.html" %}
+{% block title %}Evidence Scoring{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'audits:list' %}">Audits</a></li>
+    <li class="breadcrumb-item active">Evidence Scoring</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Evidence Scoring</h5>
+        <small class="text-muted">Evaluate evidence across 5 dimensions · Average score: <strong>{{ avg_score }}/100</strong></small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'audits:evidence_list' %}" class="btn btn-sm btn-outline-dark">Evidence Library</a>
+        <a href="{% url 'audits:evidence_create' %}" class="btn btn-sm btn-primary">+ Add Evidence</a>
+    </div>
+</div>
+
+{# ---------- Rating breakdown ---------- #}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-clipboard-data"></i> Scored items</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ excellent_count }}</div><div class="label"><i class="bi bi-star-fill"></i> Excellent (90+)</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#0284C7;">{{ good_count }}</div><div class="label"><i class="bi bi-star-half"></i> Good (75–89)</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#D97706;">{{ partial_count }}</div><div class="label"><i class="bi bi-star"></i> Partial (50–74)</div></div></div>
+</div>
+
+{# ---------- Filters ---------- #}
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-6">
+                <input type="text" name="q" class="form-control form-control-sm" placeholder="Search evidence name or control code..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-4">
+                <select name="rating" class="form-select form-select-sm">
+                    <option value="">All ratings</option>
+                    <option value="excellent" {% if selected_rating == 'excellent' %}selected{% endif %}>Excellent (90+)</option>
+                    <option value="good" {% if selected_rating == 'good' %}selected{% endif %}>Good (75–89)</option>
+                    <option value="partial" {% if selected_rating == 'partial' %}selected{% endif %}>Partial (50–74)</option>
+                    <option value="weak" {% if selected_rating == 'weak' %}selected{% endif %}>Weak (&lt;50)</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-sm btn-dark w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle" style="font-size:12.5px;">
+            <thead class="table-light">
+                <tr>
+                    <th style="min-width:180px;">Evidence name</th>
+                    <th style="min-width:130px;">Linked Control</th>
+                    <th class="text-center" style="width:70px;" title="Relevance — does it directly support the control?">Rel.<br><small class="text-muted">0–20</small></th>
+                    <th class="text-center" style="width:70px;" title="Completeness — is it comprehensive enough?">Comp.<br><small class="text-muted">0–20</small></th>
+                    <th class="text-center" style="width:70px;" title="Timeliness — is it current and within audit period?">Time.<br><small class="text-muted">0–20</small></th>
+                    <th class="text-center" style="width:70px;" title="Reliability — is the source trustworthy?">Relia.<br><small class="text-muted">0–20</small></th>
+                    <th class="text-center" style="width:70px;" title="Sufficiency — enough to satisfy the auditor?">Suff.<br><small class="text-muted">0–20</small></th>
+                    <th class="text-center" style="width:80px;">Total</th>
+                    <th>Assessor Notes</th>
+                    <th style="width:50px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for s in scores %}
+                <tr>
+                    <td>
+                        <a href="{% url 'audits:evidence_detail' s.evidence.pk %}"><strong>{{ s.evidence.title|truncatechars:50 }}</strong></a>
+                        <div class="small text-muted">{{ s.evidence.get_evidence_type_display }}</div>
+                    </td>
+                    <td>
+                        {% if s.evidence.related_control %}
+                            <a href="{% url 'controls:detail' s.evidence.related_control.pk %}"><code>{{ s.evidence.related_control.code }}</code></a>
+                            <div class="small text-muted">{{ s.evidence.related_control.name|truncatechars:22 }}</div>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="text-center">{{ s.relevance }}</td>
+                    <td class="text-center">{{ s.completeness }}</td>
+                    <td class="text-center">{{ s.timeliness }}</td>
+                    <td class="text-center">{{ s.reliability }}</td>
+                    <td class="text-center">{{ s.sufficiency }}</td>
+                    <td class="text-center">
+                        {% if s.total_score >= 90 %}<span class="badge bg-success" style="font-size:11px;">{{ s.total_score }}</span>
+                        {% elif s.total_score >= 75 %}<span class="badge bg-info text-dark" style="font-size:11px;">{{ s.total_score }}</span>
+                        {% elif s.total_score >= 50 %}<span class="badge bg-warning text-dark" style="font-size:11px;">{{ s.total_score }}</span>
+                        {% else %}<span class="badge bg-danger" style="font-size:11px;">{{ s.total_score }}</span>{% endif %}
+                    </td>
+                    <td><small class="text-muted">{{ s.assessor_notes|truncatechars:80|default:"—" }}</small></td>
+                    <td class="text-end">
+                        <a href="{% url 'audits:evidence_score_update' s.pk %}" class="btn btn-sm btn-outline-dark" title="Edit score">Edit</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="10" class="text-center text-muted py-4">
+                    No scored evidence yet.
+                    <a href="{% url 'audits:evidence_list' %}">Go to Evidence Library</a> and score an item.
+                </td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ---------- Guide ---------- #}
+<div class="card mt-3">
+    <div class="card-body">
+        <strong class="d-block mb-2"><i class="bi bi-info-circle"></i> Scoring dimensions</strong>
+        <div class="row g-3 small">
+            <div class="col-md-4"><strong>Relevance (0–20)</strong><br><span class="text-muted">Does it directly support the control?</span></div>
+            <div class="col-md-4"><strong>Completeness (0–20)</strong><br><span class="text-muted">Is it comprehensive enough?</span></div>
+            <div class="col-md-4"><strong>Timeliness (0–20)</strong><br><span class="text-muted">Is it current and within audit period?</span></div>
+            <div class="col-md-4"><strong>Reliability (0–20)</strong><br><span class="text-muted">Is the source trustworthy?</span></div>
+            <div class="col-md-4"><strong>Sufficiency (0–20)</strong><br><span class="text-muted">Enough to satisfy the auditor?</span></div>
+            <div class="col-md-4">
+                <strong>Rating</strong><br>
+                <span class="badge bg-success">Excellent 90+</span>
+                <span class="badge bg-info text-dark">Good 75–89</span>
+                <span class="badge bg-warning text-dark">Partial 50–74</span>
+                <span class="badge bg-danger">Weak &lt;50</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
