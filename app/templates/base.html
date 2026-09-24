@@ -86,6 +86,12 @@
                         <a href="{% url 'risks:matrix' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-grid-3x3"></i><span>Risk Matrix</span>
             </a>
+                        <a href="{% url 'controls:framework_matrix' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-grid-1x2"></i><span>Framework Matrix</span>
+            </a>
+            <a href="{% url 'controls:lifecycle' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-diagram-2"></i><span>Lifecycle Board</span>
+            </a>
             <a href="{% url 'frameworks:list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-diagram-3"></i><span>Frameworks</span>
             </a>
@@ -112,6 +118,9 @@
             </a>
             <a href="{% url 'frameworks:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-diagram-3"></i><span>Frameworks</span>
+            </a>
+                        <a href="{% url 'controls:lifecycle' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-diagram-2"></i><span>Lifecycle Board</span>
             </a>
             {% endif %}
 

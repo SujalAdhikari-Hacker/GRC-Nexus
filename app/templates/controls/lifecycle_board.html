@@ -1,0 +1,193 @@
+﻿{% extends "base.html" %}
+{% block title %}Control Lifecycle{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'controls:list' %}">Controls</a></li>
+    <li class="breadcrumb-item active">Lifecycle</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Control Lifecycle Board</h5>
+        <small class="text-muted">Track every control from Proposed to Retired</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'controls:list' %}" class="btn btn-sm btn-outline-dark">List view</a>
+        <a href="{% url 'controls:create' %}" class="btn btn-sm btn-primary">+ New Control</a>
+    </div>
+</div>
+
+{# ---------- Stats ---------- #}
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_controls }}</div><div class="label"><i class="bi bi-shield-check"></i> Total controls</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#D97706;">{{ early_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> In early stages</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ operational_count }}</div><div class="label"><i class="bi bi-play-circle"></i> Operational+</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ retired_count }}</div><div class="label"><i class="bi bi-archive"></i> Retired</div></div></div>
+</div>
+
+{# ---------- Pipeline bar ---------- #}
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex align-items-center" style="overflow-x:auto; gap:4px;">
+            {% for stage in stages %}
+                <div style="flex:1; min-width:110px; text-align:center;">
+                    <div class="small fw-bold text-uppercase" style="letter-spacing:.06em; font-size:10.5px;">{{ stage.label }}</div>
+                    <div style="font-size:1.6rem; font-weight:700;
+                        {% if stage.code == 'retired' %}color:#6B7280;
+                        {% elif stage.code == 'operational' or stage.code == 'monitored' %}color:#059669;
+                        {% elif stage.code == 'implemented' or stage.code == 'reviewed' %}color:#0d6efd;
+                        {% else %}color:#D97706;{% endif %}">
+                        {{ stage.count }}
+                    </div>
+                    <div style="height:6px; background:var(--border-soft); border-radius:3px; margin-top:4px; overflow:hidden;">
+                        <div style="height:100%; width:{% if total_controls %}{% widthratio stage.count total_controls 100 %}{% else %}0{% endif %}%;
+                            background:
+                            {% if stage.code == 'retired' %}#6B7280
+                            {% elif stage.code == 'operational' or stage.code == 'monitored' %}#059669
+                            {% elif stage.code == 'implemented' or stage.code == 'reviewed' %}#0d6efd
+                            {% else %}#D97706{% endif %};
+                        "></div>
+                    </div>
+                </div>
+                {% if not forloop.last %}
+                    <div style="color:var(--text-faint); font-size:14px;">→</div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{# ---------- Kanban board ---------- #}
+<div style="display:flex; gap:12px; overflow-x:auto; padding-bottom:8px;">
+    {% for stage in stages %}
+    <div class="kanban-col">
+        <div class="kanban-head">
+            <div>
+                <div class="kanban-title">{{ stage.label }}</div>
+                <small class="text-muted">{{ stage.count }} control{{ stage.count|pluralize }}</small>
+            </div>
+            {% if stage.code == 'proposed' %}<span class="badge bg-warning text-dark">Start</span>
+            {% elif stage.code == 'retired' %}<span class="badge bg-secondary">End</span>
+            {% elif stage.code == 'operational' %}<span class="badge bg-success">Live</span>{% endif %}
+        </div>
+        <div class="kanban-body">
+            {% for c in stage.controls %}
+                <div class="kanban-card">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <a href="{% url 'controls:detail' c.pk %}" class="fw-bold" style="font-size:12.5px;">{{ c.name|truncatechars:32 }}</a>
+                    </div>
+                    <div class="small text-muted mb-2"><code>{{ c.code }}</code> · {{ c.get_category_display }}</div>
+
+                    <div class="d-flex gap-1 align-items-center mb-2">
+                        {% if c.effectiveness_rating == 'effective' %}<span class="badge bg-success" style="font-size:9px;">Effective</span>
+                        {% elif c.effectiveness_rating == 'partially_effective' %}<span class="badge bg-warning text-dark" style="font-size:9px;">Partial</span>
+                        {% elif c.effectiveness_rating == 'ineffective' %}<span class="badge bg-danger" style="font-size:9px;">Ineffective</span>
+                        {% else %}<span class="badge bg-secondary" style="font-size:9px;">Untested</span>{% endif %}
+                        {% if c.risks.count %}<span class="badge bg-dark" style="font-size:9px;" title="{{ c.risks.count }} risks">{{ c.risks.count }}R</span>{% endif %}
+                        {% if c.framework_controls.count %}<span class="badge bg-info text-dark" style="font-size:9px;" title="{{ c.framework_controls.count }} framework mappings">{{ c.framework_controls.count }}F</span>{% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted" style="font-size:10.5px;">{{ c.owner_dept.name|truncatechars:14 }}</small>
+                        <div class="btn-group btn-group-sm">
+                            <form method="post" action="{% url 'controls:lifecycle_regress' c.pk %}" style="margin:0;">
+                                {% csrf_token %}
+                                <button type="submit" class="kanban-nav-btn" title="Move back">
+                                    <i class="bi bi-arrow-left"></i>
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'controls:lifecycle_advance' c.pk %}" style="margin:0;">
+                                {% csrf_token %}
+                                <button type="submit" class="kanban-nav-btn" title="Advance">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="kanban-empty">—</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="alert alert-info mt-3">
+    <i class="bi bi-info-circle"></i>
+    <strong>How the lifecycle works:</strong> each control moves through 7 stages:
+    <strong>Proposed → Designed → Implemented → Operational → Monitored → Reviewed → Retired</strong>.
+    Use the <i class="bi bi-arrow-right"></i> button on any card to advance one stage, or <i class="bi bi-arrow-left"></i> to move it back.
+    Every stage change is recorded in the control's audit history.
+</div>
+
+<style>
+    .kanban-col {
+        flex: 0 0 240px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+    }
+    .kanban-head {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--surface);
+        border-radius: 6px 6px 0 0;
+    }
+    .kanban-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--text);
+    }
+    .kanban-body {
+        padding: 8px;
+        flex: 1;
+        min-height: 200px;
+    }
+    .kanban-card {
+        background: var(--surface);
+        border: 1px solid var(--border-soft);
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 6px;
+        transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .kanban-card:hover { box-shadow: 0 2px 6px rgba(0,0,0,.08); border-color: var(--border); }
+    .kanban-nav-btn {
+        width: 24px;
+        height: 22px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-muted);
+        border-radius: 3px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        cursor: pointer;
+    }
+    .kanban-nav-btn:hover { background: var(--brand-900); color: #fff; border-color: var(--brand-900); }
+    [data-bs-theme="dark"] .kanban-nav-btn:hover { background: #E5E7EB; color: #0B1220; border-color: #E5E7EB; }
+    .kanban-empty {
+        text-align: center;
+        color: var(--text-faint);
+        padding: 20px 0;
+        font-size: 12px;
+    }
+    [data-bs-theme="dark"] .kanban-col { background: #0A0E17; }
+    [data-bs-theme="dark"] .kanban-head { background: #0F141F; }
+    [data-bs-theme="dark"] .kanban-card { background: #0F141F; }
+</style>
+{% endblock %}

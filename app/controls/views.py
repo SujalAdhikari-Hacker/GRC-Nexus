@@ -1,10 +1,13 @@
 ﻿from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 from django.db.models import Q
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.decorators.http import require_POST
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
 
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
-from core.correlation import get_full_control_context
+from core.correlation import get_full_control_context, get_framework_coverage
 from .models import Control, ControlEvidence, ControlFrameworkMapping
 from .forms import ControlForm, ControlEvidenceForm, ControlFrameworkMappingForm
 
@@ -152,3 +155,136 @@ class ControlFrameworkMappingCreateView(LoginRequiredMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         ctx['control'] = self.control
         return ctx
+
+
+class ControlFrameworkMatrixView(DepartmentScopedMixin, TemplateView):
+    template_name = 'controls/framework_matrix.html'
+    department_field = 'owner_dept'
+
+    def get_context_data(self, **kwargs):
+        from frameworks.models import Framework, FrameworkControl
+
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        controls = Control.objects.all().prefetch_related(
+            'framework_controls', 'framework_mappings__framework_control__framework'
+        )
+        if not user.is_superuser and user.department_id:
+            controls = controls.filter(owner_dept=user.department)
+        controls = controls.order_by('code')
+
+        frameworks = list(Framework.objects.all().order_by('name'))
+        framework_coverage = {fw.pk: get_framework_coverage(fw) for fw in frameworks}
+
+        matrix_rows = []
+        for c in controls:
+            direct_fc_ids = set(c.framework_controls.values_list('pk', flat=True))
+            mapped_fc_ids = set(
+                c.framework_mappings.values_list('framework_control__pk', flat=True)
+            )
+            all_fc_ids = direct_fc_ids | mapped_fc_ids
+
+            row_cells = []
+            for fw in frameworks:
+                matching = list(FrameworkControl.objects.filter(pk__in=all_fc_ids, framework=fw))
+                row_cells.append({
+                    'framework': fw,
+                    'covered': len(matching) > 0,
+                    'count': len(matching),
+                    'details': matching[:3],
+                })
+
+            matrix_rows.append({
+                'control': c,
+                'cells': row_cells,
+            })
+
+        ctx['matrix_rows'] = matrix_rows
+        ctx['frameworks'] = frameworks
+        ctx['framework_coverage'] = framework_coverage
+        ctx['total_controls'] = controls.count()
+        return ctx
+
+
+class ControlLifecycleView(DepartmentScopedMixin, TemplateView):
+    template_name = 'controls/lifecycle_board.html'
+    department_field = 'owner_dept'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        controls = Control.objects.all().select_related('owner_dept', 'owner_user')
+        if not user.is_superuser and user.department_id:
+            controls = controls.filter(owner_dept=user.department)
+
+        stages = []
+        for code, label in Control.LIFECYCLE_CHOICES:
+            stage_controls = list(controls.filter(lifecycle_status=code).order_by('code'))
+            stages.append({
+                'code': code,
+                'label': label,
+                'controls': stage_controls,
+                'count': len(stage_controls),
+                'is_terminal': code == 'retired',
+            })
+
+        ctx['stages'] = stages
+        ctx['total_controls'] = controls.count()
+
+        all_controls = list(controls)
+        ctx['operational_count'] = sum(
+            1 for c in all_controls if c.lifecycle_status in ['operational', 'monitored', 'reviewed']
+        )
+        ctx['early_count'] = sum(
+            1 for c in all_controls if c.lifecycle_status in ['proposed', 'designed', 'implemented']
+        )
+        ctx['retired_count'] = sum(1 for c in all_controls if c.lifecycle_status == 'retired')
+        return ctx
+
+
+@require_POST
+def advance_lifecycle_view(request, pk):
+    control = get_object_or_404(Control, pk=pk)
+    stages = [s[0] for s in Control.LIFECYCLE_CHOICES]
+    try:
+        idx = stages.index(control.lifecycle_status)
+    except ValueError:
+        idx = 0
+    if idx < len(stages) - 1:
+        control.lifecycle_status = stages[idx + 1]
+        control.save()
+        messages.success(request, f'{control.code} advanced to "{control.get_lifecycle_status_display()}".')
+    else:
+        messages.info(request, f'{control.code} is already at the final stage.')
+    return redirect(request.META.get('HTTP_REFERER') or 'controls:list')
+
+
+@require_POST
+def regress_lifecycle_view(request, pk):
+    control = get_object_or_404(Control, pk=pk)
+    stages = [s[0] for s in Control.LIFECYCLE_CHOICES]
+    try:
+        idx = stages.index(control.lifecycle_status)
+    except ValueError:
+        idx = 0
+    if idx > 0:
+        control.lifecycle_status = stages[idx - 1]
+        control.save()
+        messages.warning(request, f'{control.code} moved back to "{control.get_lifecycle_status_display()}".')
+    else:
+        messages.info(request, f'{control.code} is already at the first stage.')
+    return redirect(request.META.get('HTTP_REFERER') or 'controls:list')
+
+
+@require_POST
+def set_lifecycle_view(request, pk):
+    control = get_object_or_404(Control, pk=pk)
+    target = request.POST.get('target')
+    valid = [s[0] for s in Control.LIFECYCLE_CHOICES]
+    if target in valid:
+        control.lifecycle_status = target
+        control.save()
+        messages.success(request, f'{control.code} set to "{control.get_lifecycle_status_display()}".')
+    return redirect(request.META.get('HTTP_REFERER') or 'controls:list')

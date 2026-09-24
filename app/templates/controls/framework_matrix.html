@@ -1,0 +1,153 @@
+﻿{% extends "base.html" %}
+{% block title %}Framework Mapping Matrix{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'controls:list' %}">Controls</a></li>
+    <li class="breadcrumb-item active">Framework Matrix</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Control × Framework Matrix</h5>
+        <small class="text-muted">One control, many frameworks — mapped once, reused everywhere</small>
+    </div>
+    <a href="{% url 'controls:list' %}" class="btn btn-sm btn-outline-dark">Back to controls</a>
+</div>
+
+{# ---------- Framework coverage cards ---------- #}
+<div class="row g-3 mb-4">
+    {% for fw in frameworks %}
+    {% with cov=framework_coverage|default_if_none:'' %}
+    <div class="col-md-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <div style="font-weight:600; font-size:13px;">{{ fw.name }}</div>
+                    <small class="text-muted">{{ fw.version|default:"" }}</small>
+                </div>
+                <span class="badge bg-dark">{{ framework_coverage|default_if_none:'' }}</span>
+            </div>
+            {% for fw_id, cov in framework_coverage.items %}{% if fw_id == fw.pk %}
+            <div class="d-flex justify-content-between small mb-1">
+                <span>{{ cov.covered }}/{{ cov.total }} covered</span>
+                <strong>{{ cov.percent }}%</strong>
+            </div>
+            <div class="progress" style="height:8px;">
+                <div class="progress-bar {% if cov.percent >= 75 %}bg-success{% elif cov.percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                     style="width: {{ cov.percent }}%;"></div>
+            </div>
+            <div class="mt-2 small text-muted">
+                <span title="Full coverage"><strong>{{ cov.covered_full }}</strong> full</span>
+                · <span title="Partial coverage"><strong>{{ cov.covered_partial }}</strong> partial</span>
+                · <span class="text-danger"><strong>{{ cov.gap }}</strong> gap{{ cov.gap|pluralize }}</span>
+            </div>
+            {% endif %}{% endfor %}
+        </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+</div>
+
+{# ---------- Legend ---------- #}
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-7">
+                <strong class="me-2">Legend:</strong>
+                <span class="badge bg-success me-2">✓</span> Mapped
+                <span class="mx-2">·</span>
+                <span class="badge bg-secondary me-2">—</span> Not mapped
+                <span class="mx-2">·</span>
+                <span class="text-muted small">Hover a cell to see which requirements are covered</span>
+            </div>
+            <div class="col-md-5 text-end">
+                <strong class="me-2">Relationship types:</strong>
+                <span class="badge bg-dark me-1">Equal</span>
+                <span class="badge bg-info text-dark me-1">Subset</span>
+                <span class="badge bg-primary me-1">Superset</span>
+                <span class="badge bg-warning text-dark me-1">Intersects</span>
+                <span class="badge bg-secondary">Partial</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ---------- Matrix ---------- #}
+<div class="card">
+    <div class="card-header bg-white">
+        <strong>{{ total_controls }} control{{ total_controls|pluralize }} across {{ frameworks|length }} framework{{ frameworks|length|pluralize }}</strong>
+    </div>
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle" style="font-size:12.5px;">
+            <thead class="table-light">
+                <tr>
+                    <th style="min-width:180px;">Internal Control</th>
+                    <th style="min-width:120px;">Category</th>
+                    {% for fw in frameworks %}
+                        <th class="text-center" style="min-width:90px;">{{ fw.name }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+            {% for row in matrix_rows %}
+                <tr>
+                    <td>
+                        <a href="{% url 'controls:detail' row.control.pk %}"><strong>{{ row.control.name|truncatechars:40 }}</strong></a>
+                        <div class="small text-muted"><code>{{ row.control.code }}</code></div>
+                    </td>
+                    <td><small>{{ row.control.get_category_display }}</small></td>
+                    {% for cell in row.cells %}
+                        <td class="text-center">
+                            {% if cell.covered %}
+                                <span class="mx-check" title="{{ cell.count }} requirement{{ cell.count|pluralize }} covered{% for fc in cell.details %} — {{ fc.code }}{% endfor %}">✓</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% empty %}
+                <tr><td colspan="{{ frameworks|length|add:'2' }}" class="text-center text-muted py-4">No controls yet.</td></tr>
+            {% endfor %}
+            </tbody>
+            <tfoot class="table-light" style="font-weight:600;">
+                <tr>
+                    <td colspan="2" class="text-end">Coverage</td>
+                    {% for fw in frameworks %}
+                        {% for fw_id, cov in framework_coverage.items %}{% if fw_id == fw.pk %}
+                        <td class="text-center">
+                            <span class="badge {% if cov.percent >= 75 %}bg-success{% elif cov.percent >= 40 %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ cov.percent }}%</span>
+                        </td>
+                        {% endif %}{% endfor %}
+                    {% endfor %}
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+{# ---------- Relationship reference ---------- #}
+<div class="card mt-3">
+    <div class="card-body">
+        <strong class="d-block mb-2"><i class="bi bi-info-circle"></i> Relationship types explained</strong>
+        <div class="row g-2 small">
+            <div class="col-md-4"><span class="badge bg-dark">Equal</span> — Control fully satisfies the requirement</div>
+            <div class="col-md-4"><span class="badge bg-info text-dark">Subset</span> — Control is part of a broader requirement</div>
+            <div class="col-md-4"><span class="badge bg-primary">Superset</span> — Control exceeds the requirement</div>
+            <div class="col-md-4"><span class="badge bg-warning text-dark">Intersects</span> — Partial overlap</div>
+            <div class="col-md-4"><span class="badge bg-secondary">Functional Partial</span> — Partial functional coverage</div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .mx-check { color: #059669; font-size: 18px; font-weight: 700; }
+    [data-bs-theme="dark"] .mx-check { color: #34D399; }
+</style>
+
+{% endblock %}
