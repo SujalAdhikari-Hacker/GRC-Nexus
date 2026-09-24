@@ -15,9 +15,17 @@ class Control(models.Model):
         ('corrective', 'Corrective'),
     ]
     CATEGORY_CHOICES = [
-        ('technical',      'Technical'),
-        ('administrative', 'Administrative'),
-        ('physical',       'Physical'),
+        ('access_control',   'Access Control'),
+        ('asset_management', 'Asset Management'),
+        ('data_protection',  'Data Protection'),
+        ('network_security', 'Network Security'),
+        ('incident_mgmt',    'Incident Mgmt.'),
+        ('risk_management',  'Risk Management'),
+        ('compliance',       'Compliance'),
+        ('logging',          'Logging'),
+        ('technical',        'Technical'),
+        ('administrative',   'Administrative'),
+        ('physical',         'Physical'),
     ]
     STATUS_CHOICES = [
         ('planned',         'Planned'),

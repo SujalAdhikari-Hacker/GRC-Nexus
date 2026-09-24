@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'risks',
     'vulnerabilities',
     'kris',
+    'audits',
 ]
 
 MIDDLEWARE = [
