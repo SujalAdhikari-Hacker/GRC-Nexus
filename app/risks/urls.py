@@ -1,7 +1,7 @@
 ﻿from django.urls import path
 from .views import (
     RiskListView, RiskDetailView, RiskCreateView, RiskUpdateView,
-    risk_score_preview,
+    risk_score_preview, RiskMatrixView,
     RiskTreatmentCreateView, RiskTreatmentUpdateView,
     TreatmentListView,
     RiskAppetiteListView, RiskAppetiteCreateView, RiskAppetiteUpdateView,
@@ -13,6 +13,7 @@ urlpatterns = [
     path('', RiskListView.as_view(), name='list'),
     path('new/', RiskCreateView.as_view(), name='create'),
     path('score-preview/', risk_score_preview, name='score_preview'),
+    path('matrix/', RiskMatrixView.as_view(), name='matrix'),
 
     path('treatments/', TreatmentListView.as_view(), name='treatment_list'),
     path('<int:risk_pk>/treatments/new/', RiskTreatmentCreateView.as_view(), name='treatment_create'),

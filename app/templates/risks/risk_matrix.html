@@ -1,0 +1,275 @@
+﻿{% extends "base.html" %}
+{% block title %}Risk Matrix{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'risks:list' %}">Risks</a></li>
+    <li class="breadcrumb-item active">Risk Matrix</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+
+{% if has_any_risks %}
+<div class="card mb-3">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div style="flex:1; min-width:280px;">
+            <div class="d-flex justify-content-between mb-1">
+                <span><strong>Assessment coverage</strong> — {{ assessed_count }} of {{ total_risks }} risks assessed</span>
+                <span><strong>{{ pct_assessed }}%</strong></span>
+            </div>
+            <div class="progress" style="height:10px;">
+                <div class="progress-bar {% if pct_assessed >= 75 %}bg-success{% elif pct_assessed >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                     role="progressbar" style="width: {{ pct_assessed }}%;"></div>
+            </div>
+            {% if unassessed_count %}
+            <div class="small text-muted mt-1">
+                <i class="bi bi-exclamation-circle"></i>
+                {{ unassessed_count }} risk{{ unassessed_count|pluralize }} still marked <em>Identified</em>.
+                <a href="{% url 'risks:list' %}?assessed=0">View unassessed →</a>
+            </div>
+            {% endif %}
+        </div>
+        <div class="d-flex gap-2">
+            <a href="?{% if show_only_assessed %}{% else %}assessed=1{% endif %}" class="btn btn-sm {% if show_only_assessed %}btn-dark{% else %}btn-outline-dark{% endif %}">
+                {% if show_only_assessed %}<i class="bi bi-check-circle"></i> Showing assessed only{% else %}Show assessed only{% endif %}
+            </a>
+            {% if show_only_assessed %}
+            <a href="?" class="btn btn-sm btn-outline-secondary">Show all</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if not has_any_risks %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-grid-3x3" style="font-size:3rem; color:var(--text-faint);"></i>
+        <h5 class="mt-3 mb-2">No risks to plot yet</h5>
+        <p class="text-muted">Add risks from the Risk Register — they will appear here automatically once scored.</p>
+        <a href="{% url 'risks:create' %}" class="btn btn-dark">
+            <i class="bi bi-plus-lg"></i> Add first risk
+        </a>
+    </div>
+</div>
+{% else %}
+
+{% if unassessed_count and not show_only_assessed %}
+<div class="alert alert-warning d-flex align-items-start gap-2 mb-3" style="border-radius:6px;">
+    <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+    <div style="flex:1;">
+        <strong>{{ unassessed_count }} risk{{ unassessed_count|pluralize }} not yet assessed.</strong>
+        These appear in the matrix with their default score. To properly reflect the risk,
+        <a href="{% url 'risks:list' %}?assessed=0"><strong>open them</strong></a> and confirm likelihood, impact, and linked controls.
+        {% if top_unassessed %}
+        <div class="mt-2 small">
+            <em>Recent:</em>
+            {% for r in top_unassessed %}
+                <a href="{% url 'risks:detail' r.pk %}" class="badge bg-warning text-dark text-decoration-none me-1">{{ r.title|truncatechars:40 }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_risks }}</div><div class="label"><i class="bi bi-exclamation-triangle"></i> Total risks</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-success">{{ assessed_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Assessed</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-warning">{{ unassessed_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> Awaiting assessment</div></div></div>
+    <div class="col-md-3"><div class="stat-card" {% if breached_count %}style="border-color:#dc3545;"{% endif %}><div class="value text-danger">{{ breached_count }}</div><div class="label"><i class="bi bi-shield-exclamation"></i> Breaching appetite</div></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>Inherent Risk</strong>
+                        <small class="text-muted d-block">Before controls &amp; treatments</small>
+                    </div>
+                    <div class="small">
+                        <span class="badge" style="background:#d1e7dd;">Low</span>
+                        <span class="badge" style="background:#fff3cd;color:#000;">Medium</span>
+                        <span class="badge" style="background:#ffe5cc;">High</span>
+                        <span class="badge" style="background:#f8d7da;">Critical</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered mb-0" style="table-layout:fixed;">
+                    <tbody>
+                    {% for row in inherent_grid %}
+                        <tr>
+                            <td class="text-center align-middle bg-light fw-bold" style="width:52px;">I{{ row.0.impact }}</td>
+                            {% for cell in row %}
+                                <td class="text-center align-middle
+                                    {% if cell.band == 'critical' %}mx-critical
+                                    {% elif cell.band == 'high' %}mx-high
+                                    {% elif cell.band == 'medium' %}mx-medium
+                                    {% else %}mx-low{% endif %}
+                                    {% if cell.count %}mx-cell-link{% endif %}"
+                                    style="height:66px; position:relative; {% if cell.count %}cursor:pointer;{% else %}opacity:.55;{% endif %}"
+                                    {% if cell.count %}onclick="window.location='{% url 'risks:list' %}?likelihood={{ cell.likelihood }}&impact={{ cell.impact }}';"{% endif %}
+                                    title="L{{ cell.likelihood }} × I{{ cell.impact }} = {{ cell.score }}">
+                                    {% if cell.count %}
+                                        <div style="font-size:1.35rem; font-weight:700;">{{ cell.count }}</div>
+                                        <div style="font-size:.68rem; opacity:.75;">score {{ cell.score }}</div>
+                                        {% if cell.unassessed_count %}
+                                        <span class="badge bg-warning text-dark" style="position:absolute; top:2px; right:2px; font-size:.6rem; padding:1px 4px;"
+                                              title="{{ cell.unassessed_count }} unassessed">!</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="text-muted" style="font-size:.72rem;">{{ cell.score }}</div>
+                                    {% endif %}
+                                    <a href="{% url 'risks:create' %}?likelihood={{ cell.likelihood }}&impact={{ cell.impact }}"
+                                       onclick="event.stopPropagation();"
+                                       class="mx-add-btn"
+                                       title="Add new risk at L{{ cell.likelihood }}×I{{ cell.impact }}">+</a>
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                    <tr>
+                        <td class="bg-light"></td>
+                        <td class="text-center bg-light fw-bold">L1</td>
+                        <td class="text-center bg-light fw-bold">L2</td>
+                        <td class="text-center bg-light fw-bold">L3</td>
+                        <td class="text-center bg-light fw-bold">L4</td>
+                        <td class="text-center bg-light fw-bold">L5</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="text-center text-muted small mt-2">Likelihood →</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>Residual Risk</strong>
+                        <small class="text-muted d-block">After controls &amp; treatments</small>
+                    </div>
+                    <div class="small">
+                        <span class="badge" style="background:#d1e7dd;">Low</span>
+                        <span class="badge" style="background:#fff3cd;color:#000;">Medium</span>
+                        <span class="badge" style="background:#ffe5cc;">High</span>
+                        <span class="badge" style="background:#f8d7da;">Critical</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered mb-0" style="table-layout:fixed;">
+                    <tbody>
+                    {% for row in residual_grid %}
+                        <tr>
+                            <td class="text-center align-middle bg-light fw-bold" style="width:52px;">I{{ row.0.impact }}</td>
+                            {% for cell in row %}
+                                <td class="text-center align-middle
+                                    {% if cell.band == 'critical' %}mx-critical
+                                    {% elif cell.band == 'high' %}mx-high
+                                    {% elif cell.band == 'medium' %}mx-medium
+                                    {% else %}mx-low{% endif %}
+                                    {% if cell.count %}mx-cell-link{% endif %}"
+                                    style="height:66px; position:relative; {% if cell.count %}cursor:pointer;{% else %}opacity:.55;{% endif %}"
+                                    {% if cell.count %}onclick="window.location='{% url 'risks:list' %}?likelihood={{ cell.likelihood }}&impact={{ cell.impact }}';"{% endif %}
+                                    title="L{{ cell.likelihood }} × I{{ cell.impact }}">
+                                    {% if cell.count %}
+                                        <div style="font-size:1.35rem; font-weight:700;">{{ cell.count }}</div>
+                                        <div style="font-size:.68rem; opacity:.75;">avg {{ cell.avg_residual }}</div>
+                                    {% else %}
+                                        <div class="text-muted" style="font-size:.72rem;">{{ cell.score }}</div>
+                                    {% endif %}
+                                    <a href="{% url 'risks:create' %}?likelihood={{ cell.likelihood }}&impact={{ cell.impact }}"
+                                       onclick="event.stopPropagation();"
+                                       class="mx-add-btn"
+                                       title="Add new risk at L{{ cell.likelihood }}×I{{ cell.impact }}">+</a>
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                    <tr>
+                        <td class="bg-light"></td>
+                        <td class="text-center bg-light fw-bold">L1</td>
+                        <td class="text-center bg-light fw-bold">L2</td>
+                        <td class="text-center bg-light fw-bold">L3</td>
+                        <td class="text-center bg-light fw-bold">L4</td>
+                        <td class="text-center bg-light fw-bold">L5</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="text-center text-muted small mt-2">Likelihood →</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <strong class="d-block mb-2"><i class="bi bi-info-circle"></i> How to read these matrices</strong>
+                <ul class="small text-muted ps-3 mb-0">
+                    <li><strong>Left matrix</strong> — position each risk by its inherent likelihood × impact.</li>
+                    <li><strong>Right matrix</strong> — same position, but the cell colour reflects the <em>residual</em> score after controls.</li>
+                    <li><strong>Click any populated cell</strong> — filters the risk register to those risks.</li>
+                    <li><strong>Hover any cell</strong> — a <strong>+</strong> button appears in the corner to add a new risk at that exact L×I.</li>
+                    <li><strong>Yellow <span class="badge bg-warning text-dark" style="font-size:.65rem; padding:1px 4px;">!</span> badge</strong> — that cell contains unassessed risks.</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <strong class="d-block mb-2"><i class="bi bi-lightbulb"></i> Adding risks</strong>
+                <ul class="small text-muted ps-3 mb-0">
+                    <li>Use <a href="{% url 'risks:create' %}">+ New Risk</a> for a blank form.</li>
+                    <li>Use a cell's <strong>+</strong> button to create a risk pre-set to that L×I.</li>
+                    <li>Newly created risks start as <em>Identified</em> — mark them <em>Assessed</em> once confirmed.</li>
+                    <li>Attach <strong>controls</strong> and create <strong>treatments</strong> to lower the residual score on the right.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+<style>
+    .mx-low      { background: #d1e7dd; }
+    .mx-medium   { background: #fff3cd; }
+    .mx-high     { background: #ffe5cc; }
+    .mx-critical { background: #f8d7da; }
+
+    .mx-cell-link { transition: transform .1s ease, box-shadow .1s ease; }
+    .mx-cell-link:hover { transform: scale(1.03); box-shadow: 0 2px 8px rgba(0,0,0,.15); z-index:2; position:relative; }
+
+    .mx-add-btn {
+        position: absolute;
+        top: 4px; left: 4px;
+        width: 20px; height: 20px;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255, 255, 255, 0.9);
+        color: #0B1220;
+        border-radius: 50%;
+        font-size: 14px; font-weight: 700; line-height: 1;
+        text-decoration: none;
+        opacity: 0;
+        transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        z-index: 3;
+    }
+    td:hover > .mx-add-btn { opacity: 1; }
+    .mx-add-btn:hover { background: #F59E0B; color: #0B1220; transform: scale(1.15); text-decoration: none; }
+
+    [data-bs-theme="dark"] .mx-low      { background: rgba(5, 150, 105, 0.18);  color: #6EE7B7; }
+    [data-bs-theme="dark"] .mx-medium   { background: rgba(217, 119, 6, 0.18);  color: #FCD34D; }
+    [data-bs-theme="dark"] .mx-high     { background: rgba(234, 88, 12, 0.20);  color: #FDBA74; }
+    [data-bs-theme="dark"] .mx-critical { background: rgba(220, 38, 38, 0.20);  color: #FCA5A5; }
+    [data-bs-theme="dark"] .mx-add-btn  { background: rgba(245, 158, 11, 0.9); color: #0B1220; }
+    [data-bs-theme="dark"] .mx-add-btn:hover { background: #FBBF24; }
+</style>
+{% endblock %}

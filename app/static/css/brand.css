@@ -1197,3 +1197,42 @@ details.nav-section:not([open]) > div {
     background: #F59E0B;
     border-radius: 0 2px 2px 0;
 }
+
+/* ---------- Risk Matrix + Add button ---------- */
+.mx-add-btn {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.9);
+    color: #0B1220;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    z-index: 3;
+}
+.mx-cell-link:hover .mx-add-btn,
+td:hover > .mx-add-btn {
+    opacity: 1;
+}
+.mx-add-btn:hover {
+    background: #F59E0B;
+    color: #0B1220;
+    transform: scale(1.15);
+}
+[data-bs-theme="dark"] .mx-add-btn {
+    background: rgba(245, 158, 11, 0.9);
+    color: #0B1220;
+}
+[data-bs-theme="dark"] .mx-add-btn:hover {
+    background: #FBBF24;
+}

@@ -83,6 +83,9 @@
                         <a href="{% url 'risks:treatment_list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-list-check"></i><span>Treatments</span>
             </a>
+                        <a href="{% url 'risks:matrix' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-grid-3x3"></i><span>Risk Matrix</span>
+            </a>
             <a href="{% url 'frameworks:list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-diagram-3"></i><span>Frameworks</span>
             </a>
@@ -93,6 +96,9 @@
             {% if user.is_hod or user.is_superuser %}
             <a href="{% url 'risks:appetite_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-sliders"></i><span>Risk Appetite</span>
+            </a>
+                        <a href="{% url 'risks:matrix' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-grid-3x3"></i><span>Risk Matrix</span>
             </a>
             {% endif %}
             <a href="{% url 'controls:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">

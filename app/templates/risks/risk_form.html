@@ -11,6 +11,17 @@
 
 {% block content %}
 <div class="row g-3">
+        {% if prefilled_likelihood and prefilled_impact %}
+    <div class="col-12">
+        <div class="alert alert-info d-flex align-items-center gap-2 mb-0" style="border-radius:6px;">
+            <i class="bi bi-info-circle-fill"></i>
+            <div>
+                Creating a risk pre-set to <strong>L{{ prefilled_likelihood }} × I{{ prefilled_impact }}</strong>.
+                You can change these values below.
+            </div>
+        </div>
+    </div>
+    {% endif %}
     <div class="col-md-8">
         <div class="card">
             <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit{% else %}Create{% endif %} Risk</strong></div>
