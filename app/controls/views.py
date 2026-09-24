@@ -1,11 +1,12 @@
 ﻿from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.urls import reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
 
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from core.correlation import get_full_control_context
-from .models import Control, ControlEvidence
+from .models import Control, ControlEvidence, ControlFrameworkMapping
+from .forms import ControlForm, ControlEvidenceForm, ControlFrameworkMappingForm
 
 
 class ControlListView(DepartmentScopedMixin, CsvExportMixin, ListView):
@@ -21,33 +22,57 @@ class ControlListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ('Type', 'get_control_type_display'),
         ('Category', 'get_category_display'),
         ('Status', 'get_status_display'),
-        ('Effectiveness', 'effectiveness'),
+        ('Lifecycle', 'get_lifecycle_status_display'),
+        ('Effectiveness', 'get_effectiveness_rating_display'),
+        ('Frequency', 'get_frequency_display'),
+        ('Primary Framework', lambda c: c.primary_framework.name if c.primary_framework else ''),
+        ('Reference', 'reference'),
         ('Department', lambda c: c.owner_dept.name),
+        ('Owner', lambda c: c.owner_user.username if c.owner_user else ''),
         ('Shared', lambda c: 'Yes' if c.is_shared else 'No'),
-        ('Frameworks', lambda c: ', '.join(f'{fc.framework.name} {fc.code}' for fc in c.framework_controls.all())),
         ('Risk Count', lambda c: c.risks.count()),
     ]
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = super().get_queryset().select_related('owner_dept', 'primary_framework', 'owner_user')
         q = self.request.GET.get('q', '').strip()
         if q:
-            qs = qs.filter(Q(name__icontains=q) | Q(code__icontains=q))
+            qs = qs.filter(Q(name__icontains=q) | Q(code__icontains=q) | Q(reference__icontains=q))
         status = self.request.GET.get('status')
         if status:
             qs = qs.filter(status=status)
         category = self.request.GET.get('category')
         if category:
             qs = qs.filter(category=category)
+        lifecycle = self.request.GET.get('lifecycle')
+        if lifecycle:
+            qs = qs.filter(lifecycle_status=lifecycle)
+        effectiveness = self.request.GET.get('effectiveness')
+        if effectiveness:
+            qs = qs.filter(effectiveness_rating=effectiveness)
         return qs.order_by('code')
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['statuses'] = Control.STATUS_CHOICES
         ctx['categories_choices'] = Control.CATEGORY_CHOICES
+        ctx['lifecycle_choices'] = Control.LIFECYCLE_CHOICES
+        ctx['effectiveness_choices'] = Control.EFFECTIVENESS_RATING_CHOICES
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_status'] = self.request.GET.get('status', '')
         ctx['selected_category'] = self.request.GET.get('category', '')
+        ctx['selected_lifecycle'] = self.request.GET.get('lifecycle', '')
+        ctx['selected_effectiveness'] = self.request.GET.get('effectiveness', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(owner_dept=user.department)
+        all_controls = list(base)
+        ctx['total_count'] = len(all_controls)
+        ctx['effective_count'] = sum(1 for c in all_controls if c.effectiveness_rating == 'effective')
+        ctx['not_tested_count'] = sum(1 for c in all_controls if c.effectiveness_rating == 'not_tested')
+        ctx['operational_count'] = sum(1 for c in all_controls if c.lifecycle_status in ['operational', 'monitored', 'reviewed'])
         return ctx
 
 
@@ -59,13 +84,35 @@ class ControlDetailView(DepartmentScopedMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_control_context(self.object))
+        ctx['framework_mappings'] = self.object.framework_mappings.select_related('framework_control__framework')
         return ctx
+
+
+class ControlCreateView(DepartmentScopedMixin, CreateView):
+    model = Control
+    form_class = ControlForm
+    template_name = 'controls/control_form.html'
+    success_url = reverse_lazy('controls:list')
+
+    def get_initial(self):
+        initial = super().get_initial()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            initial['owner_dept'] = user.department
+        return initial
+
+
+class ControlUpdateView(DepartmentScopedMixin, UpdateView):
+    model = Control
+    form_class = ControlForm
+    template_name = 'controls/control_form.html'
+    success_url = reverse_lazy('controls:list')
 
 
 class ControlEvidenceCreateView(LoginRequiredMixin, CreateView):
     model = ControlEvidence
+    form_class = ControlEvidenceForm
     template_name = 'controls/evidence_form.html'
-    fields = ['file', 'description']
 
     def dispatch(self, request, *args, **kwargs):
         self.control = Control.objects.get(pk=kwargs['control_pk'])
@@ -74,6 +121,28 @@ class ControlEvidenceCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.control = self.control
         form.instance.uploaded_by = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('controls:detail', kwargs={'pk': self.control.pk})
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['control'] = self.control
+        return ctx
+
+
+class ControlFrameworkMappingCreateView(LoginRequiredMixin, CreateView):
+    model = ControlFrameworkMapping
+    form_class = ControlFrameworkMappingForm
+    template_name = 'controls/mapping_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.control = Control.objects.get(pk=kwargs['control_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.control = self.control
         return super().form_valid(form)
 
     def get_success_url(self):

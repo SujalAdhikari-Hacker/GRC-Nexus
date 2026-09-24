@@ -1,0 +1,66 @@
+﻿{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Control{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'controls:list' %}">Controls</a></li>
+    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit{% else %}Create{% endif %} control</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save Control</button>
+                    <a href="{% url 'controls:list' %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Lifecycle reference</strong></div>
+            <div class="card-body small text-muted">
+                <ol class="ps-3 mb-0">
+                    <li>Proposed</li><li>Designed</li><li>Implemented</li>
+                    <li>Operational</li><li>Monitored</li><li>Reviewed</li><li>Retired</li>
+                </ol>
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Effectiveness rating</strong></div>
+            <div class="card-body small text-muted">
+                <ul class="ps-3 mb-0">
+                    <li><strong>Effective</strong> — operating as designed</li>
+                    <li><strong>Partially Effective</strong> — gaps identified</li>
+                    <li><strong>Ineffective</strong> — not working</li>
+                    <li><strong>Not Tested</strong> — no assurance yet</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="text"], input[type="number"], input[type="date"], input[type="email"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+    select[multiple] { min-height: 200px; }
+</style>
+{% endblock %}

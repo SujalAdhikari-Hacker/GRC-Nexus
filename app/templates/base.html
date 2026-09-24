@@ -62,23 +62,49 @@
                 <span>Risk &amp; Controls</span>
                 <i class="bi bi-chevron-down section-caret"></i>
             </div>
-            <a href="{% url 'risks:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if ns == 'risks' or ns == 'controls' or ns == 'frameworks' or ns == 'vulnerabilities' %}flex{% else %}none{% endif %};">
+            {% if ns == 'risks' or ns == 'controls' or ns == 'frameworks' or ns == 'vulnerabilities' or ns == 'kris' %}
+            <a href="{% url 'risks:list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-exclamation-triangle"></i><span>Risks</span>
             </a>
             {% if user.is_hod or user.is_superuser %}
-            <a href="{% url 'risks:appetite_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if ns == 'risks' or ns == 'controls' or ns == 'frameworks' or ns == 'vulnerabilities' %}flex{% else %}none{% endif %};">
+            <a href="{% url 'risks:appetite_list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-sliders"></i><span>Risk Appetite</span>
             </a>
             {% endif %}
-            <a href="{% url 'controls:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if ns == 'risks' or ns == 'controls' or ns == 'frameworks' or ns == 'vulnerabilities' %}flex{% else %}none{% endif %};">
+            <a href="{% url 'controls:list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-shield-check"></i><span>Controls</span>
             </a>
-            <a href="{% url 'vulnerabilities:finding_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if ns == 'risks' or ns == 'controls' or ns == 'frameworks' or ns == 'vulnerabilities' %}flex{% else %}none{% endif %};">
+            <a href="{% url 'vulnerabilities:finding_list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-bug"></i><span>Vulnerabilities</span>
             </a>
-            <a href="{% url 'frameworks:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if ns == 'risks' or ns == 'controls' or ns == 'frameworks' or ns == 'vulnerabilities' %}flex{% else %}none{% endif %};">
+            <a href="{% url 'kris:list' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-speedometer"></i><span>Key Risk Indicators</span>
+            </a>
+            <a href="{% url 'frameworks:list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-diagram-3"></i><span>Frameworks</span>
             </a>
+            {% else %}
+            <a href="{% url 'risks:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-exclamation-triangle"></i><span>Risks</span>
+            </a>
+            {% if user.is_hod or user.is_superuser %}
+            <a href="{% url 'risks:appetite_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-sliders"></i><span>Risk Appetite</span>
+            </a>
+            {% endif %}
+            <a href="{% url 'controls:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-shield-check"></i><span>Controls</span>
+            </a>
+            <a href="{% url 'vulnerabilities:finding_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-bug"></i><span>Vulnerabilities</span>
+            </a>
+            <a href="{% url 'kris:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-speedometer"></i><span>Key Risk Indicators</span>
+            </a>
+            <a href="{% url 'frameworks:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-diagram-3"></i><span>Frameworks</span>
+            </a>
+            {% endif %}
 
             {% if user.is_superuser %}
             <div class="sidebar-section-head" style="display: flex; cursor: default;">Admin</div>
@@ -192,7 +218,6 @@
 <script src="{% static 'js/theme.js' %}"></script>
 <script src="{% static 'js/command-palette.js' %}"></script>
 <script>
-    // User dropdown
     (function(){
         const trigger = document.getElementById('userMenuTrigger');
         const menu = document.getElementById('userMenu');
@@ -203,7 +228,6 @@
         });
     })();
 
-    // Sidebar section toggle — inline display flip
     document.querySelectorAll('.sidebar-head-toggle').forEach(function(head) {
         head.addEventListener('click', function() {
             var target = head.dataset.target;
@@ -216,7 +240,6 @@
             if (caret) caret.style.transform = anyVisible ? 'rotate(-90deg)' : 'rotate(0deg)';
         });
     });
-    // Init carets
     document.querySelectorAll('.sidebar-head-toggle').forEach(function(head) {
         var target = head.dataset.target;
         var items = document.querySelectorAll('.toggle-item[data-section="' + target + '"]');
@@ -229,4 +252,3 @@
 {% block extra_js %}{% endblock %}
 </body>
 </html>
-

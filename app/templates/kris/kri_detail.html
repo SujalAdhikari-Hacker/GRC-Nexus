@@ -1,0 +1,174 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ kri.name }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'kris:list' %}">KRIs</a></li>
+    <li class="breadcrumb-item active">{{ kri.name|truncatechars:50 }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">{{ kri.name }}</h4>
+        <small class="text-muted">{{ kri.get_category_display }} · {{ kri.get_kri_type_display }} · {{ kri.get_frequency_display }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'kris:update' kri.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        <a href="/admin/kris/kri/{{ kri.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ kri.current_value }}{% if kri.unit %} <small>{{ kri.unit }}</small>{% endif %}</div>
+            <div class="label">Current value</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ kri.amber_threshold }}</div>
+            <div class="label">Amber threshold</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ kri.red_threshold }}</div>
+            <div class="label">Red threshold</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-color:{{ kri.rag_color }};">
+            <div class="value" style="color:{{ kri.rag_color }};">{{ kri.rag_status|upper }}</div>
+            <div class="label">{{ kri.rag_label }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Value history</strong></div>
+            <div class="card-body" style="height:280px;">
+                {% if readings %}
+                    <canvas id="kriTrendChart"></canvas>
+                {% else %}
+                    <div class="text-muted text-center pt-5">No readings recorded yet. Add readings via the admin.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if readings %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Reading history</strong></div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead class="table-light"><tr><th>Date</th><th class="text-center">Value</th><th>Notes</th><th>Recorded by</th></tr></thead>
+                    <tbody>
+                    {% for r in readings reversed %}
+                        <tr>
+                            <td>{{ r.reading_date }}</td>
+                            <td class="text-center"><strong>{{ r.value }}</strong></td>
+                            <td><small>{{ r.notes|default:"—" }}</small></td>
+                            <td><small>{{ r.recorded_by|default:"—" }}</small></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Details</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Direction</span><span>{{ kri.get_direction_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Frequency</span><span>{{ kri.get_frequency_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Trend</span><span>{{ kri.get_trend_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ kri.owner_user|default:kri.owner_dept.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Department</span><span>{{ kri.owner_dept.name }}</span></li>
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Linked risks ({{ kri.linked_risks.count }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for r in kri.linked_risks.all %}
+                    <li class="list-group-item">
+                        <a href="{% url 'risks:detail' r.pk %}">{{ r.title|truncatechars:60 }}</a>
+                        <div class="small text-muted">residual {{ r.residual_score }}{% if r.appetite_breached %} · <span class="badge bg-danger">Breach</span>{% endif %}</div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small">No linked risks.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Linked appetites ({{ kri.linked_appetites.count }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for a in kri.linked_appetites.all %}
+                    <li class="list-group-item small">{{ a }}</li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small">No linked appetites.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if readings %}
+<script>
+const labels = [{% for r in readings %}"{{ r.reading_date|date:'Y-m-d' }}",{% endfor %}];
+const values = [{% for r in readings %}{{ r.value }},{% endfor %}];
+const amber = {{ kri.amber_threshold }};
+const red = {{ kri.red_threshold }};
+
+new Chart(document.getElementById('kriTrendChart'), {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: '{{ kri.name }}',
+                data: values,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13,110,253,0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+            },
+            {
+                label: 'Amber threshold',
+                data: labels.map(() => amber),
+                borderColor: '#D97706',
+                borderDash: [6, 4],
+                pointRadius: 0,
+                fill: false,
+            },
+            {
+                label: 'Red threshold',
+                data: labels.map(() => red),
+                borderColor: '#DC2626',
+                borderDash: [6, 4],
+                pointRadius: 0,
+                fill: false,
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

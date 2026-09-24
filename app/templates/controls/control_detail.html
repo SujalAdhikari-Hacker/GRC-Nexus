@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}{{ control.code }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -11,8 +11,22 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">{{ control.code }} — {{ control.name }}</h4>
-    <a href="/admin/controls/control/{{ control.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+    <div>
+        <h4 class="mb-0">{{ control.code }} — {{ control.name }}</h4>
+        <small class="text-muted">{{ control.get_category_display }} · {{ control.get_frequency_display }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'controls:update' control.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        <a href="{% url 'controls:evidence_create' control.pk %}" class="btn btn-sm btn-outline-dark"><i class="bi bi-paperclip"></i> Add evidence</a>
+        <a href="{% url 'controls:mapping_create' control.pk %}" class="btn btn-sm btn-primary"><i class="bi bi-diagram-3"></i> Map to framework</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="font-size:1.1rem;">{{ control.get_lifecycle_status_display }}</div><div class="label">Lifecycle stage</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="font-size:1.1rem;">{{ control.get_effectiveness_rating_display }}</div><div class="label">Effectiveness</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ control.framework_controls.count }}</div><div class="label">Framework requirements</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ control.risks.count }}</div><div class="label">Risks mitigated</div></div></div>
 </div>
 
 <div class="row g-3">
@@ -20,31 +34,38 @@
         <div class="card">
             <div class="card-header bg-white"><strong>Details</strong></div>
             <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Control ID</span><code>{{ control.code }}</code></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Type</span><span>{{ control.get_control_type_display }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Category</span><span>{{ control.get_category_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Frequency</span><span>{{ control.get_frequency_display }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Status</span><span>{{ control.get_status_display }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Effectiveness</span><span>{{ control.effectiveness }}/5</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ control.owner_dept.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Lifecycle</span><span>{{ control.get_lifecycle_status_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Effectiveness</span><span>{{ control.get_effectiveness_rating_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Primary framework</span><span>{{ control.primary_framework.name|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Reference</span><span>{{ control.reference|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ control.owner_dept.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ control.owner_user|default:"—" }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Shared</span><span>{{ control.is_shared|yesno:"Yes,No" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Last tested</span><span>{{ control.last_tested|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Next test</span><span>{{ control.next_test_date|default:"—" }}</span></li>
             </ul>
         </div>
 
         <div class="card mt-3">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-    <strong>Framework mapping ({{ framework_controls|length }})</strong>
-    <a href="{% url 'controls:evidence_create' control.pk %}" class="btn btn-sm btn-primary">+ Evidence</a>
-</div>
-            <ul class="list-group list-group-flush">
-                {% for fc in framework_controls %}
-                    <li class="list-group-item">
-                        <span class="badge bg-dark">{{ fc.framework.name }}</span>
-                        <code class="ms-1">{{ fc.code }}</code>
-                        <div class="small text-muted">{{ fc.title }}</div>
-                    </li>
-                {% empty %}
-                    <li class="list-group-item text-muted text-center">Not mapped to any framework.</li>
-                {% endfor %}
-            </ul>
+            <div class="card-header bg-white"><strong>Lifecycle progress</strong></div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-1">
+                    {% with c=control.lifecycle_status %}
+                    <span class="badge {% if c == 'proposed' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">1 Proposed</span>
+                    <span class="badge {% if c == 'designed' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">2 Designed</span>
+                    <span class="badge {% if c == 'implemented' %}bg-info text-dark{% else %}bg-secondary{% endif %}">3 Implemented</span>
+                    <span class="badge {% if c == 'operational' %}bg-success{% else %}bg-secondary{% endif %}">4 Operational</span>
+                    <span class="badge {% if c == 'monitored' %}bg-success{% else %}bg-secondary{% endif %}">5 Monitored</span>
+                    <span class="badge {% if c == 'reviewed' %}bg-info text-dark{% else %}bg-secondary{% endif %}">6 Reviewed</span>
+                    <span class="badge {% if c == 'retired' %}bg-dark{% else %}bg-secondary{% endif %}">7 Retired</span>
+                    {% endwith %}
+                </div>
+            </div>
         </div>
     </div>
 
@@ -54,16 +75,46 @@
             <div class="card-body">{{ control.description|default:"—"|linebreaks }}</div>
         </div>
 
+        {% if control.implementation_notes %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Implementation notes</strong></div>
+            <div class="card-body">{{ control.implementation_notes|linebreaks }}</div>
+        </div>
+        {% endif %}
+
+        <div class="card mt-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Framework mappings ({{ framework_mappings|length }})</strong>
+                <a href="{% url 'controls:mapping_create' control.pk %}" class="btn btn-sm btn-primary">+ Map to framework</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead class="table-light"><tr><th>Framework</th><th>Requirement</th><th>Relationship</th></tr></thead>
+                    <tbody>
+                    {% for m in framework_mappings %}
+                        <tr>
+                            <td><span class="badge bg-dark">{{ m.framework_control.framework.name }}</span></td>
+                            <td><code>{{ m.framework_control.code }}</code> {{ m.framework_control.title|truncatechars:80 }}</td>
+                            <td><small>{{ m.get_relationship_display }}</small></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted py-3">No framework mappings yet.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="card mt-3">
             <div class="card-header bg-white"><strong>Mitigates risks ({{ risks|length }})</strong></div>
             <ul class="list-group list-group-flush">
                 {% for r in risks %}
                     <li class="list-group-item d-flex justify-content-between">
-                        <a href="{% url 'risks:detail' r.pk %}">{{ r.title }}</a>
-                        <small>residual {{ r.residual_score }}</small>
+                        <a href="{% url 'risks:detail' r.pk %}">{{ r.title|truncatechars:80 }}</a>
+                        <small>residual {{ r.residual_score }}{% if r.appetite_breached %} <span class="badge bg-danger ms-1">Breach</span>{% endif %}</small>
                     </li>
                 {% empty %}
-                    <li class="list-group-item text-muted text-center">No linked risks.</li>
+                    <li class="list-group-item text-muted text-center">No risks linked.</li>
                 {% endfor %}
             </ul>
         </div>
@@ -72,15 +123,26 @@
             <div class="card-header bg-white"><strong>Protects assets ({{ assets|length }})</strong></div>
             <ul class="list-group list-group-flush">
                 {% for a in assets %}
-                    <li class="list-group-item">
-                        <a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>
-                        <small class="text-muted">· {{ a.category.name }}</small>
-                    </li>
+                    <li class="list-group-item"><a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a> <small class="text-muted">· {{ a.category.name }}</small></li>
                 {% empty %}
                     <li class="list-group-item text-muted text-center">No protected assets.</li>
                 {% endfor %}
             </ul>
         </div>
+
+        {% if evidence %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Evidence ({{ evidence|length }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for e in evidence %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <a href="{{ e.file.url }}" target="_blank">{{ e.description|default:e.file.name }}</a>
+                        <small class="text-muted">{{ e.uploaded_at|date:"Y-m-d" }}</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

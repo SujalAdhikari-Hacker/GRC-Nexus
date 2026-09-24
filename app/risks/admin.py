@@ -1,4 +1,4 @@
-from django.contrib import admin
+﻿from django.contrib import admin
 from django.utils.html import format_html
 from simple_history.admin import SimpleHistoryAdmin
 from .models import Risk, RiskCategory, RiskAppetite, RiskTreatment
@@ -13,27 +13,49 @@ class RiskCategoryAdmin(SimpleHistoryAdmin):
 
 @admin.register(RiskAppetite)
 class RiskAppetiteAdmin(SimpleHistoryAdmin):
-    list_display = ('__str__', 'max_inherent_score', 'max_residual_score', 'department', 'category')
-    list_filter = ('department', 'category')
+    list_display = (
+        '__str__', 'appetite_level', 'max_inherent_score',
+        'max_residual_score', 'risk_capacity',
+        'board_approved', 'review_date', 'department', 'category'
+    )
+    list_filter = ('appetite_level', 'board_approved', 'department', 'category')
+    fieldsets = (
+        (None, {
+            'fields': ('department', 'category')
+        }),
+        ('Appetite', {
+            'fields': ('appetite_level', 'appetite_statement')
+        }),
+        ('Thresholds', {
+            'fields': ('max_inherent_score', 'max_residual_score', 'risk_capacity')
+        }),
+        ('Governance', {
+            'fields': ('board_approved', 'approved_by', 'review_date')
+        }),
+        ('Notes', {
+            'fields': ('description',)
+        }),
+    )
 
 
 class RiskTreatmentInline(admin.TabularInline):
     model = RiskTreatment
     extra = 0
+    filter_horizontal = ('controls',)
 
 
 @admin.register(Risk)
 class RiskAdmin(SimpleHistoryAdmin):
     list_display = (
         'title', 'category', 'owner_dept', 'likelihood', 'impact',
-        'inherent_score', 'residual_score', 'appetite_breached',
+        'inherent_score', 'residual_score', 'appetite_breached', 'escalated',
         'status', 'treatment_strategy'
     )
     list_filter = (
         'category', 'owner_dept', 'status', 'treatment_strategy',
-        'appetite_breached', 'inherent_score'
+        'appetite_breached', 'escalated', 'inherent_score'
     )
-    search_fields = ('title', 'description')
+    search_fields = ('title', 'description', 'threat', 'vulnerability')
     filter_horizontal = ('assets', 'controls')
     readonly_fields = (
         'inherent_score', 'residual_score', 'appetite_breached',
@@ -44,12 +66,19 @@ class RiskAdmin(SimpleHistoryAdmin):
 
     fieldsets = (
         (None, {
-            'fields': ('title', 'description', 'category', 'owner_dept', 'owner_user')
+            'fields': ('title', 'description')
+        }),
+        ('Risk statement', {
+            'fields': ('threat', 'vulnerability', 'impact_description'),
+            'description': 'Format: [Threat] exploits [Vulnerability], causing [Impact] to [Asset]'
+        }),
+        ('Classification', {
+            'fields': ('category', 'owner_dept', 'owner_user')
         }),
         ('Scoring', {
             'fields': (
                 'likelihood', 'impact', 'inherent_score',
-                'residual_score', 'appetite_breached',
+                'residual_score', 'appetite_breached', 'escalated', 'escalated_at'
             )
         }),
         ('Treatment', {
@@ -90,6 +119,10 @@ class RiskAdmin(SimpleHistoryAdmin):
 
 @admin.register(RiskTreatment)
 class RiskTreatmentAdmin(SimpleHistoryAdmin):
-    list_display = ('risk', 'status', 'owner_user', 'due_date', 'completed_date')
-    list_filter = ('status', 'due_date')
+    list_display = (
+        'risk', 'strategy', 'status', 'owner_user',
+        'due_date', 'completed_date'
+    )
+    list_filter = ('strategy', 'status', 'due_date')
     search_fields = ('risk__title', 'action_plan')
+    filter_horizontal = ('controls',)

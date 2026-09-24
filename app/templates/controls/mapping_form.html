@@ -1,0 +1,57 @@
+﻿{% extends "base.html" %}
+{% block title %}Map to framework · {{ control.code }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'controls:list' %}">Controls</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'controls:detail' control.pk %}">{{ control.code }}</a></li>
+    <li class="breadcrumb-item active">Map to framework</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Map control to framework requirement</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save Mapping</button>
+                    <a href="{% url 'controls:detail' control.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Relationship types</strong></div>
+            <div class="card-body small text-muted">
+                <ul class="ps-3 mb-0">
+                    <li><strong>Equal</strong> — full satisfaction</li>
+                    <li><strong>Subset</strong> — part of a broader requirement</li>
+                    <li><strong>Superset</strong> — control exceeds requirement</li>
+                    <li><strong>Intersects</strong> — partial overlap</li>
+                    <li><strong>Functional Partial</strong> — partial coverage</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    input[type="text"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+</style>
+{% endblock %}

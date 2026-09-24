@@ -1,0 +1,82 @@
+﻿{% extends "base.html" %}
+{% block title %}Key Risk Indicators{% endblock %}
+{% block breadcrumb %}<h5 class="mb-0">Key Risk Indicators</h5>{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-speedometer"></i> Total KRIs</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ rag_counts.green }}</div><div class="label"><i class="bi bi-circle-fill" style="color:#059669;"></i> Within appetite</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#D97706;">{{ rag_counts.amber }}</div><div class="label"><i class="bi bi-circle-fill" style="color:#D97706;"></i> Approaching tolerance</div></div></div>
+    <div class="col-md-3">
+        <div class="stat-card" {% if rag_counts.red %}style="border-color:#DC2626;"{% endif %}>
+            <div class="value text-danger">{{ rag_counts.red }}</div>
+            <div class="label"><i class="bi bi-circle-fill" style="color:#DC2626;"></i> Tolerance breached</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-5"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search KRIs..." value="{{ search_query }}"></div>
+            <div class="col-md-3">
+                <select name="category" class="form-select form-select-sm">
+                    <option value="">All categories</option>
+                    {% for val, label in categories %}<option value="{{ val }}" {% if selected_category == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="trend" class="form-select form-select-sm">
+                    <option value="">All trends</option>
+                    {% for val, label in trends %}<option value="{{ val }}" {% if selected_trend == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
+        </form>
+        <a href="{% url 'kris:create' %}" class="btn btn-sm btn-primary text-nowrap">+ New KRI</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>KRI</th>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th class="text-center">Current</th>
+                    <th class="text-center">Amber</th>
+                    <th class="text-center">Red</th>
+                    <th class="text-center">RAG</th>
+                    <th class="text-center">Trend</th>
+                    <th>Owner</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for k in kris %}
+                <tr>
+                    <td><a href="{% url 'kris:detail' k.pk %}"><strong>{{ k.name }}</strong></a></td>
+                    <td><small>{{ k.get_category_display }}</small></td>
+                    <td><small>{{ k.get_kri_type_display }}</small></td>
+                    <td class="text-center"><strong>{{ k.current_value }}{% if k.unit %} {{ k.unit }}{% endif %}</strong></td>
+                    <td class="text-center"><small class="text-muted">{{ k.amber_threshold }}</small></td>
+                    <td class="text-center"><small class="text-muted">{{ k.red_threshold }}</small></td>
+                    <td class="text-center">
+                        <span class="badge" style="background:{{ k.rag_color }};color:#fff;padding:4px 10px;">{{ k.rag_status|upper }}</span>
+                    </td>
+                    <td class="text-center">
+                        {% if k.trend == 'increasing' %}<i class="bi bi-arrow-up-right" style="color:#DC2626;"></i>
+                        {% elif k.trend == 'decreasing' %}<i class="bi bi-arrow-down-right" style="color:#059669;"></i>
+                        {% else %}<i class="bi bi-dash" style="color:#6B7280;"></i>{% endif %}
+                    </td>
+                    <td><small>{{ k.owner_user|default:k.owner_dept.name }}</small></td>
+                    <td class="text-end"><a href="{% url 'kris:detail' k.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="10" class="text-center text-muted py-4">No KRIs match your filters.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
