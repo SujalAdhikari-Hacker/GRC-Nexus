@@ -1,0 +1,74 @@
+﻿{% extends "base.html" %}
+{% block title %}Control Testing{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'audits:list' %}">Audits</a></li>
+    <li class="breadcrumb-item active">Control Testing</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-clipboard-check"></i> Total tests</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ pass_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Passed</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#D97706;">{{ partial_count }}</div><div class="label"><i class="bi bi-exclamation-circle"></i> Partial</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-danger">{{ fail_count }}</div><div class="label"><i class="bi bi-x-circle"></i> Failed</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-6"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search control code, name or notes..." value="{{ search_query }}"></div>
+            <div class="col-md-4">
+                <select name="result" class="form-select form-select-sm">
+                    <option value="">All results</option>
+                    {% for val, label in results %}<option value="{{ val }}" {% if selected_result == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
+        </form>
+        <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{ k }}={{ v }}&{% endif %}{% endfor %}export=csv" class="btn btn-sm btn-outline-dark text-nowrap me-2"><i class="bi bi-download"></i> CSV</a>
+        <a href="{% url 'audits:test_create' %}" class="btn btn-sm btn-primary text-nowrap">+ New Test</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Control</th>
+                    <th>Test Date</th>
+                    <th>Result</th>
+                    <th>Tester</th>
+                    <th>Procedure / Notes</th>
+                    <th>Audit</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for t in tests %}
+                <tr>
+                    <td><a href="{% url 'controls:detail' t.control.pk %}"><code>{{ t.control.code }}</code></a> {{ t.control.name|truncatechars:40 }}</td>
+                    <td><small>{{ t.test_date }}</small></td>
+                    <td>
+                        {% if t.result == 'pass' %}<span class="badge bg-success">Pass</span>
+                        {% elif t.result == 'partial' %}<span class="badge bg-warning text-dark">Partial</span>
+                        {% elif t.result == 'fail' %}<span class="badge bg-danger">Fail</span>
+                        {% elif t.result == 'self_audit' %}<span class="badge bg-info text-dark">Self Audit</span>
+                        {% elif t.result == 'continuous_monitoring' %}<span class="badge bg-primary">Continuous Monitoring</span>
+                        {% else %}<span class="badge bg-secondary">{{ t.get_result_display }}</span>{% endif %}
+                    </td>
+                    <td><small>{{ t.tester|default:"—" }}</small></td>
+                    <td><small class="text-muted">{{ t.procedure_notes|truncatechars:80|default:"—" }}</small></td>
+                    <td><small>{% if t.audit %}<a href="{% url 'audits:detail' t.audit.pk %}">{{ t.audit.name|truncatechars:30 }}</a>{% else %}—{% endif %}</small></td>
+                    <td class="text-end"><a href="{% url 'audits:test_update' t.pk %}" class="btn btn-sm btn-outline-dark">Edit</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No tests yet. <a href="{% url 'audits:test_create' %}">Record the first one</a>.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

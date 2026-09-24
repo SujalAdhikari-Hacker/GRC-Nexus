@@ -1,0 +1,94 @@
+﻿{% extends "base.html" %}
+{% block title %}Audit Findings{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'audits:list' %}">Audits</a></li>
+    <li class="breadcrumb-item active">Findings</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-exclamation-triangle"></i> Total findings</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-warning">{{ open_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> Open</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-danger">{{ critical_count }}</div><div class="label"><i class="bi bi-shield-exclamation"></i> Critical</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-danger">{{ overdue_count }}</div><div class="label"><i class="bi bi-clock-history"></i> Overdue</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-4"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search findings..." value="{{ search_query }}"></div>
+            <div class="col-md-2">
+                <select name="severity" class="form-select form-select-sm">
+                    <option value="">All severities</option>
+                    {% for val, label in severities %}<option value="{{ val }}" {% if selected_severity == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All statuses</option>
+                    {% for val, label in statuses %}<option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
+        </form>
+        <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{ k }}={{ v }}&{% endif %}{% endfor %}export=csv" class="btn btn-sm btn-outline-dark text-nowrap me-2"><i class="bi bi-download"></i> CSV</a>
+        <a href="{% url 'audits:finding_create' %}" class="btn btn-sm btn-primary text-nowrap">+ New Finding</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>Source</th>
+                    <th>Control</th>
+                    <th>Owner</th>
+                    <th>Due</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for f in findings %}
+                <tr>
+                    <td><a href="{% url 'audits:finding_detail' f.pk %}"><strong>{{ f.title|truncatechars:60 }}</strong></a></td>
+                    <td>
+                        {% if f.severity == 'critical' %}<span class="badge bg-danger">Critical</span>
+                        {% elif f.severity == 'high' %}<span class="badge bg-warning text-dark">High</span>
+                        {% elif f.severity == 'medium' %}<span class="badge bg-info text-dark">Medium</span>
+                        {% else %}<span class="badge bg-secondary">Low</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if f.status == 'open' %}<span class="badge bg-danger">Open</span>
+                        {% elif f.status == 'in_progress' %}<span class="badge bg-warning text-dark">In Progress</span>
+                        {% elif f.status == 'resolved' %}<span class="badge bg-success">Resolved</span>
+                        {% elif f.status == 'accepted' %}<span class="badge bg-info text-dark">Accepted</span>
+                        {% else %}<span class="badge bg-secondary">Closed</span>{% endif %}
+                    </td>
+                    <td><small>{{ f.get_source_display }}</small></td>
+                    <td><small>{% if f.related_control %}<code>{{ f.related_control.code }}</code>{% else %}&mdash;{% endif %}</small></td>
+                    <td><small>{{ f.owner_user|default:"&mdash;" }}</small></td>
+                    <td>
+                        <small>
+                        {% if f.due_date %}
+                            {% if f.due_date < now_date and f.status != 'resolved' and f.status != 'closed' and f.status != 'accepted' %}
+                                <span class="text-danger">{{ f.due_date }} <i class="bi bi-clock-history"></i></span>
+                            {% else %}{{ f.due_date }}{% endif %}
+                        {% else %}&mdash;{% endif %}
+                        </small>
+                    </td>
+                    <td class="text-end"><a href="{% url 'audits:finding_detail' f.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No findings. <a href="{% url 'audits:finding_create' %}">Add one</a>.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

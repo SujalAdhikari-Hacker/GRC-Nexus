@@ -3,7 +3,7 @@ from django.db.models import Q
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
-
+from django.utils import timezone
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from .models import Audit, EvidenceItem, EvidenceScore, ControlTest, AuditFinding
 from .forms import EvidenceItemForm, EvidenceScoreForm, ControlTestForm, AuditFindingForm
@@ -386,6 +386,7 @@ class FindingListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_severity'] = self.request.GET.get('severity', '')
         ctx['selected_status'] = self.request.GET.get('status', '')
+        ctx['now_date'] = timezone.now().date()
 
         base = super().get_queryset()
         user = self.request.user

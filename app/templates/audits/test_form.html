@@ -1,0 +1,57 @@
+﻿{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Control Test{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'audits:list' %}">Audits</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'audits:test_list' %}">Control Testing</a></li>
+    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit{% else %}Record{% endif %} control test</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save Test</button>
+                    <a href="{% url 'audits:test_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Result meanings</strong></div>
+            <div class="card-body small">
+                <div class="mb-2"><span class="badge bg-success">Pass</span> — Control operating as designed</div>
+                <div class="mb-2"><span class="badge bg-warning text-dark">Partial</span> — Some gaps identified</div>
+                <div class="mb-2"><span class="badge bg-danger">Fail</span> — Control not working</div>
+                <div class="mb-2"><span class="badge bg-info text-dark">Self Audit</span> — Owner self-attested</div>
+                <div class="mb-2"><span class="badge bg-primary">Continuous Monitoring</span> — Automated telemetry</div>
+                <div class="mb-2"><span class="badge bg-secondary">Other</span> — Complaint, incident, etc.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="text"], input[type="date"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+</style>
+{% endblock %}

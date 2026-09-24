@@ -1,0 +1,61 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ finding.title }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'audits:list' %}">Audits</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'audits:finding_list' %}">Findings</a></li>
+    <li class="breadcrumb-item active">{{ finding.title|truncatechars:40 }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">{{ finding.title }}</h4>
+        <div>
+            {% if finding.severity == 'critical' %}<span class="badge bg-danger">Critical</span>
+            {% elif finding.severity == 'high' %}<span class="badge bg-warning text-dark">High</span>
+            {% elif finding.severity == 'medium' %}<span class="badge bg-info text-dark">Medium</span>
+            {% else %}<span class="badge bg-secondary">Low</span>{% endif %}
+            {% if finding.status == 'open' %}<span class="badge bg-danger">Open</span>
+            {% elif finding.status == 'in_progress' %}<span class="badge bg-warning text-dark">In Progress</span>
+            {% elif finding.status == 'resolved' %}<span class="badge bg-success">Resolved</span>
+            {% elif finding.status == 'accepted' %}<span class="badge bg-info text-dark">Accepted</span>
+            {% else %}<span class="badge bg-secondary">Closed</span>{% endif %}
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'audits:finding_update' finding.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        <a href="/admin/audits/auditfinding/{{ finding.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Details</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Source</span><span>{{ finding.get_source_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Audit</span><span>{% if finding.audit %}<a href="{% url 'audits:detail' finding.audit.pk %}">{{ finding.audit.name|truncatechars:30 }}</a>{% else %}&mdash;{% endif %}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Control</span><span>{% if finding.related_control %}<a href="{% url 'controls:detail' finding.related_control.pk %}"><code>{{ finding.related_control.code }}</code></a>{% else %}&mdash;{% endif %}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ finding.owner_user|default:"&mdash;" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Department</span><span>{{ finding.owner_dept.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Due date</span><span>{{ finding.due_date|default:"&mdash;" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Closed date</span><span>{{ finding.closed_date|default:"&mdash;" }}</span></li>
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Description</strong></div>
+            <div class="card-body">{{ finding.description|default:"&mdash;"|linebreaks }}</div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Recommendation</strong></div>
+            <div class="card-body">{{ finding.recommendation|default:"&mdash;"|linebreaks }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

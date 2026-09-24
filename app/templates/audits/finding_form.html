@@ -1,0 +1,68 @@
+﻿{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Finding{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'audits:list' %}">Audits</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'audits:finding_list' %}">Findings</a></li>
+    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit{% else %}Create{% endif %} finding</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save Finding</button>
+                    <a href="{% url 'audits:finding_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Severity guidance</strong></div>
+            <div class="card-body small text-muted">
+                <div class="mb-2"><strong class="text-danger">Critical</strong> &mdash; Immediate risk, needs escalation</div>
+                <div class="mb-2"><strong style="color:#D97706;">High</strong> &mdash; Significant gap, remediate soon</div>
+                <div class="mb-2"><strong style="color:#0284C7;">Medium</strong> &mdash; Notable gap, plan remediation</div>
+                <div class="mb-2"><strong>Low</strong> &mdash; Minor, address when possible</div>
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Sources</strong></div>
+            <div class="card-body small text-muted">
+                <ul class="ps-3 mb-0">
+                    <li>Internal Audit</li>
+                    <li>External Audit</li>
+                    <li>Self-Assessment</li>
+                    <li>Customer Complaint</li>
+                    <li>Continuous Monitoring</li>
+                    <li>Other</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="text"], input[type="date"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+</style>
+{% endblock %}
