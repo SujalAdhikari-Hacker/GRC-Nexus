@@ -144,6 +144,9 @@
                         <a href="{% url 'audits:score_list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-clipboard-data"></i><span>Evidence Scoring</span>
             </a>
+                        <a href="{% url 'audits:finding_list' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-exclamation-triangle"></i><span>Findings</span>
+            </a>
             <a href="{% url 'audits:test_list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-clipboard-data"></i><span>Control Testing</span>
             </a>
@@ -153,6 +156,9 @@
             {% else %}
             <a href="{% url 'audits:list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
                 <i class="bi bi-clipboard-check"></i><span>Audit Schedule</span>
+            </a>
+                        <a href="{% url 'audits:finding_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
+                <i class="bi bi-exclamation-triangle"></i><span>Findings</span>
             </a>
             <a href="{% url 'audits:timeline' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
                 <i class="bi bi-kanban"></i><span>Audit Timeline</span>
