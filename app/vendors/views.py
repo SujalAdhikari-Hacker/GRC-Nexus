@@ -89,3 +89,45 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         ctx['vendor'] = self.vendor
         return ctx
+
+
+class VendorAssessmentListView(DepartmentScopedMixin, CsvExportMixin, ListView):
+    model = VendorAssessment
+    template_name = 'vendors/assessment_list.html'
+    context_object_name = 'assessments'
+    paginate_by = 25
+    department_field = 'vendor__owner_dept'
+
+    csv_filename = 'vendor_assessments.csv'
+    csv_fields = [
+        ('Vendor', lambda a: a.vendor.name),
+        ('Date', lambda a: a.assessment_date),
+        ('Score', lambda a: a.score),
+        ('Status', lambda a: a.get_status_display()),
+        ('Assessed By', lambda a: a.assessed_by.username if a.assessed_by else ''),
+        ('Findings', lambda a: a.findings[:200] if a.findings else ''),
+    ]
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('vendor', 'assessed_by')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(vendor__name__icontains=q) | Q(findings__icontains=q))
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        return qs.order_by('-assessment_date')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['statuses'] = VendorAssessment.STATUS_CHOICES
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_status'] = self.request.GET.get('status', '')
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(vendor__owner_dept=user.department)
+        ctx['total_count'] = base.count()
+        ctx['high_risk_count'] = base.filter(score__gte=60).count()
+        ctx['pending_count'] = base.filter(status='pending').count()
+        return ctx

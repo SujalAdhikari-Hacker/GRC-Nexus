@@ -1,0 +1,90 @@
+﻿{% extends "base.html" %}
+{% block title %}Vendor Risk Assessment{% endblock %}
+{% block breadcrumb %}<h5 class="mb-0">Vendor Risk Assessment</h5>{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="value">{{ total_count }}</div>
+            <div class="label"><i class="bi bi-clipboard-check"></i> Total assessments</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" {% if high_risk_count %}style="border-color:#dc3545"{% endif %}>
+            <div class="value {% if high_risk_count %}text-danger{% endif %}">{{ high_risk_count }}</div>
+            <div class="label"><i class="bi bi-exclamation-triangle"></i> High risk (score ≥ 60)</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="value">{{ pending_count }}</div>
+            <div class="label"><i class="bi bi-hourglass"></i> Pending</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-6">
+                <input type="text" name="q" class="form-control form-control-sm"
+                       placeholder="Search vendor or findings..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All statuses</option>
+                    {% for val, label in statuses %}
+                        <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-sm btn-dark w-100">Filter</button>
+            </div>
+        </form>
+        <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{ k }}={{ v }}&{% endif %}{% endfor %}export=csv"
+           class="btn btn-sm btn-outline-dark text-nowrap me-2">
+            <i class="bi bi-download"></i> CSV
+        </a>
+        <a href="{% url 'vendors:list' %}" class="btn btn-sm btn-outline-dark text-nowrap">Vendors</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Vendor</th>
+                    <th>Assessment date</th>
+                    <th class="text-center">Score</th>
+                    <th class="text-center">Status</th>
+                    <th>Assessed by</th>
+                    <th>Findings</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for a in assessments %}
+                <tr>
+                    <td><a href="{% url 'vendors:detail' a.vendor.pk %}"><strong>{{ a.vendor.name }}</strong></a></td>
+                    <td>{{ a.assessment_date }}</td>
+                    <td class="text-center">
+                        {% if a.score >= 60 %}<span class="badge bg-danger">{{ a.score }}</span>
+                        {% elif a.score >= 40 %}<span class="badge bg-warning text-dark">{{ a.score }}</span>
+                        {% else %}<span class="badge bg-success">{{ a.score }}</span>{% endif %}
+                    </td>
+                    <td class="text-center"><small>{{ a.get_status_display }}</small></td>
+                    <td><small>{{ a.assessed_by|default:"—" }}</small></td>
+                    <td><small class="text-muted">{{ a.findings|truncatechars:60|default:"—" }}</small></td>
+                    <td class="text-end">
+                        <a href="{% url 'vendors:detail' a.vendor.pk %}" class="btn btn-sm btn-outline-dark">View vendor</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No assessments match your filters.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

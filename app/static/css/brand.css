@@ -718,3 +718,94 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 [data-bs-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
 }
+
+/* ---------- Sidebar collapsible sections ---------- */
+.nav-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--brand-500);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 12px 12px 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+.nav-section-title:hover {
+    color: var(--brand-300);
+}
+.nav-section-title .section-caret {
+    font-size: 10px;
+    transition: transform 0.15s ease;
+    opacity: 0.6;
+}
+.nav-section-title[aria-expanded="false"] .section-caret {
+    transform: rotate(-90deg);
+}
+[data-bs-theme="dark"] .nav-section-title {
+    color: #4B5563;
+}
+[data-bs-theme="dark"] .nav-section-title:hover {
+    color: var(--brand-300);
+}
+
+/* ---------- Sidebar section headers — brighter + tight collapse ---------- */
+.nav-section {
+    margin-bottom: 0 !important;
+}
+
+.nav-section-title {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    color: #E5E7EB !important;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 14px 12px 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    line-height: 1;
+}
+.nav-section-title:hover {
+    color: #FFFFFF !important;
+}
+.nav-section-title .section-caret {
+    font-size: 10px;
+    transition: transform 0.15s ease;
+    opacity: 0.9;
+    color: inherit;
+}
+
+/* Custom collapse body — hidden unless parent has .is-open */
+.nav-section-body {
+    display: none;
+    padding: 0;
+    margin: 0;
+}
+.nav-section.is-open .nav-section-body {
+    display: block;
+}
+.nav-section.is-open .nav-section-title .section-caret {
+    transform: rotate(0deg);
+}
+.nav-section:not(.is-open) .nav-section-title .section-caret {
+    transform: rotate(-90deg);
+}
+
+[data-bs-theme="dark"] .nav-section-title {
+    color: #E5E7EB !important;
+}
+[data-bs-theme="dark"] .nav-section-title:hover {
+    color: #FFFFFF !important;
+}
