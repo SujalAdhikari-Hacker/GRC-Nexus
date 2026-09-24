@@ -88,6 +88,7 @@ class ControlDetailView(DepartmentScopedMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_control_context(self.object))
         ctx['framework_mappings'] = self.object.framework_mappings.select_related('framework_control__framework')
+        ctx['audit_tests'] = self.object.audit_tests.select_related('tester', 'audit').order_by('-test_date')[:10]
         return ctx
 
 
