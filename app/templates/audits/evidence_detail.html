@@ -1,0 +1,128 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ item.title }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'audits:list' %}">Audits</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'audits:evidence_list' %}">Evidence</a></li>
+    <li class="breadcrumb-item active">{{ item.title|truncatechars:50 }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">{{ item.title }}</h4>
+        <small class="text-muted">{{ item.get_evidence_type_display }} · added {{ item.created_at|date:"Y-m-d" }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'audits:evidence_update' item.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        {% if score %}
+            <a href="{% url 'audits:evidence_score_update' score.pk %}" class="btn btn-sm btn-primary">Edit score</a>
+        {% else %}
+            <a href="{% url 'audits:evidence_score_create' item.pk %}" class="btn btn-sm btn-primary">Score this evidence</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Evidence details</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Type</span><span>{{ item.get_evidence_type_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Related control</span><span>{% if item.related_control %}<a href="{% url 'controls:detail' item.related_control.pk %}"><code>{{ item.related_control.code }}</code></a>{% else %}—{% endif %}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Audit</span><span>{% if item.audit %}<a href="{% url 'audits:detail' item.audit.pk %}">{{ item.audit.name|truncatechars:40 }}</a>{% else %}—{% endif %}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ item.owner_user|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Department</span><span>{{ item.owner_dept.name }}</span></li>
+            </ul>
+        </div>
+
+        {% if item.url_location or item.attachment %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Location</strong></div>
+            <div class="card-body">
+                {% if item.url_location %}<div><a href="{{ item.url_location }}" target="_blank">{{ item.url_location }}</a></div>{% endif %}
+                {% if item.attachment %}<div class="mt-2"><a href="{{ item.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-dark"><i class="bi bi-paperclip"></i> Download attachment</a></div>{% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if item.notes %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Notes</strong></div>
+            <div class="card-body">{{ item.notes|linebreaks }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Evidence scoring</strong>
+                {% if not score %}
+                    <a href="{% url 'audits:evidence_score_create' item.pk %}" class="btn btn-sm btn-primary">Score</a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if score %}
+                    <div class="text-center mb-3">
+                        <div style="font-size:3rem; font-weight:700; color:
+                            {% if score.total_score >= 90 %}#059669
+                            {% elif score.total_score >= 75 %}#0284C7
+                            {% elif score.total_score >= 50 %}#D97706
+                            {% else %}#DC2626{% endif %};">
+                            {{ score.total_score }}<span style="font-size:1rem; opacity:.6;">/100</span>
+                        </div>
+                        <div class="badge {% if score.rating == 'excellent' %}bg-success{% elif score.rating == 'good' %}bg-info text-dark{% elif score.rating == 'partial' %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size:12px;">
+                            {{ score.rating|upper }}
+                        </div>
+                    </div>
+
+                    <table class="table table-sm mb-3">
+                        <tbody>
+                            <tr>
+                                <td>Relevance</td>
+                                <td class="text-end"><strong>{{ score.relevance }}</strong>/20</td>
+                                <td style="width:50%;"><div class="progress" style="height:6px;"><div class="progress-bar bg-primary" style="width:{% widthratio score.relevance 20 100 %}%;"></div></div></td>
+                            </tr>
+                            <tr>
+                                <td>Completeness</td>
+                                <td class="text-end"><strong>{{ score.completeness }}</strong>/20</td>
+                                <td><div class="progress" style="height:6px;"><div class="progress-bar bg-primary" style="width:{% widthratio score.completeness 20 100 %}%;"></div></div></td>
+                            </tr>
+                            <tr>
+                                <td>Timeliness</td>
+                                <td class="text-end"><strong>{{ score.timeliness }}</strong>/20</td>
+                                <td><div class="progress" style="height:6px;"><div class="progress-bar bg-primary" style="width:{% widthratio score.timeliness 20 100 %}%;"></div></div></td>
+                            </tr>
+                            <tr>
+                                <td>Reliability</td>
+                                <td class="text-end"><strong>{{ score.reliability }}</strong>/20</td>
+                                <td><div class="progress" style="height:6px;"><div class="progress-bar bg-primary" style="width:{% widthratio score.reliability 20 100 %}%;"></div></div></td>
+                            </tr>
+                            <tr>
+                                <td>Sufficiency</td>
+                                <td class="text-end"><strong>{{ score.sufficiency }}</strong>/20</td>
+                                <td><div class="progress" style="height:6px;"><div class="progress-bar bg-primary" style="width:{% widthratio score.sufficiency 20 100 %}%;"></div></div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="small text-muted">
+                        <strong>Assessor:</strong> {{ score.assessor|default:"—" }} · {{ score.scored_at|date:"Y-m-d H:i" }}
+                        {% if score.assessor_notes %}<div class="mt-2">{{ score.assessor_notes|linebreaks }}</div>{% endif %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-clipboard-x" style="font-size:2.5rem; opacity:.4;"></i>
+                        <p class="mt-2 mb-0">Not yet scored.</p>
+                        <a href="{% url 'audits:evidence_score_create' item.pk %}" class="btn btn-sm btn-primary mt-2">Score now</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

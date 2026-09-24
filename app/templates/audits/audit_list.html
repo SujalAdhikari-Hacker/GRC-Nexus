@@ -1,0 +1,87 @@
+﻿{% extends "base.html" %}
+{% block title %}Audits{% endblock %}
+{% block breadcrumb %}<h5 class="mb-0">Audit Schedule</h5>{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-clipboard-check"></i> Total audits</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ in_progress_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> In progress</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ complete_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Complete</div></div></div>
+    <div class="col-md-3"><div class="stat-card" {% if open_findings_count %}style="border-color:#dc3545;"{% endif %}><div class="value text-danger">{{ open_findings_count }}</div><div class="label"><i class="bi bi-exclamation-triangle"></i> Open findings</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-4"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search audit name or scope..." value="{{ search_query }}"></div>
+            <div class="col-md-2">
+                <select name="type" class="form-select form-select-sm">
+                    <option value="">All types</option>
+                    {% for val, label in audit_types %}<option value="{{ val }}" {% if selected_type == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All statuses</option>
+                    {% for val, label in statuses %}<option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
+            <div class="col-md-2"><a href="{% url 'audits:timeline' %}" class="btn btn-sm btn-outline-dark w-100">Timeline view</a></div>
+        </form>
+        <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{ k }}={{ v }}&{% endif %}{% endfor %}export=csv" class="btn btn-sm btn-outline-dark text-nowrap me-2"><i class="bi bi-download"></i> CSV</a>
+        <a href="{% url 'audits:create' %}" class="btn btn-sm btn-primary text-nowrap">+ New Audit</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Audit Name</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Auditor Lead</th>
+                    <th class="text-center">Findings</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for a in audits %}
+                <tr>
+                    <td>
+                        <a href="{% url 'audits:detail' a.pk %}"><strong>{{ a.name|truncatechars:60 }}</strong></a>
+                        {% if a.scope %}<div class="small text-muted">{{ a.scope|truncatechars:80 }}</div>{% endif %}
+                    </td>
+                    <td>
+                        {% if a.audit_type == 'external' %}<span class="badge bg-danger">External</span>
+                        {% elif a.audit_type == 'internal' %}<span class="badge bg-info text-dark">Internal</span>
+                        {% else %}<span class="badge bg-secondary">Self-Assessment</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if a.status == 'planned' %}<span class="badge bg-secondary">Planned</span>
+                        {% elif a.status == 'planning' %}<span class="badge bg-warning text-dark">Planning</span>
+                        {% elif a.status == 'in_progress' %}<span class="badge bg-info text-dark">In Progress</span>
+                        {% else %}<span class="badge bg-success">Complete</span>{% endif %}
+                    </td>
+                    <td><small>{{ a.auditor_lead|default:"—" }}</small></td>
+                    <td class="text-center">
+                        {% if a.finding_count %}
+                            <span class="badge {% if a.open_finding_count %}bg-danger{% else %}bg-success{% endif %}">
+                                {{ a.finding_count }}{% if a.open_finding_count %} ({{ a.open_finding_count }} open){% endif %}
+                            </span>
+                        {% else %}<small class="text-muted">—</small>{% endif %}
+                    </td>
+                    <td><small>{{ a.start_date|default:"—" }}</small></td>
+                    <td><small>{{ a.end_date|default:"—" }}</small></td>
+                    <td class="text-end"><a href="{% url 'audits:detail' a.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No audits match your filters.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

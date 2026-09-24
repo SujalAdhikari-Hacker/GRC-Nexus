@@ -125,6 +125,25 @@
             {% endif %}
 
             {% if user.is_superuser %}
+                        <div class="sidebar-section-head sidebar-head-toggle" data-target="audit" style="display: flex;">
+                <span>Audit &amp; Compliance</span>
+                <i class="bi bi-chevron-down section-caret"></i>
+            </div>
+            {% if ns == 'audits' %}
+            <a href="{% url 'audits:list' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-clipboard-check"></i><span>Audit Schedule</span>
+            </a>
+            <a href="{% url 'audits:timeline' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-kanban"></i><span>Audit Timeline</span>
+            </a>
+            {% else %}
+            <a href="{% url 'audits:list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
+                <i class="bi bi-clipboard-check"></i><span>Audit Schedule</span>
+            </a>
+            <a href="{% url 'audits:timeline' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
+                <i class="bi bi-kanban"></i><span>Audit Timeline</span>
+            </a>
+            {% endif %}
             <div class="sidebar-section-head" style="display: flex; cursor: default;">Admin</div>
             <a href="/admin/" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-gear"></i><span>Django Admin</span>

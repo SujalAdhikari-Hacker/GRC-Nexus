@@ -1,0 +1,70 @@
+﻿{% extends "base.html" %}
+{% block title %}Score: {{ evidence.title|truncatechars:40 }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'audits:list' %}">Audits</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'audits:evidence_list' %}">Evidence</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'audits:evidence_detail' evidence.pk %}">{{ evidence.title|truncatechars:40 }}</a></li>
+    <li class="breadcrumb-item active">Score</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Score this evidence</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save Score</button>
+                    <a href="{% url 'audits:evidence_detail' evidence.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Evidence being scored</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>{{ evidence.title }}</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Type</span><span>{{ evidence.get_evidence_type_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Control</span><span>{% if evidence.related_control %}<code>{{ evidence.related_control.code }}</code>{% else %}—{% endif %}</span></li>
+            </ul>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Scoring guide</strong></div>
+            <div class="card-body small">
+                <div class="mb-2"><strong>Relevance</strong> — Does it directly support the control?</div>
+                <div class="mb-2"><strong>Completeness</strong> — Is it comprehensive enough?</div>
+                <div class="mb-2"><strong>Timeliness</strong> — Is it current and within audit period?</div>
+                <div class="mb-2"><strong>Reliability</strong> — Is the source trustworthy?</div>
+                <div class="mb-3"><strong>Sufficiency</strong> — Enough to satisfy the auditor?</div>
+                <hr>
+                <div class="d-flex justify-content-between"><span>90–100</span><span class="badge bg-success">Excellent</span></div>
+                <div class="d-flex justify-content-between mt-1"><span>75–89</span><span class="badge bg-info text-dark">Good</span></div>
+                <div class="d-flex justify-content-between mt-1"><span>50–74</span><span class="badge bg-warning text-dark">Partial</span></div>
+                <div class="d-flex justify-content-between mt-1"><span>0–49</span><span class="badge bg-danger">Weak</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="number"], input[type="text"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+</style>
+{% endblock %}

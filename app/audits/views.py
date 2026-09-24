@@ -1,1 +1,432 @@
-﻿# Part 2 will fill this in
+﻿from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
+from django.shortcuts import redirect, get_object_or_404
+from django.urls import reverse_lazy
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
+
+from core.mixins import DepartmentScopedMixin, CsvExportMixin
+from .models import Audit, EvidenceItem, EvidenceScore, ControlTest, AuditFinding
+from .forms import EvidenceItemForm, EvidenceScoreForm, ControlTestForm, AuditFindingForm
+
+
+# ==================================================================
+# AUDIT
+# ==================================================================
+
+class AuditListView(DepartmentScopedMixin, CsvExportMixin, ListView):
+    model = Audit
+    template_name = 'audits/audit_list.html'
+    context_object_name = 'audits'
+    paginate_by = 25
+    department_field = 'owner_dept'
+
+    csv_filename = 'audits.csv'
+    csv_fields = [
+        ('Name', 'name'),
+        ('Type', 'get_audit_type_display'),
+        ('Status', 'get_status_display'),
+        ('Auditor Lead', lambda a: a.auditor_lead.username if a.auditor_lead else ''),
+        ('Owner Dept', lambda a: a.owner_dept.name),
+        ('Start', lambda a: a.start_date or ''),
+        ('End', lambda a: a.end_date or ''),
+        ('Findings', lambda a: a.findings.count()),
+    ]
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('auditor_lead', 'owner_dept')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(name__icontains=q) | Q(scope__icontains=q))
+        atype = self.request.GET.get('type')
+        if atype:
+            qs = qs.filter(audit_type=atype)
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        return qs.order_by('-start_date', 'name')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['audit_types'] = Audit.TYPE_CHOICES
+        ctx['statuses'] = Audit.STATUS_CHOICES
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_type'] = self.request.GET.get('type', '')
+        ctx['selected_status'] = self.request.GET.get('status', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(owner_dept=user.department)
+        all_audits = list(base)
+        ctx['total_count'] = len(all_audits)
+        ctx['planned_count'] = sum(1 for a in all_audits if a.status == 'planned')
+        ctx['in_progress_count'] = sum(1 for a in all_audits if a.status in ['planning', 'in_progress'])
+        ctx['complete_count'] = sum(1 for a in all_audits if a.status == 'complete')
+        ctx['open_findings_count'] = AuditFinding.objects.filter(
+            audit__in=all_audits
+        ).exclude(status__in=['resolved', 'closed', 'accepted']).count()
+        return ctx
+
+
+class AuditDetailView(DepartmentScopedMixin, DetailView):
+    model = Audit
+    template_name = 'audits/audit_detail.html'
+    context_object_name = 'audit'
+    department_field = 'owner_dept'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['findings'] = self.object.findings.select_related('related_control', 'owner_user').all()
+        ctx['evidence_items'] = self.object.evidence_items.select_related('related_control', 'owner_user')[:20]
+        ctx['tests'] = self.object.control_tests.select_related('control', 'tester')[:20]
+        return ctx
+
+
+class AuditCreateView(DepartmentScopedMixin, CreateView):
+    model = Audit
+    template_name = 'audits/audit_form.html'
+    fields = [
+        'name', 'owner_dept', 'audit_type', 'status',
+        'auditor_lead', 'start_date', 'end_date',
+        'scope', 'frameworks', 'notes',
+    ]
+    success_url = reverse_lazy('audits:list')
+
+    def get_initial(self):
+        initial = super().get_initial()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            initial['owner_dept'] = user.department
+        return initial
+
+
+class AuditUpdateView(DepartmentScopedMixin, UpdateView):
+    model = Audit
+    template_name = 'audits/audit_form.html'
+    fields = [
+        'name', 'owner_dept', 'audit_type', 'status',
+        'auditor_lead', 'start_date', 'end_date',
+        'scope', 'frameworks', 'notes',
+    ]
+    success_url = reverse_lazy('audits:list')
+    department_field = 'owner_dept'
+
+
+class AuditTimelineView(DepartmentScopedMixin, TemplateView):
+    template_name = 'audits/audit_timeline.html'
+    department_field = 'owner_dept'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        qs = Audit.objects.all().select_related('auditor_lead', 'owner_dept')
+        if not user.is_superuser and user.department_id:
+            qs = qs.filter(owner_dept=user.department)
+
+        columns = []
+        for code, label in Audit.STATUS_CHOICES:
+            audits = list(qs.filter(status=code).order_by('-start_date'))
+            columns.append({'code': code, 'label': label, 'audits': audits, 'count': len(audits)})
+
+        ctx['columns'] = columns
+        ctx['total_count'] = qs.count()
+        return ctx
+
+
+# ==================================================================
+# EVIDENCE LIBRARY + SCORING
+# ==================================================================
+
+class EvidenceListView(DepartmentScopedMixin, CsvExportMixin, ListView):
+    model = EvidenceItem
+    template_name = 'audits/evidence_list.html'
+    context_object_name = 'items'
+    paginate_by = 25
+    department_field = 'owner_dept'
+
+    csv_filename = 'evidence.csv'
+    csv_fields = [
+        ('Title', 'title'),
+        ('Type', 'get_evidence_type_display'),
+        ('Control', lambda e: e.related_control.code if e.related_control else ''),
+        ('Audit', lambda e: e.audit.name if e.audit else ''),
+        ('Owner', lambda e: e.owner_user.username if e.owner_user else ''),
+        ('Department', lambda e: e.owner_dept.name),
+        ('Score', lambda e: e.score.total_score if e.score else ''),
+        ('Created', lambda e: e.created_at.strftime('%Y-%m-%d')),
+    ]
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('related_control', 'owner_user', 'owner_dept', 'audit')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(title__icontains=q) | Q(notes__icontains=q))
+        etype = self.request.GET.get('type')
+        if etype:
+            qs = qs.filter(evidence_type=etype)
+        control = self.request.GET.get('control')
+        if control:
+            qs = qs.filter(related_control_id=control)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['evidence_types'] = EvidenceItem.TYPE_CHOICES
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_type'] = self.request.GET.get('type', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(owner_dept=user.department)
+        all_items = list(base)
+        ctx['total_count'] = len(all_items)
+        ctx['scored_count'] = sum(1 for e in all_items if hasattr(e, 'scoring'))
+        ctx['unscored_count'] = ctx['total_count'] - ctx['scored_count']
+        strong = sum(1 for e in all_items if hasattr(e, 'scoring') and e.scoring.total_score >= 75)
+        ctx['strong_count'] = strong
+        return ctx
+
+
+class EvidenceDetailView(DepartmentScopedMixin, DetailView):
+    model = EvidenceItem
+    template_name = 'audits/evidence_detail.html'
+    context_object_name = 'item'
+    department_field = 'owner_dept'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['score'] = getattr(self.object, 'scoring', None)
+        return ctx
+
+
+class EvidenceCreateView(DepartmentScopedMixin, CreateView):
+    model = EvidenceItem
+    form_class = EvidenceItemForm
+    template_name = 'audits/evidence_form.html'
+    success_url = reverse_lazy('audits:evidence_list')
+
+    def get_initial(self):
+        initial = super().get_initial()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            initial['owner_dept'] = user.department
+        # Pre-fill from query params
+        control = self.request.GET.get('control')
+        if control:
+            initial['related_control'] = control
+        audit = self.request.GET.get('audit')
+        if audit:
+            initial['audit'] = audit
+        return initial
+
+
+class EvidenceUpdateView(DepartmentScopedMixin, UpdateView):
+    model = EvidenceItem
+    form_class = EvidenceItemForm
+    template_name = 'audits/evidence_form.html'
+    success_url = reverse_lazy('audits:evidence_list')
+    department_field = 'owner_dept'
+
+
+class EvidenceScoreCreateView(LoginRequiredMixin, CreateView):
+    model = EvidenceScore
+    form_class = EvidenceScoreForm
+    template_name = 'audits/evidence_score_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.evidence = EvidenceItem.objects.get(pk=kwargs['evidence_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['assessor'] = self.request.user
+        return initial
+
+    def form_valid(self, form):
+        form.instance.evidence = self.evidence
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('audits:evidence_detail', kwargs={'pk': self.evidence.pk})
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['evidence'] = self.evidence
+        return ctx
+
+
+class EvidenceScoreUpdateView(LoginRequiredMixin, UpdateView):
+    model = EvidenceScore
+    form_class = EvidenceScoreForm
+    template_name = 'audits/evidence_score_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('audits:evidence_detail', kwargs={'pk': self.object.evidence.pk})
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['evidence'] = self.object.evidence
+        return ctx
+
+
+# ==================================================================
+# CONTROL TESTING
+# ==================================================================
+
+class ControlTestListView(DepartmentScopedMixin, CsvExportMixin, ListView):
+    model = ControlTest
+    template_name = 'audits/test_list.html'
+    context_object_name = 'tests'
+    paginate_by = 25
+    department_field = 'owner_dept'
+
+    csv_filename = 'control_tests.csv'
+    csv_fields = [
+        ('Control', lambda t: t.control.code),
+        ('Control Name', lambda t: t.control.name),
+        ('Date', 'test_date'),
+        ('Result', 'get_result_display'),
+        ('Tester', lambda t: t.tester.username if t.tester else ''),
+        ('Notes', 'procedure_notes'),
+    ]
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('control', 'tester', 'owner_dept', 'audit')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(control__code__icontains=q) | Q(control__name__icontains=q) | Q(procedure_notes__icontains=q))
+        result = self.request.GET.get('result')
+        if result:
+            qs = qs.filter(result=result)
+        return qs.order_by('-test_date')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['results'] = ControlTest.RESULT_CHOICES
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_result'] = self.request.GET.get('result', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(owner_dept=user.department)
+        ctx['total_count'] = base.count()
+        ctx['pass_count'] = base.filter(result='pass').count()
+        ctx['fail_count'] = base.filter(result='fail').count()
+        ctx['partial_count'] = base.filter(result='partial').count()
+        return ctx
+
+
+class ControlTestCreateView(DepartmentScopedMixin, CreateView):
+    model = ControlTest
+    form_class = ControlTestForm
+    template_name = 'audits/test_form.html'
+    success_url = reverse_lazy('audits:test_list')
+
+    def get_initial(self):
+        initial = super().get_initial()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            initial['owner_dept'] = user.department
+        control = self.request.GET.get('control')
+        if control:
+            initial['control'] = control
+        return initial
+
+
+class ControlTestUpdateView(DepartmentScopedMixin, UpdateView):
+    model = ControlTest
+    form_class = ControlTestForm
+    template_name = 'audits/test_form.html'
+    success_url = reverse_lazy('audits:test_list')
+    department_field = 'owner_dept'
+
+
+# ==================================================================
+# AUDIT FINDINGS
+# ==================================================================
+
+class FindingListView(DepartmentScopedMixin, CsvExportMixin, ListView):
+    model = AuditFinding
+    template_name = 'audits/finding_list.html'
+    context_object_name = 'findings'
+    paginate_by = 25
+    department_field = 'owner_dept'
+
+    csv_filename = 'audit_findings.csv'
+    csv_fields = [
+        ('Title', 'title'),
+        ('Severity', 'get_severity_display'),
+        ('Status', 'get_status_display'),
+        ('Source', 'get_source_display'),
+        ('Control', lambda f: f.related_control.code if f.related_control else ''),
+        ('Owner', lambda f: f.owner_user.username if f.owner_user else ''),
+        ('Department', lambda f: f.owner_dept.name),
+        ('Due', lambda f: f.due_date or ''),
+    ]
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('related_control', 'owner_user', 'owner_dept', 'audit')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q))
+        severity = self.request.GET.get('severity')
+        if severity:
+            qs = qs.filter(severity=severity)
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['severities'] = AuditFinding.SEVERITY_CHOICES
+        ctx['statuses'] = AuditFinding.STATUS_CHOICES
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_severity'] = self.request.GET.get('severity', '')
+        ctx['selected_status'] = self.request.GET.get('status', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(owner_dept=user.department)
+        ctx['total_count'] = base.count()
+        ctx['open_count'] = base.filter(status='open').count()
+        ctx['critical_count'] = base.filter(severity='critical').count()
+        ctx['overdue_count'] = base.filter(
+            due_date__lt=__import__('django').utils.timezone.now().date()
+        ).exclude(status__in=['resolved', 'closed', 'accepted']).count()
+        return ctx
+
+
+class FindingDetailView(DepartmentScopedMixin, DetailView):
+    model = AuditFinding
+    template_name = 'audits/finding_detail.html'
+    context_object_name = 'finding'
+    department_field = 'owner_dept'
+
+
+class FindingCreateView(DepartmentScopedMixin, CreateView):
+    model = AuditFinding
+    form_class = AuditFindingForm
+    template_name = 'audits/finding_form.html'
+    success_url = reverse_lazy('audits:finding_list')
+
+    def get_initial(self):
+        initial = super().get_initial()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            initial['owner_dept'] = user.department
+        audit = self.request.GET.get('audit')
+        if audit:
+            initial['audit'] = audit
+        return initial
+
+
+class FindingUpdateView(DepartmentScopedMixin, UpdateView):
+    model = AuditFinding
+    form_class = AuditFindingForm
+    template_name = 'audits/finding_form.html'
+    success_url = reverse_lazy('audits:finding_list')
+    department_field = 'owner_dept'
