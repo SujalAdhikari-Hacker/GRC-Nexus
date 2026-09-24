@@ -11,44 +11,108 @@
 {% endblock %}
 
 {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">{% if form.instance.pk %}Edit treatment{% else %}New treatment{% endif %}</h5>
+</div>
+
 <div class="row g-3">
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit{% else %}New{% endif %} treatment plan</strong></div>
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-                    {% for field in form %}
-                        <div class="mb-3">
-                            <label class="form-label">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
-                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.strategy.label }}</label>
+                            {{ form.strategy }}
+                            {% if form.strategy.help_text %}<div class="form-text small">{{ form.strategy.help_text }}</div>{% endif %}
                         </div>
-                    {% endfor %}
-                    <button type="submit" class="btn btn-dark">Save Treatment</button>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.status.label }}</label>
+                            {{ form.status }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.owner_user.label }}</label>
+                            {{ form.owner_user }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.due_date.label }}</label>
+                            {{ form.due_date }}
+                        </div>
+                        {% if form.completed_date %}
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.completed_date.label }}</label>
+                            {{ form.completed_date }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">{{ form.action_plan.label }}</label>
+                        {{ form.action_plan }}
+                        {% if form.action_plan.errors %}<div class="text-danger small">{{ form.action_plan.errors|join:", " }}</div>{% endif %}
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">
+                            <i class="bi bi-shield-check"></i> Controls used to reduce this risk
+                        </label>
+                        {{ form.controls }}
+                        {% if form.controls.help_text %}<div class="form-text small">{{ form.controls.help_text }}</div>{% endif %}
+                        <div class="small text-muted mt-1">
+                            <i class="bi bi-info-circle"></i>
+                            These controls drive the residual risk score. Adding a new control here will affect the risk's residual score.
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                    </div>
+
+                    <hr class="my-4">
+                    <button type="submit" class="btn btn-dark">{% if form.instance.pk %}Save changes{% else %}Create treatment{% endif %}</button>
                     <a href="{% url 'risks:detail' risk.pk %}" class="btn btn-outline-secondary">Cancel</a>
                 </form>
             </div>
         </div>
     </div>
+
     <div class="col-md-4">
         <div class="card">
             <div class="card-header bg-white"><strong>Risk context</strong></div>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Risk</span><span class="text-end">{{ risk.title|truncatechars:30 }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Residual</span><span>{{ risk.residual_score }}</span></li>
+                <li class="list-group-item"><span class="text-muted small">Risk</span><div><strong>{{ risk.title }}</strong></div></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ risk.owner_dept.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Inherent</span><span>{{ risk.inherent_score }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Residual</span><span><strong>{{ risk.residual_score }}</strong></span></li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Appetite</span>
+                    <span>{% if risk.appetite_breached %}<span class="badge bg-danger">Breach</span>{% else %}<span class="badge bg-success">OK</span>{% endif %}</span>
+                </li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Strategy</span><span>{{ risk.get_treatment_strategy_display }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Breach?</span><span>{% if risk.appetite_breached %}<span class="badge bg-danger">Yes</span>{% else %}<span class="badge bg-success">No</span>{% endif %}</span></li>
             </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Guidance</strong></div>
+            <div class="card-body small text-muted">
+                <p class="mb-2"><strong>Mitigate</strong> — reduce likelihood or impact through controls.</p>
+                <p class="mb-2"><strong>Accept</strong> — acknowledge risk, no further action.</p>
+                <p class="mb-2"><strong>Transfer</strong> — insurance, outsourcing, contract.</p>
+                <p class="mb-0"><strong>Avoid</strong> — stop the activity that causes the risk.</p>
+            </div>
         </div>
     </div>
 </div>
+
 <style>
     input[type="text"], input[type="date"], select, textarea {
         width: 100%; padding: .375rem .75rem;
         border: 1px solid var(--border); border-radius: var(--r-sm);
         background: var(--surface); color: var(--text); font-size: 13px;
     }
+    select[multiple] { min-height: 180px; }
 </style>
 {% endblock %}

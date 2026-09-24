@@ -3,6 +3,7 @@ from .views import (
     RiskListView, RiskDetailView, RiskCreateView, RiskUpdateView,
     risk_score_preview,
     RiskTreatmentCreateView, RiskTreatmentUpdateView,
+    TreatmentListView,
     RiskAppetiteListView, RiskAppetiteCreateView, RiskAppetiteUpdateView,
 )
 
@@ -13,12 +14,13 @@ urlpatterns = [
     path('new/', RiskCreateView.as_view(), name='create'),
     path('score-preview/', risk_score_preview, name='score_preview'),
 
+    path('treatments/', TreatmentListView.as_view(), name='treatment_list'),
+    path('<int:risk_pk>/treatments/new/', RiskTreatmentCreateView.as_view(), name='treatment_create'),
+    path('treatments/<int:pk>/edit/', RiskTreatmentUpdateView.as_view(), name='treatment_update'),
+
     path('appetite/', RiskAppetiteListView.as_view(), name='appetite_list'),
     path('appetite/new/', RiskAppetiteCreateView.as_view(), name='appetite_create'),
     path('appetite/<int:pk>/edit/', RiskAppetiteUpdateView.as_view(), name='appetite_update'),
-
-    path('<int:risk_pk>/treatments/new/', RiskTreatmentCreateView.as_view(), name='treatment_create'),
-    path('treatments/<int:pk>/edit/', RiskTreatmentUpdateView.as_view(), name='treatment_update'),
 
     path('<int:pk>/', RiskDetailView.as_view(), name='detail'),
     path('<int:pk>/edit/', RiskUpdateView.as_view(), name='update'),

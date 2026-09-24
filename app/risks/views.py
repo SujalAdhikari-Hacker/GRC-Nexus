@@ -13,6 +13,10 @@ from .services import recalculate_risk
 from .forms import RiskForm, RiskTreatmentForm, RiskTreatmentUpdateForm
 
 
+# ============================================================
+# RISK LIST / DETAIL / CREATE / UPDATE
+# ============================================================
+
 class RiskListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Risk
     template_name = 'risks/risk_list.html'
@@ -99,6 +103,10 @@ class RiskUpdateView(DepartmentScopedMixin, UpdateView):
         return response
 
 
+# ============================================================
+# HTMX SCORE PREVIEW
+# ============================================================
+
 def risk_score_preview(request):
     try:
         likelihood = int(request.GET.get('likelihood', 1))
@@ -132,6 +140,49 @@ def risk_score_preview(request):
     })
 
 
+# ============================================================
+# TREATMENTS
+# ============================================================
+
+class TreatmentListView(DepartmentScopedMixin, ListView):
+    model = RiskTreatment
+    template_name = 'risks/treatment_list.html'
+    context_object_name = 'treatments'
+    paginate_by = 25
+    department_field = 'risk__owner_dept'
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('risk', 'owner_user').prefetch_related('controls')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(action_plan__icontains=q) | Q(risk__title__icontains=q))
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        strategy = self.request.GET.get('strategy')
+        if strategy:
+            qs = qs.filter(strategy=strategy)
+        return qs.order_by('due_date')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['statuses'] = RiskTreatment.STATUS_CHOICES
+        ctx['strategies'] = RiskTreatment.STRATEGY_CHOICES
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_status'] = self.request.GET.get('status', '')
+        ctx['selected_strategy'] = self.request.GET.get('strategy', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(risk__owner_dept=user.department)
+        ctx['total_count'] = base.count()
+        ctx['planned_count'] = base.filter(status='planned').count()
+        ctx['in_progress_count'] = base.filter(status='in_progress').count()
+        ctx['completed_count'] = base.filter(status='completed').count()
+        return ctx
+
+
 class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
     model = RiskTreatment
     form_class = RiskTreatmentForm
@@ -143,7 +194,10 @@ class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.risk = self.risk
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        from .services import recalculate_risk
+        recalculate_risk(self.risk)
+        return response
 
     def get_success_url(self):
         return reverse_lazy('risks:detail', kwargs={'pk': self.risk.pk})
@@ -159,6 +213,12 @@ class RiskTreatmentUpdateView(LoginRequiredMixin, UpdateView):
     form_class = RiskTreatmentUpdateForm
     template_name = 'risks/treatment_form.html'
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        from .services import recalculate_risk
+        recalculate_risk(self.object.risk)
+        return response
+
     def get_success_url(self):
         return reverse_lazy('risks:detail', kwargs={'pk': self.object.risk.pk})
 
@@ -167,6 +227,10 @@ class RiskTreatmentUpdateView(LoginRequiredMixin, UpdateView):
         ctx['risk'] = self.object.risk
         return ctx
 
+
+# ============================================================
+# RISK APPETITE
+# ============================================================
 
 class RiskAppetiteListView(HODOrSuperuserMixin, ListView):
     model = RiskAppetite
@@ -184,7 +248,11 @@ class RiskAppetiteListView(HODOrSuperuserMixin, ListView):
 class RiskAppetiteCreateView(HODOrSuperuserMixin, CreateView):
     model = RiskAppetite
     template_name = 'risks/appetite_form.html'
-    fields = ['department', 'category', 'max_inherent_score', 'max_residual_score', 'description']
+    fields = [
+        'department', 'category', 'appetite_level', 'appetite_statement',
+        'max_inherent_score', 'max_residual_score', 'risk_capacity',
+        'board_approved', 'approved_by', 'review_date', 'description',
+    ]
     success_url = reverse_lazy('risks:appetite_list')
 
     def get_initial(self):
@@ -198,5 +266,9 @@ class RiskAppetiteCreateView(HODOrSuperuserMixin, CreateView):
 class RiskAppetiteUpdateView(HODOrSuperuserMixin, UpdateView):
     model = RiskAppetite
     template_name = 'risks/appetite_form.html'
-    fields = ['department', 'category', 'max_inherent_score', 'max_residual_score', 'description']
+    fields = [
+        'department', 'category', 'appetite_level', 'appetite_statement',
+        'max_inherent_score', 'max_residual_score', 'risk_capacity',
+        'board_approved', 'approved_by', 'review_date', 'description',
+    ]
     success_url = reverse_lazy('risks:appetite_list')
