@@ -1,0 +1,78 @@
+﻿{% extends "base.html" %}
+{% block title %}ATT&CK Matrix{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'threatintel:overview' %}">Threat Intel</a></li>
+    <li class="breadcrumb-item active">ATT&CK Matrix</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">MITRE ATT&CK Matrix</h5>
+        <small class="text-muted">
+            {{ total_tactics }} tactics · {{ total_techniques }} techniques · {{ total_iocs }} IOCs
+            · techniques with IOCs highlighted in red
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'threatintel:ioc_feed' %}" class="btn btn-sm btn-outline-dark">IOC Feed</a>
+        <a href="{% url 'threatintel:actor_list' %}" class="btn btn-sm btn-outline-dark">Actors</a>
+    </div>
+</div>
+
+<div style="overflow-x:auto; padding-bottom:8px;">
+    <table class="table table-bordered mb-0" style="table-layout:fixed; min-width:1400px; font-size:11px;">
+        <thead>
+            <tr>
+                {% for col in columns %}
+                <th class="text-center align-top" style="width:100px; background:var(--surface-2);">
+                    <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;">{{ col.tactic.name }}</div>
+                    <div class="small text-muted mt-1" style="font-size:10px;"><code>{{ col.tactic.attack_id }}</code></div>
+                    <div class="mt-1">
+                        <span class="badge bg-dark" style="font-size:9px;">{{ col.technique_count }}</span>
+                        {% if col.total_iocs %}<span class="badge bg-danger" style="font-size:9px;">{{ col.total_iocs }} IOCs</span>{% endif %}
+                    </div>
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                {% for col in columns %}
+                <td class="align-top p-1" style="vertical-align:top;">
+                    {% for t in col.techniques %}
+                        <a href="{{ t.technique.url }}" target="_blank" rel="noopener"
+                           class="d-block mb-1 p-1 text-decoration-none"
+                           style="border-radius:3px; font-size:10.5px; line-height:1.25;
+                                  {% if t.has_iocs %}background:#FEF2F2; border-left:3px solid #DC2626; color:#7F1D1D;
+                                  {% else %}background:var(--surface); border-left:3px solid #D1D5DB; color:var(--text);{% endif %}"
+                           title="{{ t.technique.name }}{% if t.ioc_count %} — {{ t.ioc_count }} IOCs{% endif %}">
+                            <code style="font-size:9.5px; color:inherit;">{{ t.technique.attack_id }}</code>
+                            <div>{{ t.technique.name|truncatechars:45 }}</div>
+                            {% if t.ioc_count %}<span class="badge bg-danger" style="font-size:8px; margin-top:2px;">{{ t.ioc_count }}</span>{% endif %}
+                        </a>
+                    {% empty %}
+                        <div class="text-muted text-center small py-2">—</div>
+                    {% endfor %}
+                </td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body small text-muted">
+        <strong>Legend:</strong>
+        <span class="badge" style="background:#FEF2F2; color:#7F1D1D; border-left:3px solid #DC2626;">Technique with IOCs</span>
+        <span class="badge" style="background:var(--surface); color:var(--text); border-left:3px solid #D1D5DB;">Technique without IOCs</span>
+        · Click any technique to open its MITRE page
+    </div>
+</div>
+
+{% endblock %}

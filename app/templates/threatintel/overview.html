@@ -1,0 +1,171 @@
+﻿{% extends "base.html" %}
+{% block title %}Threat Intelligence{% endblock %}
+{% block breadcrumb %}<h5 class="mb-0">Threat Intelligence</h5>{% endblock %}
+
+{% block content %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ ioc_total }}</div><div class="label"><i class="bi bi-bug"></i> Active IOCs</div></div></div>
+    <div class="col-md-3"><div class="stat-card" {% if ioc_24h %}style="border-color:#0284C7;"{% endif %}><div class="value" style="color:#0284C7;">{{ ioc_24h }}</div><div class="label"><i class="bi bi-clock"></i> Added in last 24h</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ technique_count }}</div><div class="label"><i class="bi bi-diagram-3"></i> ATT&CK techniques</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ actor_count }}</div><div class="label"><i class="bi bi-person-badge"></i> Threat actors</div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>IOC breakdown by type</strong>
+                <a href="{% url 'threatintel:ioc_feed' %}" class="btn btn-sm btn-outline-dark">Open IOC feed</a>
+            </div>
+            <div class="card-body">
+                {% for row in by_type %}
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span>{{ row.ioc_type|upper }}</span>
+                        <strong>{{ row.c }}</strong>
+                    </div>
+                    <div class="progress" style="height:6px;">
+                        <div class="progress-bar bg-primary" style="width:{% widthratio row.c ioc_total 100 %}%;"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-muted text-center py-3 small">No IOCs yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white"><strong>Threats by category</strong></div>
+            <div class="card-body">
+                {% for row in by_threat %}
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid var(--border-soft);">
+                    <span>
+                        {% if row.threat_type == 'ransomware' %}<span class="badge bg-danger">Ransomware</span>
+                        {% elif row.threat_type == 'malware' %}<span class="badge" style="background:#EA580C; color:#fff;">Malware</span>
+                        {% elif row.threat_type == 'c2' %}<span class="badge" style="background:#7C3AED; color:#fff;">C2</span>
+                        {% elif row.threat_type == 'phishing' %}<span class="badge bg-warning text-dark">Phishing</span>
+                        {% elif row.threat_type == 'botnet' %}<span class="badge bg-info text-dark">Botnet</span>
+                        {% elif row.threat_type == 'exploit' %}<span class="badge" style="background:#B91C1C; color:#fff;">Exploit</span>
+                        {% elif row.threat_type == 'apt' %}<span class="badge bg-dark">APT</span>
+                        {% elif row.threat_type == 'cryptominer' %}<span class="badge bg-success">Cryptominer</span>
+                        {% else %}<span class="badge bg-secondary">{{ row.threat_type|title }}</span>{% endif %}
+                    </span>
+                    <strong>{{ row.c }}</strong>
+                </div>
+                {% empty %}
+                <div class="text-muted text-center py-3 small">No data yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>ATT&CK coverage</strong>
+                <a href="{% url 'threatintel:attack_matrix' %}" class="btn btn-sm btn-outline-dark">View matrix</a>
+            </div>
+            <div class="card-body" style="max-height:400px; overflow-y:auto;">
+                {% for row in tactic_rows %}
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid var(--border-soft);">
+                    <div>
+                        <strong>{{ row.tactic.name }}</strong>
+                        <div class="small text-muted"><code>{{ row.tactic.attack_id }}</code></div>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-dark" title="Techniques in this tactic">{{ row.technique_count }} tech</span>
+                        {% if row.ioc_count %}<span class="badge bg-danger ms-1" title="IOCs mapped to this tactic">{{ row.ioc_count }} IOCs</span>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Top malware families</strong>
+                <a href="{% url 'threatintel:ioc_feed' %}" class="btn btn-sm btn-outline-dark">Feed</a>
+            </div>
+            <div class="card-body" style="max-height:400px; overflow-y:auto;">
+                {% for row in top_malware %}
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid var(--border-soft);">
+                    <code>{{ row.malware_family }}</code>
+                    <strong>{{ row.c }} IOCs</strong>
+                </div>
+                {% empty %}
+                <div class="text-muted text-center py-3 small">No malware family data yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Recent IOCs</strong>
+                <a href="{% url 'threatintel:ioc_feed' %}" class="btn btn-sm btn-outline-dark">View all</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle" style="font-size:12.5px;">
+                    <thead class="table-light">
+                        <tr><th>Type</th><th>Value</th><th class="text-center">Threat</th><th>Malware</th><th>Source</th><th class="text-center">Seen</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for i in recent_iocs %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ i.ioc_type|upper }}</span></td>
+                            <td><a href="{% url 'threatintel:ioc_detail' i.pk %}"><code>{{ i.value|truncatechars:50 }}</code></a></td>
+                            <td class="text-center">
+                                <span class="badge" style="background:{{ i.threat_type_color }}; color:#fff;">{{ i.get_threat_type_display }}</span>
+                            </td>
+                            <td><small>{{ i.malware_family|default:"—" }}</small></td>
+                            <td><small>{{ i.source|default:"—" }}</small></td>
+                            <td class="text-center"><small>{{ i.first_seen|date:"Y-m-d"|default:"—" }}</small></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">
+                            No IOCs synced yet. Run:<br>
+                            <code>docker compose exec web python manage.py sync_iocs_threatfox --days 7</code>
+                        </td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Recent sync runs</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for s in recent_syncs %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ s.get_source_display }}</strong>
+                            <small>{{ s.started_at|date:"m-d H:i" }}</small>
+                        </div>
+                        <div class="small text-muted">
+                            {% if s.status == 'completed' %}<span class="badge bg-success">Completed</span>
+                            {% elif s.status == 'failed' %}<span class="badge bg-danger">Failed</span>
+                            {% else %}<span class="badge bg-warning text-dark">{{ s.status }}</span>{% endif %}
+                            {{ s.items_created }} new · {{ s.items_updated }} updated
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small">No syncs yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

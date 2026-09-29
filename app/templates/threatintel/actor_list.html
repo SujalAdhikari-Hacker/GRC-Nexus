@@ -1,0 +1,51 @@
+﻿{% extends "base.html" %}
+{% block title %}Threat Actors{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'threatintel:overview' %}">Threat Intel</a></li>
+    <li class="breadcrumb-item active">Threat Actors</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Threat Actors</h5>
+        <small class="text-muted">{{ total_count }} known APT groups / intrusion sets from MITRE ATT&CK</small>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-10"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search by name or ATT&CK ID..." value="{{ search_query }}"></div>
+            <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Search</button></div>
+        </form>
+    </div>
+    <div class="row g-3 p-3">
+        {% for a in actors %}
+        <div class="col-md-6 col-xl-4">
+            <a href="{% url 'threatintel:actor_detail' a.pk %}" class="card text-decoration-none h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div class="fw-bold">{{ a.name }}</div>
+                        <code class="small">{{ a.attack_id }}</code>
+                    </div>
+                    {% if a.aliases %}
+                    <div class="small text-muted mb-2">Also known as: {{ a.aliases|join:", "|truncatechars:80 }}</div>
+                    {% endif %}
+                    <div class="d-flex gap-2 small mt-2">
+                        <span><i class="bi bi-diagram-3"></i> {{ a.tech_count }} techniques</span>
+                        {% if a.ioc_count %}<span><i class="bi bi-bug"></i> {{ a.ioc_count }} IOCs</span>{% endif %}
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% empty %}
+        <div class="col-12"><div class="text-center text-muted py-5">No threat actors found. Run <code>sync_attack_data</code>.</div></div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

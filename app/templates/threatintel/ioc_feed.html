@@ -1,0 +1,130 @@
+﻿{% extends "base.html" %}
+{% block title %}IOC Feed{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'threatintel:overview' %}">Threat Intel</a></li>
+    <li class="breadcrumb-item active">IOC Feed</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Live IOC Feed</h5>
+        <small class="text-muted">{{ total_count }} active indicators · {{ count_24h }} added in last 24h</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'threatintel:attack_matrix' %}" class="btn btn-sm btn-outline-dark">ATT&CK Matrix</a>
+        <a href="{% url 'threatintel:overview' %}" class="btn btn-sm btn-outline-dark">Overview</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label">Total active IOCs</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#0284C7;">{{ count_24h }}</div><div class="label">Last 24 hours</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#D97706;">{{ count_7d }}</div><div class="label">Last 7 days</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-danger">{{ count_high_conf }}</div><div class="label">High confidence (3+)</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-3"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search IOC value, malware, notes..." value="{{ search_query }}"></div>
+            <div class="col-md-2">
+                <select name="type" class="form-select form-select-sm">
+                    <option value="">All IOC types</option>
+                    {% for val, label in ioc_types %}<option value="{{ val }}" {% if selected_type == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="threat" class="form-select form-select-sm">
+                    <option value="">All threats</option>
+                    {% for val, label in threat_types %}<option value="{{ val }}" {% if selected_threat == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="confidence" class="form-select form-select-sm">
+                    <option value="">All confidence</option>
+                    {% for val, label in confidences %}<option value="{{ val }}" {% if selected_confidence == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="days" class="form-select form-select-sm">
+                    <option value="">All time</option>
+                    <option value="1" {% if days_filter == '1' %}selected{% endif %}>Last 24h</option>
+                    <option value="7" {% if days_filter == '7' %}selected{% endif %}>Last 7 days</option>
+                    <option value="30" {% if days_filter == '30' %}selected{% endif %}>Last 30 days</option>
+                </select>
+            </div>
+            <div class="col-md-1"><button class="btn btn-sm btn-dark w-100">Go</button></div>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle" style="font-size:12.5px;">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:70px;">Type</th>
+                    <th>Value</th>
+                    <th class="text-center" style="width:110px;">Threat</th>
+                    <th class="text-center" style="width:90px;">Confidence</th>
+                    <th>Malware family</th>
+                    <th>Source</th>
+                    <th class="text-center" style="width:100px;">First seen</th>
+                    <th style="width:60px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for ioc in iocs %}
+                <tr>
+                    <td><span class="badge bg-secondary">{{ ioc.ioc_type|upper }}</span></td>
+                    <td>
+                        <a href="{% url 'threatintel:ioc_detail' ioc.pk %}"><code>{{ ioc.value|truncatechars:60 }}</code></a>
+                        {% if ioc.threat_actor %}<span class="badge bg-dark ms-1" style="font-size:10px;">{{ ioc.threat_actor.name }}</span>{% endif %}
+                    </td>
+                    <td class="text-center">
+                        <span class="badge" style="background:{{ ioc.threat_type_color }}; color:#fff;">{{ ioc.get_threat_type_display }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge" style="background:{{ ioc.confidence_color }}; color:#fff;">{{ ioc.get_confidence_display }}</span>
+                    </td>
+                    <td><small><code>{{ ioc.malware_family|default:"—" }}</code></small></td>
+                    <td><small>{{ ioc.source|default:"—" }}</small></td>
+                    <td class="text-center"><small>{{ ioc.first_seen|date:"Y-m-d"|default:"—" }}</small></td>
+                    <td class="text-end">
+                        <a href="{% url 'threatintel:ioc_detail' ioc.pk %}" class="btn btn-sm btn-outline-dark">View</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-5">
+                    <i class="bi bi-shield-x" style="font-size:2.5rem; opacity:.3;"></i>
+                    <p class="mt-2 mb-1">No IOCs match your filters.</p>
+                    <p class="small mb-0">Run a sync to populate the feed:</p>
+                    <code>docker compose exec web python manage.py sync_iocs_threatfox --days 7</code>
+                </td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="card-footer bg-white">
+        <nav>
+            <ul class="pagination pagination-sm mb-0 justify-content-end">
+                {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}">Prev</a></li>
+                {% endif %}
+                <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -206,6 +206,37 @@
                         <a href="{% url 'audits:score_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
                 <i class="bi bi-clipboard-data"></i><span>Evidence Scoring</span>
             </a>
+                        <div class="sidebar-section-head sidebar-head-toggle" data-target="threat" style="display: flex;">
+                <span>Threat Intel</span>
+                <i class="bi bi-chevron-down section-caret"></i>
+            </div>
+            {% if ns == 'threatintel' %}
+            <a href="{% url 'threatintel:overview' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-radar"></i><span>Overview</span>
+            </a>
+            <a href="{% url 'threatintel:ioc_feed' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-rss"></i><span>IOC Feed</span>
+            </a>
+            <a href="{% url 'threatintel:attack_matrix' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-grid-3x3-gap"></i><span>ATT&CK Matrix</span>
+            </a>
+            <a href="{% url 'threatintel:actor_list' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-people"></i><span>Threat Actors</span>
+            </a>
+            {% else %}
+            <a href="{% url 'threatintel:overview' %}" class="sidebar-link toggle-item" data-section="threat" style="display: none;">
+                <i class="bi bi-radar"></i><span>Overview</span>
+            </a>
+            <a href="{% url 'threatintel:ioc_feed' %}" class="sidebar-link toggle-item" data-section="threat" style="display: none;">
+                <i class="bi bi-rss"></i><span>IOC Feed</span>
+            </a>
+            <a href="{% url 'threatintel:attack_matrix' %}" class="sidebar-link toggle-item" data-section="threat" style="display: none;">
+                <i class="bi bi-grid-3x3-gap"></i><span>ATT&CK Matrix</span>
+            </a>
+            <a href="{% url 'threatintel:actor_list' %}" class="sidebar-link toggle-item" data-section="threat" style="display: none;">
+                <i class="bi bi-people"></i><span>Threat Actors</span>
+            </a>
+            {% endif %}
                         <div class="sidebar-section-head sidebar-head-toggle" data-target="admin" style="display: flex;">
                 <span>Administration</span>
                 <i class="bi bi-chevron-down section-caret"></i>

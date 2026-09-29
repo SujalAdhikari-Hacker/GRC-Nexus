@@ -1,0 +1,66 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ actor.name }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'threatintel:overview' %}">Threat Intel</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'threatintel:actor_list' %}">Actors</a></li>
+    <li class="breadcrumb-item active">{{ actor.name }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">{{ actor.name }} <code class="ms-2">{{ actor.attack_id }}</code></h5>
+        {% if actor.aliases %}<small class="text-muted">Also known as: {{ actor.aliases|join:", " }}</small>{% endif %}
+    </div>
+    {% if actor.url %}<a href="{{ actor.url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-dark">View on MITRE</a>{% endif %}
+</div>
+
+<div class="card mb-3">
+    <div class="card-header bg-white"><strong>Description</strong></div>
+    <div class="card-body">{{ actor.description|default:"—"|linebreaks|truncatewords_html:250 }}</div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Known techniques ({{ techniques|length }})</strong></div>
+            <ul class="list-group list-group-flush" style="max-height:520px; overflow-y:auto;">
+                {% for t in techniques %}
+                    <li class="list-group-item">
+                        <a href="{{ t.url }}" target="_blank" rel="noopener">
+                            <code>{{ t.attack_id }}</code> {{ t.name }}
+                        </a>
+                        <div class="small mt-1">
+                            {% for tactic in t.tactics.all %}
+                                <span class="badge bg-secondary me-1" style="font-size:10px;">{{ tactic.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small">No techniques attributed.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Recent IOCs ({{ iocs|length }})</strong></div>
+            <ul class="list-group list-group-flush" style="max-height:520px; overflow-y:auto;">
+                {% for i in iocs %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <a href="{% url 'threatintel:ioc_detail' i.pk %}"><code>{{ i.value|truncatechars:30 }}</code></a>
+                        <small class="text-muted">{{ i.ioc_type|upper }}</small>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small">No IOCs attributed to this actor.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

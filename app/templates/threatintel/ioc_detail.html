@@ -1,0 +1,108 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ ioc.value }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'threatintel:overview' %}">Threat Intel</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'threatintel:ioc_feed' %}">IOC Feed</a></li>
+    <li class="breadcrumb-item active">{{ ioc.value|truncatechars:40 }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0"><code>{{ ioc.value }}</code></h5>
+        <div class="mt-1">
+            <span class="badge bg-secondary">{{ ioc.get_ioc_type_display }}</span>
+            <span class="badge" style="background:{{ ioc.threat_type_color }}; color:#fff;">{{ ioc.get_threat_type_display }}</span>
+            <span class="badge" style="background:{{ ioc.confidence_color }}; color:#fff;">Confidence: {{ ioc.get_confidence_display }}</span>
+        </div>
+    </div>
+    <a href="{% url 'threatintel:ioc_feed' %}" class="btn btn-sm btn-outline-dark">Back to feed</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Indicator</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Value</span><code>{{ ioc.value|truncatechars:50 }}</code></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Type</span><span>{{ ioc.get_ioc_type_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Threat type</span><span>{{ ioc.get_threat_type_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Confidence</span><span>{{ ioc.get_confidence_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Malware family</span><span><code>{{ ioc.malware_family|default:"—" }}</code></span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Source</span><span>{{ ioc.source|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Source ID</span><span><small>{{ ioc.source_id|default:"—" }}</small></span></li>
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Timeline</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">First seen</span><span>{{ ioc.first_seen|date:"Y-m-d H:i"|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Last seen</span><span>{{ ioc.last_seen|date:"Y-m-d H:i"|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Imported</span><span>{{ ioc.created_at|date:"Y-m-d H:i" }}</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        {% if ioc.tags %}
+        <div class="card mb-3">
+            <div class="card-header bg-white"><strong>Tags</strong></div>
+            <div class="card-body">
+                {% for tag in ioc.tags %}
+                    <span class="badge bg-secondary me-1 mb-1">{{ tag }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if ioc.threat_actor %}
+        <div class="card mb-3">
+            <div class="card-header bg-white"><strong>Attributed threat actor</strong></div>
+            <div class="card-body">
+                <a href="{% url 'threatintel:actor_detail' ioc.threat_actor.pk %}"><strong>{{ ioc.threat_actor.name }}</strong></a>
+                <div class="small text-muted mt-1"><code>{{ ioc.threat_actor.attack_id }}</code></div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if ioc.techniques.all %}
+        <div class="card mb-3">
+            <div class="card-header bg-white"><strong>Mapped ATT&CK techniques</strong></div>
+            <div class="card-body">
+                {% for t in ioc.techniques.all %}
+                    <a href="{{ t.url }}" target="_blank" rel="noopener" class="badge bg-dark text-decoration-none me-1 mb-1">
+                        <code>{{ t.attack_id }}</code> {{ t.name|truncatechars:40 }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if ioc.related_cves.all %}
+        <div class="card mb-3">
+            <div class="card-header bg-white"><strong>Related CVEs</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for cve in ioc.related_cves.all %}
+                    <li class="list-group-item">
+                        <a href="{% url 'vulnerabilities:vulnerability_detail' cve.pk %}"><code>{{ cve.cve_id }}</code></a>
+                        {{ cve.title|truncatechars:80 }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if ioc.notes %}
+        <div class="card">
+            <div class="card-header bg-white"><strong>Notes</strong></div>
+            <div class="card-body">{{ ioc.notes|linebreaks }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
