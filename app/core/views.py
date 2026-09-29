@@ -1,33 +1,28 @@
 ﻿from collections import Counter
 from datetime import timedelta
-from django.contrib.auth.models import Group, Permission
-from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from .models import User, Department
-from .forms import CustomUserCreationForm, CustomUserChangeForm, DepartmentForm
+
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db.models import Q
 from django.shortcuts import render
+from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, ListView, CreateView, UpdateView
+
 from assets.models import Asset
 from risks.models import Risk
 from controls.models import Control
 from policies.models import Policy
 from vendors.models import Vendor
 from frameworks.models import Framework
+from vulnerabilities.models import Finding
+from audits.models import ActionItem
 from core.correlation import get_framework_coverage
+from core.dashboard_data import compute_trends
+from .models import User, Department
+from .forms import CustomUserCreationForm, CustomUserChangeForm, DepartmentForm
 
-class HODOrSuperuserMixin(LoginRequiredMixin, UserPassesTestMixin):
-    def test_func(self):
-        u = self.request.user
-        return u.is_authenticated and (u.is_superuser or u.is_hod)
-
-
-class SuperuserOnlyMixin(LoginRequiredMixin, UserPassesTestMixin):
-    def test_func(self):
-        return self.request.user.is_authenticated and self.request.user.is_superuser
 
 def _severity_band(score):
     if score >= 20:
@@ -38,6 +33,10 @@ def _severity_band(score):
         return 'medium'
     return 'low'
 
+
+# ============================================================
+# DASHBOARD
+# ============================================================
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'core/dashboard.html'
@@ -52,6 +51,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         controls = Control.objects.all()
         policies = Policy.objects.all()
         vendors = Vendor.objects.filter(status='active')
+        findings = Finding.objects.all()
+        actions = ActionItem.objects.all()
 
         if not is_super:
             assets = assets.filter(owner_dept=user.department)
@@ -59,7 +60,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             controls = controls.filter(owner_dept=user.department)
             policies = policies.filter(owner_dept=user.department)
             vendors = vendors.filter(owner_dept=user.department)
+            findings = findings.filter(owner_dept=user.department)
+            actions = actions.filter(owner_dept=user.department)
 
+        # Heatmap
         heatmap = []
         for impact in range(5, 0, -1):
             row = []
@@ -75,10 +79,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 })
             heatmap.append(row)
 
+        # Category distribution
         category_counts = Counter(r.category.name for r in risks)
         category_labels = list(category_counts.keys())
         category_values = list(category_counts.values())
 
+        # Control status
         control_status_counts = Counter(controls.values_list('status', flat=True))
         control_status_data = {
             'planned':         control_status_counts.get('planned', 0),
@@ -87,6 +93,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'not_applicable':  control_status_counts.get('not_applicable', 0),
         }
 
+        # Risks added per month
         today = timezone.now().date()
         month_labels = []
         month_values = []
@@ -100,10 +107,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             month_labels.append(target.strftime('%b %Y'))
             month_values.append(count)
 
+        # Framework coverage
         framework_rows = []
         for fw in Framework.objects.all():
             framework_rows.append((fw, get_framework_coverage(fw)))
 
+        # Severity summary
         severity_summary = {
             'critical': sum(1 for r in risks if r.inherent_score >= 20),
             'high':     sum(1 for r in risks if 12 <= r.inherent_score < 20),
@@ -132,8 +141,15 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'month_labels': month_labels,
             'month_values': month_values,
         })
+
+        # Trend charts
+        ctx.update(compute_trends(risks, findings, actions, months=6))
         return ctx
 
+
+# ============================================================
+# GLOBAL SEARCH (command palette)
+# ============================================================
 
 def global_search(request):
     q = request.GET.get('q', '').strip()
@@ -151,7 +167,7 @@ def global_search(request):
 
     if q:
         results['assets'] = list(
-            scoped(Asset.objects.filter(Q(name__icontains=q) | Q(description__icontains=q)))[:5]
+            scoped(Asset.objects.filter(Q(name__icontains=q) | Q(description__icontains=q) | Q(asset_id__icontains=q)))[:5]
         )
         results['risks'] = list(
             scoped(Risk.objects.filter(Q(title__icontains=q) | Q(description__icontains=q)))[:5]
@@ -172,6 +188,22 @@ def global_search(request):
         'results': results,
         'total': total,
     })
+
+
+# ============================================================
+# ADMINISTRATION UI
+# ============================================================
+
+class HODOrSuperuserMixin(LoginRequiredMixin, UserPassesTestMixin):
+    def test_func(self):
+        u = self.request.user
+        return u.is_authenticated and (u.is_superuser or u.is_hod)
+
+
+class SuperuserOnlyMixin(LoginRequiredMixin, UserPassesTestMixin):
+    def test_func(self):
+        return self.request.user.is_authenticated and self.request.user.is_superuser
+
 
 class UserListView(HODOrSuperuserMixin, ListView):
     model = User
@@ -273,7 +305,6 @@ class RolesPermissionsView(HODOrSuperuserMixin, TemplateView):
         rows = []
         for g in groups:
             perms = g.permissions.all()
-            # Group by app label
             by_app = {}
             for p in perms:
                 app = p.content_type.app_label
