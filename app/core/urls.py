@@ -4,6 +4,7 @@ from .views import (
     UserListView, UserCreateView, UserUpdateView,
     DepartmentListView, DepartmentCreateView, DepartmentUpdateView,
     RolesPermissionsView,
+    ExecutiveReportView,
 )
 
 app_name = 'core'
@@ -11,6 +12,8 @@ app_name = 'core'
 urlpatterns = [
     path('', DashboardView.as_view(), name='dashboard'),
     path('search/', global_search, name='search'),
+
+    path('reports/executive/', ExecutiveReportView.as_view(), name='executive_report'),
 
     path('admin-ui/users/', UserListView.as_view(), name='users_list'),
     path('admin-ui/users/new/', UserCreateView.as_view(), name='user_create'),
