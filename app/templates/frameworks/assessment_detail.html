@@ -1,0 +1,169 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ assessment.assessment_id }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'frameworks:list' %}">Frameworks</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'frameworks:assessment_list' %}">Assessments</a></li>
+    <li class="breadcrumb-item active">{{ assessment.assessment_id }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0"><code>{{ assessment.assessment_id }}</code> — {{ assessment.name }}</h4>
+        <small class="text-muted">
+            {{ assessment.framework.name }} {{ assessment.framework.version }}
+            · {{ assessment.get_status_display }}
+            {% if assessment.assessor %} · Assessed by {{ assessment.assessor.username }}{% endif %}
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'frameworks:assessment_update' assessment.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        <a href="/admin/frameworks/complianceassessment/{{ assessment.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+        <a href="{% url 'frameworks:assessment_list' %}" class="btn btn-sm btn-outline-dark">Back to list</a>
+    </div>
+</div>
+
+{# ---------- Stat cards ---------- #}
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="color:{% if assessment.readiness_percent >= 75 %}#059669{% elif assessment.readiness_percent >= 40 %}#D97706{% else %}#DC2626{% endif %};">
+                {{ assessment.readiness_percent }}%
+            </div>
+            <div class="label"><i class="bi bi-bar-chart-line"></i> Readiness</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="color:#059669;">{{ assessment.compliant_count }}<small class="text-muted" style="font-size:1rem;">/{{ assessment.total_items }}</small></div>
+            <div class="label"><i class="bi bi-check-circle"></i> Compliant</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="color:#D97706;">{{ assessment.partial_count }}</div>
+            <div class="label"><i class="bi bi-circle-half"></i> Partially compliant</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" {% if assessment.non_compliant_count %}style="border-color:#DC2626;"{% endif %}>
+            <div class="value text-danger">{{ assessment.non_compliant_count }}</div>
+            <div class="label"><i class="bi bi-x-circle"></i> Non-compliant</div>
+        </div>
+    </div>
+</div>
+
+{# ---------- Status distribution bar ---------- #}
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="progress" style="height:20px;">
+            {% if assessment.compliant_count %}<div class="progress-bar bg-success" style="width:{% widthratio assessment.compliant_count assessment.total_items 100 %}%;">{{ assessment.compliant_count }}</div>{% endif %}
+            {% if assessment.partial_count %}<div class="progress-bar bg-warning text-dark" style="width:{% widthratio assessment.partial_count assessment.total_items 100 %}%;">{{ assessment.partial_count }}</div>{% endif %}
+            {% if assessment.non_compliant_count %}<div class="progress-bar bg-danger" style="width:{% widthratio assessment.non_compliant_count assessment.total_items 100 %}%;">{{ assessment.non_compliant_count }}</div>{% endif %}
+            {% if assessment.na_count %}<div class="progress-bar bg-secondary" style="width:{% widthratio assessment.na_count assessment.total_items 100 %}%;">{{ assessment.na_count }}</div>{% endif %}
+            {% if assessment.not_assessed_count %}<div class="progress-bar" style="background:#CBD5E1; color:#334155; width:{% widthratio assessment.not_assessed_count assessment.total_items 100 %}%;">{{ assessment.not_assessed_count }}</div>{% endif %}
+        </div>
+        <div class="d-flex gap-3 mt-2 small">
+            <span><i class="bi bi-square-fill" style="color:#059669;"></i> Compliant</span>
+            <span><i class="bi bi-square-fill" style="color:#D97706;"></i> Partial</span>
+            <span><i class="bi bi-square-fill" style="color:#DC2626;"></i> Non-compliant</span>
+            <span><i class="bi bi-square-fill" style="color:#94A3B8;"></i> N/A</span>
+            <span><i class="bi bi-square-fill" style="color:#CBD5E1;"></i> Not assessed</span>
+        </div>
+    </div>
+</div>
+
+{# ---------- Filters ---------- #}
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex flex-wrap gap-2">
+            <span class="small text-muted mt-2 me-2">Filter:</span>
+            <a href="?" class="btn btn-sm {% if not status_filter %}btn-dark{% else %}btn-outline-dark{% endif %}">All ({{ assessment.total_items }})</a>
+            <a href="?item_status=compliant" class="btn btn-sm {% if status_filter == 'compliant' %}btn-success{% else %}btn-outline-success{% endif %}">Compliant ({{ assessment.compliant_count }})</a>
+            <a href="?item_status=partial" class="btn btn-sm {% if status_filter == 'partial' %}btn-warning{% else %}btn-outline-warning{% endif %}">Partial ({{ assessment.partial_count }})</a>
+            <a href="?item_status=non_compliant" class="btn btn-sm {% if status_filter == 'non_compliant' %}btn-danger{% else %}btn-outline-danger{% endif %}">Non-compliant ({{ assessment.non_compliant_count }})</a>
+            <a href="?item_status=na" class="btn btn-sm {% if status_filter == 'na' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">N/A ({{ assessment.na_count }})</a>
+            <a href="?item_status=not_assessed" class="btn btn-sm {% if status_filter == 'not_assessed' %}btn-dark{% else %}btn-outline-dark{% endif %}">Not assessed ({{ assessment.not_assessed_count }})</a>
+        </div>
+    </div>
+</div>
+
+{# ---------- Checklist ---------- #}
+<div class="card">
+    <div class="card-header bg-white"><strong>Checklist ({{ items|length }} item{{ items|length|pluralize }})</strong></div>
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:80px;">Code</th>
+                    <th>Requirement</th>
+                    <th style="width:170px;" class="text-center">Status</th>
+                    <th>Owner</th>
+                    <th class="text-center" style="width:120px;">Target</th>
+                    <th style="width:80px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for item in items %}
+                <tr>
+                    <td><code>{{ item.framework_control.code }}</code></td>
+                    <td>
+                        {{ item.framework_control.title }}
+                        {% if item.notes %}<div class="small text-muted mt-1">{{ item.notes|truncatechars:120 }}</div>{% endif %}
+                    </td>
+                    <td class="text-center">
+                        <form method="post" action="{% url 'frameworks:assessment_item_status' item.pk %}" style="margin:0;">
+                            {% csrf_token %}
+                            <select name="status" class="form-select form-select-sm" onchange="this.form.submit();" style="font-size:12px; padding:3px 8px;">
+                                {% for val, label in item.STATUS_CHOICES %}
+                                    <option value="{{ val }}" {% if item.status == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </td>
+                    <td><small>{{ item.owner_user|default:"—" }}</small></td>
+                    <td class="text-center">
+                        <small>
+                        {% if item.target_remediation_date %}
+                            {% if item.target_remediation_date < now_date and item.status != 'compliant' and item.status != 'na' %}
+                                <span class="text-danger">{{ item.target_remediation_date }}</span>
+                            {% else %}{{ item.target_remediation_date }}{% endif %}
+                        {% else %}—{% endif %}
+                        </small>
+                    </td>
+                    <td class="text-end"><a href="{% url 'frameworks:assessment_item_update' item.pk %}" class="btn btn-sm btn-outline-dark">Edit</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No items match the filter.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
+    {% if assessment.description %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Description</strong></div>
+            <div class="card-body">{{ assessment.description|linebreaks }}</div>
+        </div>
+    </div>
+    {% endif %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Assessment metadata</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Assessment date</span><span>{{ assessment.assessment_date }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Target completion</span><span>{{ assessment.target_completion_date|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Completed date</span><span>{{ assessment.completed_date|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ assessment.owner_dept.name }}</span></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

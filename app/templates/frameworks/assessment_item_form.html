@@ -1,0 +1,67 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ item.framework_control.code }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'frameworks:list' %}">Frameworks</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'frameworks:assessment_list' %}">Assessments</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'frameworks:assessment_detail' assessment.pk %}">{{ assessment.assessment_id }}</a></li>
+    <li class="breadcrumb-item active">{{ item.framework_control.code }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white">
+                <strong>Assessment item: <code>{{ item.framework_control.code }}</code></strong>
+                <div class="small text-muted mt-1">{{ item.framework_control.title }}</div>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save Item</button>
+                    <a href="{% url 'frameworks:assessment_detail' assessment.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Assessment context</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Assessment</span><a href="{% url 'frameworks:assessment_detail' assessment.pk %}"><code>{{ assessment.assessment_id }}</code></a></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Framework</span><span>{{ assessment.framework.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Readiness</span><span><strong>{{ assessment.readiness_percent }}%</strong></span></li>
+            </ul>
+        </div>
+
+        {% if item.framework_control.description %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Requirement text</strong></div>
+            <div class="card-body small">{{ item.framework_control.description|linebreaks }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    input[type="text"], input[type="date"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+    select[multiple] { min-height: 140px; }
+</style>
+{% endblock %}

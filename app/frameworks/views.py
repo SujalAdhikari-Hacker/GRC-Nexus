@@ -85,3 +85,148 @@ class ComplianceStatusView(TemplateView):
             'uncovered_count': uncovered.count(),
         })
         return ctx
+
+
+# ============================================================
+# COMPLIANCE ASSESSMENTS
+# ============================================================
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.db.models import Q
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
+
+from .models import ComplianceAssessment, ComplianceAssessmentItem
+from .forms import ComplianceAssessmentForm, ComplianceAssessmentItemForm
+from core.mixins import DepartmentScopedMixin
+
+
+class ComplianceAssessmentListView(DepartmentScopedMixin, ListView):
+    model = ComplianceAssessment
+    template_name = 'frameworks/assessment_list.html'
+    context_object_name = 'assessments'
+    paginate_by = 25
+    department_field = 'owner_dept'
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('framework', 'assessor', 'owner_dept')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(name__icontains=q) | Q(assessment_id__icontains=q))
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        return qs.order_by('-assessment_date')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['statuses'] = ComplianceAssessment.STATUS_CHOICES
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_status'] = self.request.GET.get('status', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(owner_dept=user.department)
+        ctx['total_count'] = base.count()
+        ctx['in_progress_count'] = base.filter(status='in_progress').count()
+        ctx['completed_count'] = base.filter(status='completed').count()
+        ctx['draft_count'] = base.filter(status='draft').count()
+        return ctx
+
+
+class ComplianceAssessmentDetailView(DepartmentScopedMixin, DetailView):
+    model = ComplianceAssessment
+    template_name = 'frameworks/assessment_detail.html'
+    context_object_name = 'assessment'
+    department_field = 'owner_dept'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        items = self.object.items.select_related('framework_control', 'owner_user').order_by('framework_control__code')
+
+        status_filter = self.request.GET.get('item_status')
+        if status_filter:
+            items = items.filter(status=status_filter)
+
+        ctx['items'] = items
+        ctx['total_items'] = self.object.total_items
+        ctx['status_filter'] = status_filter or ''
+        return ctx
+
+
+class ComplianceAssessmentCreateView(DepartmentScopedMixin, CreateView):
+    model = ComplianceAssessment
+    form_class = ComplianceAssessmentForm
+    template_name = 'frameworks/assessment_form.html'
+    success_url = reverse_lazy('frameworks:assessment_list')
+
+    def get_initial(self):
+        initial = super().get_initial()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            initial['owner_dept'] = user.department
+        initial['assessor'] = user
+        initial['assessment_date'] = timezone.now().date()
+        return initial
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Auto-populate one item per framework control
+        for fc in self.object.framework.controls.all():
+            ComplianceAssessmentItem.objects.create(
+                assessment=self.object,
+                framework_control=fc,
+                status='not_assessed',
+            )
+        messages.success(
+            self.request,
+            f'Assessment {self.object.assessment_id} created with {self.object.total_items} checklist items.'
+        )
+        return response
+
+    def get_success_url(self):
+        return reverse_lazy('frameworks:assessment_detail', kwargs={'pk': self.object.pk})
+
+
+class ComplianceAssessmentUpdateView(DepartmentScopedMixin, UpdateView):
+    model = ComplianceAssessment
+    form_class = ComplianceAssessmentForm
+    template_name = 'frameworks/assessment_form.html'
+    department_field = 'owner_dept'
+
+    def get_success_url(self):
+        return reverse_lazy('frameworks:assessment_detail', kwargs={'pk': self.object.pk})
+
+
+class ComplianceAssessmentItemUpdateView(LoginRequiredMixin, UpdateView):
+    model = ComplianceAssessmentItem
+    form_class = ComplianceAssessmentItemForm
+    template_name = 'frameworks/assessment_item_form.html'
+    context_object_name = 'item'
+
+    def get_success_url(self):
+        return reverse_lazy('frameworks:assessment_detail', kwargs={'pk': self.object.assessment.pk})
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['assessment'] = self.object.assessment
+        return ctx
+
+
+from django.views.decorators.http import require_POST
+
+
+@require_POST
+def assessment_item_quick_status(request, pk):
+    """HTMX-free inline status updater: POST form on the detail page redirects back."""
+    item = get_object_or_404(ComplianceAssessmentItem, pk=pk)
+    new_status = request.POST.get('status')
+    valid = [s[0] for s in ComplianceAssessmentItem.STATUS_CHOICES]
+    if new_status in valid:
+        item.status = new_status
+        item.save(update_fields=['status', 'updated_at'])
+    return redirect('frameworks:assessment_detail', pk=item.assessment.pk)

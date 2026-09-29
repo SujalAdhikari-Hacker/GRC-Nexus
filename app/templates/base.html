@@ -114,6 +114,9 @@
                         <a href="{% url 'frameworks:compliance_status' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-clipboard-data"></i><span>Compliance Status</span>
             </a>
+                        <a href="{% url 'frameworks:assessment_list' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-clipboard-check"></i><span>Compliance Assessments</span>
+            </a>
             {% else %}
             <a href="{% url 'risks:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-exclamation-triangle"></i><span>Risks</span>
@@ -143,6 +146,9 @@
             </a>
                         <a href="{% url 'controls:lifecycle' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-diagram-2"></i><span>Lifecycle Board</span>
+            </a>
+                        <a href="{% url 'frameworks:assessment_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-clipboard-check"></i><span>Compliance Assessments</span>
             </a>
             {% endif %}
 

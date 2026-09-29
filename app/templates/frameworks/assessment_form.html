@@ -1,0 +1,54 @@
+﻿{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Assessment{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'frameworks:list' %}">Frameworks</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'frameworks:assessment_list' %}">Assessments</a></li>
+    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Compliance assessment</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save Assessment</button>
+                    <a href="{% url 'frameworks:assessment_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>What happens on save</strong></div>
+            <div class="card-body small text-muted">
+                <p><strong>New assessment:</strong> one checklist item is auto-created for <em>every</em> requirement in the chosen framework. So ISO 27001 → all its controls become checklist lines.</p>
+                <p><strong>Then:</strong> mark each item as Compliant / Partial / Non-Compliant / N/A and add notes.</p>
+                <p class="mb-0"><strong>Readiness %:</strong> Compliant = 1.0, Partial = 0.5, N/A excluded from denominator.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="text"], input[type="date"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+</style>
+{% endblock %}

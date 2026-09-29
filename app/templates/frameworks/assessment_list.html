@@ -1,0 +1,79 @@
+﻿{% extends "base.html" %}
+{% block title %}Compliance Assessments{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'frameworks:list' %}">Frameworks</a></li>
+    <li class="breadcrumb-item active">Compliance Assessments</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-clipboard-check"></i> Total assessments</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#6B7280;">{{ draft_count }}</div><div class="label"><i class="bi bi-pencil"></i> Drafts</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#0284C7;">{{ in_progress_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> In Progress</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ completed_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Completed</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-6"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search by ID or name..." value="{{ search_query }}"></div>
+            <div class="col-md-4">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All statuses</option>
+                    {% for val, label in statuses %}<option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
+        </form>
+        <a href="{% url 'frameworks:assessment_create' %}" class="btn btn-sm btn-primary text-nowrap">+ New Assessment</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Assessment ID</th>
+                    <th>Name</th>
+                    <th>Framework</th>
+                    <th class="text-center">Status</th>
+                    <th>Assessor</th>
+                    <th>Date</th>
+                    <th class="text-center" style="min-width:180px;">Readiness</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for a in assessments %}
+                <tr>
+                    <td><a href="{% url 'frameworks:assessment_detail' a.pk %}"><code>{{ a.assessment_id }}</code></a></td>
+                    <td><a href="{% url 'frameworks:assessment_detail' a.pk %}"><strong>{{ a.name|truncatechars:60 }}</strong></a></td>
+                    <td><small>{{ a.framework.name }} {{ a.framework.version }}</small></td>
+                    <td class="text-center"><span class="badge" style="background:{{ a.status_color }}; color:#fff;">{{ a.get_status_display }}</span></td>
+                    <td><small>{{ a.assessor|default:"—" }}</small></td>
+                    <td><small>{{ a.assessment_date }}</small></td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress flex-grow-1" style="height:8px;">
+                                <div class="progress-bar {% if a.readiness_percent >= 75 %}bg-success{% elif a.readiness_percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                                     style="width:{{ a.readiness_percent }}%;"></div>
+                            </div>
+                            <strong style="font-size:12px;">{{ a.readiness_percent }}%</strong>
+                        </div>
+                        <div class="small text-muted mt-1">{{ a.compliant_count }}✓ · {{ a.partial_count }}~ · {{ a.non_compliant_count }}✗ · {{ a.not_assessed_count }} open</div>
+                    </td>
+                    <td class="text-end"><a href="{% url 'frameworks:assessment_detail' a.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">
+                    No assessments yet. <a href="{% url 'frameworks:assessment_create' %}">Create the first one</a>.
+                </td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
