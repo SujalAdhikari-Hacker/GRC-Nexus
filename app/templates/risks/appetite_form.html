@@ -1,8 +1,9 @@
-{% extends "base.html" %}
-{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Appetite{% endblock %}
+﻿{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Risk Appetite{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'risks:list' %}">Risks</a></li>
     <li class="breadcrumb-item"><a href="{% url 'risks:appetite_list' %}">Risk Appetite</a></li>
     <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
   </ol>
@@ -10,55 +11,128 @@
 {% endblock %}
 
 {% block content %}
-<div class="row">
+<div class="row g-3">
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-white"><strong>Appetite threshold</strong></div>
+            <div class="card-header bg-white"><strong>Risk appetite definition</strong></div>
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-                    {% for field in form %}
-                        <div class="mb-3">
-                            <label class="form-label">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.help_text %}
-                                <div class="form-text small">{{ field.help_text }}</div>
-                            {% endif %}
-                            {% if field.errors %}
-                                <div class="text-danger small">{{ field.errors|join:", " }}</div>
-                            {% endif %}
+                    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Department</label>
+                            {{ form.department }}
+                            <div class="form-text small">Leave blank for org-wide appetite.</div>
                         </div>
-                    {% endfor %}
-                    <button type="submit" class="btn btn-dark">Save</button>
+                        <div class="col-md-6">
+                            <label class="form-label">Category</label>
+                            {{ form.category }}
+                            <div class="form-text small">Leave blank for all categories.</div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Appetite level</label>
+                            {{ form.appetite_level }}
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Appetite statement</label>
+                            {{ form.appetite_statement }}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="mb-3"><i class="bi bi-sliders"></i> Thresholds</h6>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Max inherent score (1–25)</label>
+                            {{ form.max_inherent_score }}
+                            {% if form.max_inherent_score.errors %}<div class="text-danger small">{{ form.max_inherent_score.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Max residual score (1–25)</label>
+                            {{ form.max_residual_score }}
+                            {% if form.max_residual_score.errors %}<div class="text-danger small">{{ form.max_residual_score.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Risk capacity (1–25)</label>
+                            {{ form.risk_capacity }}
+                            {% if form.risk_capacity.errors %}<div class="text-danger small">{{ form.risk_capacity.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="mb-3"><i class="bi bi-person-check"></i> Governance</h6>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label d-block">Board approved</label>
+                            <div class="form-check mt-1">
+                                {{ form.board_approved }}
+                                <label class="form-check-label" for="{{ form.board_approved.id_for_label }}">Approved by board</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Approved by</label>
+                            {{ form.approved_by }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Review date <span class="text-danger">*</span></label>
+                            {{ form.review_date }}
+                            <div class="form-text small">{{ form.review_date.help_text }}</div>
+                            {% if form.review_date.errors %}<div class="text-danger small">{{ form.review_date.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">Description / notes</label>
+                        {{ form.description }}
+                    </div>
+
+                    <hr class="my-4">
+                    <button type="submit" class="btn btn-dark">Save Appetite</button>
                     <a href="{% url 'risks:appetite_list' %}" class="btn btn-outline-secondary">Cancel</a>
                 </form>
             </div>
         </div>
     </div>
+
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-white"><strong>How this works</strong></div>
+        <div class="card sticky-top" style="top:1rem;">
+            <div class="card-header bg-white"><strong>Appetite levels</strong></div>
             <div class="card-body small text-muted">
-                <p>When a risk's <strong>residual score</strong> exceeds the threshold defined here, it is flagged with a <span class="badge bg-danger">Breach</span> badge.</p>
-                <p>Matching order (most specific wins):</p>
-                <ol class="ps-3">
-                    <li>Department + Category</li>
-                    <li>Department only</li>
-                    <li>Category only</li>
-                    <li>Org-wide (blank both)</li>
-                </ol>
-                <p class="mb-0">Max score is 25 (likelihood 5 × impact 5).</p>
+                <div class="mb-2"><strong>Averse</strong> — avoid risk wherever possible</div>
+                <div class="mb-2"><strong>Cautious</strong> — prefer low-risk options</div>
+                <div class="mb-2"><strong>Moderate</strong> — balanced approach</div>
+                <div class="mb-2"><strong>Open</strong> — willing to take calculated risks</div>
+                <div class="mb-2"><strong>Hungry</strong> — seek high-reward, higher-risk opportunities</div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Threshold guide</strong></div>
+            <div class="card-body small text-muted">
+                <div class="mb-2"><strong>Max inherent</strong> — highest acceptable pre-control risk score.</div>
+                <div class="mb-2"><strong>Max residual</strong> — highest acceptable post-control risk score.</div>
+                <div class="mb-2"><strong>Risk capacity</strong> — absolute limit before significant failure.</div>
+                <hr>
+                <div>Any risk whose residual score exceeds <em>Max residual</em> will be flagged as a breach.</div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    input[type="number"], select, textarea {
-        width: 100%;
-        padding: .375rem .75rem;
-        border: 1px solid #ced4da;
-        border-radius: .375rem;
+    input[type="text"], input[type="number"], input[type="date"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
     }
 </style>
 {% endblock %}
