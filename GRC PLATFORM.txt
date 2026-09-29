@@ -63,9 +63,8 @@ What's missing — full list
 
 🟡 Partial → could be improved (6)
 #	Feature	What's missing
-7	Asset Classification view	Dedicated list grouped by classification level
-8	Asset Owners view	List grouped by owner dept / user
-9	Control Effectiveness view	Cross-control effectiveness dashboard
+
+
 10	Compliance Status view	Single dashboard showing all frameworks' coverage side by side
 11	RBAC UI	Custom "Roles & Permissions" page (instead of raw Django admin)
 12	Users/Departments UI	Custom page instead of Django admin

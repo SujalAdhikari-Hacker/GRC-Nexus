@@ -1,0 +1,68 @@
+﻿{% extends "base.html" %}
+{% block title %}Departments{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item">Administration</li>
+    <li class="breadcrumb-item active">Departments</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Departments</h5>
+        <small class="text-muted">{{ departments|length }} department{{ departments|length|pluralize }}</small>
+    </div>
+    {% if user.is_superuser %}
+    <a href="{% url 'core:department_create' %}" class="btn btn-sm btn-primary">+ New Department</a>
+    {% endif %}
+</div>
+
+<div class="row g-3">
+    {% for row in rows %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>{{ row.dept.name }}</strong>
+                    {% if row.dept.parent %}<div class="small text-muted">Parent: {{ row.dept.parent.name }}</div>{% endif %}
+                </div>
+                {% if user.is_superuser %}
+                <a href="{% url 'core:department_update' row.dept.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="row g-2 text-center">
+                    <div class="col-3">
+                        <div style="font-size:1.4rem; font-weight:700;">{{ row.user_count }}</div>
+                        <div class="small text-muted">Users</div>
+                    </div>
+                    <div class="col-3">
+                        <div style="font-size:1.4rem; font-weight:700;">{{ row.asset_count }}</div>
+                        <div class="small text-muted">Assets</div>
+                    </div>
+                    <div class="col-3">
+                        <div style="font-size:1.4rem; font-weight:700;">{{ row.risk_count }}</div>
+                        <div class="small text-muted">Risks</div>
+                    </div>
+                    <div class="col-3">
+                        <div style="font-size:1.4rem; font-weight:700;">{{ row.control_count }}</div>
+                        <div class="small text-muted">Controls</div>
+                    </div>
+                </div>
+                <hr>
+                <div class="small">
+                    <span class="text-muted">HOD:</span>
+                    {% if row.hod %}<strong>{{ row.hod.get_full_name|default:row.hod.username }}</strong>
+                    {% else %}<em class="text-muted">Not assigned</em>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+        <div class="col-12"><div class="card"><div class="card-body text-center text-muted py-5">No departments yet.</div></div></div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,12 +1,16 @@
 ﻿from collections import Counter
 from datetime import timedelta
-
+from django.contrib.auth.models import Group, Permission
+from django.urls import reverse_lazy
+from django.views.generic import ListView, CreateView, UpdateView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from .models import User, Department
+from .forms import CustomUserCreationForm, CustomUserChangeForm, DepartmentForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.generic import TemplateView
-
 from assets.models import Asset
 from risks.models import Risk
 from controls.models import Control
@@ -15,6 +19,15 @@ from vendors.models import Vendor
 from frameworks.models import Framework
 from core.correlation import get_framework_coverage
 
+class HODOrSuperuserMixin(LoginRequiredMixin, UserPassesTestMixin):
+    def test_func(self):
+        u = self.request.user
+        return u.is_authenticated and (u.is_superuser or u.is_hod)
+
+
+class SuperuserOnlyMixin(LoginRequiredMixin, UserPassesTestMixin):
+    def test_func(self):
+        return self.request.user.is_authenticated and self.request.user.is_superuser
 
 def _severity_band(score):
     if score >= 20:
@@ -160,3 +173,117 @@ def global_search(request):
         'total': total,
     })
 
+class UserListView(HODOrSuperuserMixin, ListView):
+    model = User
+    template_name = 'core/users_list.html'
+    context_object_name = 'users'
+    paginate_by = 30
+
+    def get_queryset(self):
+        qs = User.objects.all().select_related('department').prefetch_related('groups')
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            qs = qs.filter(department=user.department)
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(username__icontains=q) | Q(email__icontains=q) | Q(first_name__icontains=q))
+        dept = self.request.GET.get('department')
+        if dept:
+            qs = qs.filter(department_id=dept)
+        role = self.request.GET.get('role')
+        if role == 'hod':
+            qs = qs.filter(is_hod=True)
+        elif role == 'super':
+            qs = qs.filter(is_superuser=True)
+        elif role == 'user':
+            qs = qs.filter(is_hod=False, is_superuser=False)
+        return qs.order_by('username')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['departments'] = Department.objects.all()
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_department'] = self.request.GET.get('department', '')
+        ctx['selected_role'] = self.request.GET.get('role', '')
+        user = self.request.user
+        base = User.objects.all()
+        if not user.is_superuser and user.department_id:
+            base = base.filter(department=user.department)
+        ctx['total_count'] = base.count()
+        ctx['hod_count'] = base.filter(is_hod=True).count()
+        ctx['super_count'] = base.filter(is_superuser=True).count()
+        return ctx
+
+
+class UserCreateView(SuperuserOnlyMixin, CreateView):
+    model = User
+    form_class = CustomUserCreationForm
+    template_name = 'core/user_form.html'
+    success_url = reverse_lazy('core:users_list')
+
+
+class UserUpdateView(SuperuserOnlyMixin, UpdateView):
+    model = User
+    form_class = CustomUserChangeForm
+    template_name = 'core/user_form.html'
+    success_url = reverse_lazy('core:users_list')
+
+
+class DepartmentListView(HODOrSuperuserMixin, ListView):
+    model = Department
+    template_name = 'core/departments_list.html'
+    context_object_name = 'departments'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        rows = []
+        for d in self.object_list:
+            rows.append({
+                'dept': d,
+                'user_count': d.users.count(),
+                'asset_count': d.assets.count(),
+                'risk_count': d.risks.count(),
+                'control_count': d.controls.count(),
+                'hod': d.users.filter(is_hod=True).first(),
+            })
+        ctx['rows'] = rows
+        return ctx
+
+
+class DepartmentCreateView(SuperuserOnlyMixin, CreateView):
+    model = Department
+    form_class = DepartmentForm
+    template_name = 'core/department_form.html'
+    success_url = reverse_lazy('core:departments_list')
+
+
+class DepartmentUpdateView(SuperuserOnlyMixin, UpdateView):
+    model = Department
+    form_class = DepartmentForm
+    template_name = 'core/department_form.html'
+    success_url = reverse_lazy('core:departments_list')
+
+
+class RolesPermissionsView(HODOrSuperuserMixin, TemplateView):
+    template_name = 'core/roles_permissions.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        groups = Group.objects.all().prefetch_related('permissions')
+        rows = []
+        for g in groups:
+            perms = g.permissions.all()
+            # Group by app label
+            by_app = {}
+            for p in perms:
+                app = p.content_type.app_label
+                by_app.setdefault(app, []).append(p)
+            rows.append({
+                'group': g,
+                'user_count': g.user_set.count(),
+                'perm_count': perms.count(),
+                'by_app': by_app,
+            })
+        ctx['rows'] = rows
+        ctx['total_groups'] = groups.count()
+        return ctx
