@@ -58,25 +58,80 @@ class Asset(models.Model):
         (2, 'Medium'),
         (3, 'High'),
     ]
+    CLOUD_PROVIDER_CHOICES = [
+        ('aws',         'AWS'),
+        ('azure',       'Microsoft Azure'),
+        ('gcp',         'Google Cloud'),
+        ('oracle',      'Oracle Cloud'),
+        ('ibm',         'IBM Cloud'),
+        ('alibaba',     'Alibaba Cloud'),
+        ('digitalocean','DigitalOcean'),
+        ('linode',      'Linode'),
+        ('vultr',       'Vultr'),
+        ('on_prem',     'On-Premises (no cloud)'),
+        ('other',       'Other'),
+    ]
+    OS_FAMILY_CHOICES = [
+        ('linux',     'Linux'),
+        ('windows',   'Windows'),
+        ('macos',     'macOS'),
+        ('unix',      'Unix (AIX/Solaris/BSD)'),
+        ('ios',       'iOS'),
+        ('android',   'Android'),
+        ('network',   'Network OS (Cisco/Juniper/etc.)'),
+        ('embedded',  'Embedded / Firmware'),
+        ('other',     'Other'),
+    ]
 
+    # ---------- Identification ----------
     asset_id = models.CharField(
         max_length=20, unique=True, null=True, blank=True, db_index=True,
-        help_text='...'
+        help_text='Auto-generated reference ID like AST-0001.'
     )
     name = models.CharField(max_length=200)
-    asset_type = models.CharField(
-        max_length=20, choices=ASSET_TYPE_CHOICES, default='hardware'
+    hostname = models.CharField(
+        max_length=200, blank=True,
+        help_text='DNS or system hostname (e.g. web-prod-01.corp.local)'
     )
-    hosting = models.CharField(
-        max_length=20, choices=HOSTING_CHOICES, default='on_prem'
+    ip_address = models.GenericIPAddressField(
+        null=True, blank=True,
+        help_text='Primary IPv4 or IPv6 address'
     )
+    fqdn = models.CharField(
+        max_length=300, blank=True,
+        help_text='Fully qualified domain name'
+    )
+
+    # ---------- Classification ----------
+    asset_type = models.CharField(max_length=20, choices=ASSET_TYPE_CHOICES, default='hardware')
+    hosting = models.CharField(max_length=20, choices=HOSTING_CHOICES, default='on_prem')
+    cloud_provider = models.CharField(
+        max_length=20, choices=CLOUD_PROVIDER_CHOICES, default='on_prem',
+        blank=True,
+        help_text='Which cloud provider hosts this asset'
+    )
+    cloud_region = models.CharField(
+        max_length=100, blank=True,
+        help_text='Cloud region or availability zone, e.g. us-east-1, eu-west-2'
+    )
+    location = models.CharField(
+        max_length=200, blank=True,
+        help_text='Physical location or country, e.g. Kathmandu DC-1, Nepal'
+    )
+    os_family = models.CharField(
+        max_length=20, choices=OS_FAMILY_CHOICES, default='linux', blank=True
+    )
+    os_version = models.CharField(
+        max_length=100, blank=True,
+        help_text='e.g. Ubuntu 22.04 LTS, Windows Server 2019'
+    )
+
     vendor = models.ForeignKey(
         'vendors.Vendor', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='assets'
     )
-    classification = models.CharField(
-        max_length=20, choices=CLASSIFICATION_CHOICES, default='internal'
-    )
+    classification = models.CharField(max_length=20, choices=CLASSIFICATION_CHOICES, default='internal')
+
     owner_dept = models.ForeignKey(
         Department, on_delete=models.PROTECT, related_name='assets'
     )
@@ -84,9 +139,7 @@ class Asset(models.Model):
         'core.User', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='owned_assets'
     )
-    environment = models.CharField(
-        max_length=20, choices=ENVIRONMENT_CHOICES, default='production'
-    )
+    environment = models.CharField(max_length=20, choices=ENVIRONMENT_CHOICES, default='production')
     description = models.TextField(blank=True)
 
     category = models.ForeignKey(
@@ -94,20 +147,15 @@ class Asset(models.Model):
         null=True, blank=True
     )
 
-    criticality = models.PositiveSmallIntegerField(
-        choices=CRITICALITY_CHOICES, default=2
-    )
+    # ---------- Risk ratings ----------
+    criticality = models.PositiveSmallIntegerField(choices=CRITICALITY_CHOICES, default=2)
     confidentiality = models.PositiveSmallIntegerField(choices=CIA_CHOICES, default=2)
     integrity = models.PositiveSmallIntegerField(choices=CIA_CHOICES, default=2)
     availability = models.PositiveSmallIntegerField(choices=CIA_CHOICES, default=2)
-    value = models.DecimalField(
-        max_digits=12, decimal_places=2, default=0
-    )
+    value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     is_active = models.BooleanField(default=True)
-    policies = models.ManyToManyField(
-        'policies.Policy', blank=True, related_name='assets'
-    )
+    policies = models.ManyToManyField('policies.Policy', blank=True, related_name='assets')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -130,6 +178,8 @@ class Asset(models.Model):
                     num = Asset.objects.count() + 1
             else:
                 num = Asset.objects.count() + 1
+            while Asset.objects.filter(asset_id=f'AST-{num:04d}').exists():
+                num += 1
             self.asset_id = f'AST-{num:04d}'
         super().save(*args, **kwargs)
 
@@ -149,3 +199,9 @@ class Asset(models.Model):
     @property
     def display_label(self):
         return f"{self.asset_id or 'NO-ID'} - {self.name[:40]}"
+
+    @property
+    def host_line(self):
+        """Compact identifier for tables and lists."""
+        bits = [b for b in [self.hostname, self.ip_address] if b]
+        return ' · '.join(bits) if bits else ''

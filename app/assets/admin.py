@@ -1,7 +1,6 @@
 ﻿from django import forms
 from django.contrib import admin
 from django.utils.html import format_html
-from django.utils import timezone
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import Asset, AssetCategory
@@ -16,7 +15,7 @@ def _render_link_list(items):
     items = list(items)
     if not items:
         return format_html('<em style="color:#888;">None</em>')
-    rows = ''.join(f'<li>{item}</li>' for item in items)
+    rows = ''.join('<li>{}</li>'.format(item) for item in items)
     return format_html(
         '<ul style="margin:0;padding-left:1.2em;">{}</ul>',
         format_html(rows)
@@ -32,15 +31,17 @@ class AssetCategoryAdmin(SimpleHistoryAdmin):
 @admin.register(Asset)
 class AssetAdmin(SimpleHistoryAdmin):
     list_display = (
-        'asset_id', 'name', 'asset_type', 'hosting', 'vendor',
+        'asset_id', 'name', 'hostname', 'ip_address', 'asset_type',
+        'hosting', 'cloud_provider', 'os_family', 'vendor',
         'classification', 'owner_dept', 'environment',
         'criticality', 'is_active'
     )
     list_filter = (
-        'asset_type', 'hosting', 'classification', 'environment',
+        'asset_type', 'hosting', 'cloud_provider', 'os_family',
+        'classification', 'environment',
         'owner_dept', 'criticality', 'is_active', 'vendor'
     )
-    search_fields = ('asset_id', 'name', 'description')
+    search_fields = ('asset_id', 'name', 'hostname', 'ip_address', 'fqdn', 'description')
     filter_horizontal = ('policies',)
     readonly_fields = (
         'asset_id', 'created_at', 'updated_at', 'cia_score',
@@ -50,16 +51,25 @@ class AssetAdmin(SimpleHistoryAdmin):
 
     fieldsets = (
         ('Identification', {
-            'fields': ('asset_id', 'name', 'description')
+            'fields': ('asset_id', 'name', 'hostname', 'ip_address', 'fqdn')
         }),
         ('Classification', {
-            'fields': ('asset_type', 'hosting', 'vendor', 'classification', 'environment')
+            'fields': (
+                'asset_type', 'hosting', 'cloud_provider', 'cloud_region',
+                'location', 'os_family', 'os_version'
+            )
+        }),
+        ('Business context', {
+            'fields': ('vendor', 'classification', 'environment')
         }),
         ('Ownership', {
             'fields': ('owner_dept', 'owner_user', 'is_active')
         }),
         ('Risk ratings', {
-            'fields': ('criticality', 'confidentiality', 'integrity', 'availability', 'value', 'cia_score')
+            'fields': (
+                'criticality', 'confidentiality', 'integrity',
+                'availability', 'value', 'cia_score'
+            )
         }),
         ('Governance', {
             'fields': ('policies', 'category')
