@@ -6,7 +6,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, T
 from django.utils import timezone
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from .models import Audit, EvidenceItem, EvidenceScore, ControlTest, AuditFinding
-from .forms import AuditForm, EvidenceItemForm, EvidenceScoreForm, ControlTestForm, AuditFindingForm, ActionItemForm
+from .forms import EvidenceItemForm, EvidenceScoreForm, ControlTestForm, AuditFindingForm
 from .forms import (
     AuditForm, EvidenceItemForm, EvidenceScoreForm,
     ControlTestForm, AuditFindingForm, ActionItemForm,
@@ -322,9 +322,15 @@ class ControlTestCreateView(DepartmentScopedMixin, CreateView):
         user = self.request.user
         if not user.is_superuser and user.department_id:
             initial['owner_dept'] = user.department
+
+        # Prefill from query params
         control = self.request.GET.get('control')
         if control:
             initial['control'] = control
+        audit = self.request.GET.get('audit')
+        if audit:
+            initial['audit'] = audit
+
         return initial
 
     def form_valid(self, form):
@@ -659,4 +665,3 @@ class AuditReportView(LoginRequiredMixin, DetailView):
         safe_name = ''.join(c if c.isalnum() else '_' for c in audit.name)[:40]
         filename = f'audit_{audit.pk}_{safe_name}_{timezone.now().strftime("%Y%m%d")}.pdf'
         return _render_pdf_audit(request, 'reports/audit_report.html', ctx, filename)
-

@@ -132,7 +132,7 @@
         <div class="card mt-3">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <strong>Control tests ({{ tests|length }})</strong>
-                <a href="/admin/audits/controltest/add/" class="btn btn-sm btn-primary">+ Add test</a>
+                <a href="{% url 'audits:test_create' %}?audit={{ audit.pk }}" class="btn btn-sm btn-primary">+ Add test</a>
             </div>
             <ul class="list-group list-group-flush">
                 {% for t in tests %}
@@ -151,4 +151,5 @@
     </div>
 </div>
 {% endblock %}
+
 
