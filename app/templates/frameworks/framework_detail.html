@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}{{ framework.name }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -15,7 +15,7 @@
         <h4 class="mb-0">{{ framework.name }} {{ framework.version }}</h4>
         <small class="text-muted">{{ framework.description|default:""|truncatechars:200 }}</small>
     </div>
-    <a href="/admin/frameworks/framework/{{ framework.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+    <a href="{% url 'frameworks:update' framework.pk %}" class="btn btn-sm btn-outline-dark">Edit in admin</a>
 </div>
 
 <div class="row g-3 mb-3">

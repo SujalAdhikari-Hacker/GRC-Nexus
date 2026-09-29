@@ -1,0 +1,91 @@
+﻿{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Framework{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'frameworks:list' %}">Frameworks</a></li>
+    {% if form.instance.pk %}
+        <li class="breadcrumb-item"><a href="{% url 'frameworks:detail' form.instance.pk %}">{{ form.instance.name }}</a></li>
+        <li class="breadcrumb-item active">Edit</li>
+    {% else %}
+        <li class="breadcrumb-item active">New Framework</li>
+    {% endif %}
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-7">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-diagram-3"></i> Framework details</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name <span class="text-danger">*</span></label>
+                        {{ form.name }}
+                        <div class="form-text small">{{ form.name.help_text }}</div>
+                        {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Version</label>
+                        {{ form.version }}
+                        <div class="form-text small">{{ form.version.help_text }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        {{ form.description }}
+                        <div class="form-text small">{{ form.description.help_text }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-dark">{% if form.instance.pk %}Save Changes{% else %}Create Framework{% endif %}</button>
+            <a href="{% url 'frameworks:list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card sticky-top" style="top:1rem;">
+            <div class="card-header bg-white"><strong>What comes next</strong></div>
+            <div class="card-body small text-muted">
+                <p>After saving the framework, you'll be able to:</p>
+                <ul class="ps-3">
+                    <li>Add <strong>requirements</strong> (individual control objectives)</li>
+                    <li>Map your <strong>internal controls</strong> to those requirements</li>
+                    <li>Run <strong>compliance assessments</strong> against the framework</li>
+                    <li>Track <strong>coverage percentage</strong> automatically</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Common frameworks</strong></div>
+            <div class="card-body small text-muted">
+                <div class="mb-2"><strong>ISO/IEC 27001</strong> — Information security management</div>
+                <div class="mb-2"><strong>NIST CSF</strong> — Cybersecurity framework</div>
+                <div class="mb-2"><strong>SOC 2</strong> — Service org controls</div>
+                <div class="mb-2"><strong>PCI DSS</strong> — Payment card data</div>
+                <div class="mb-2"><strong>GDPR</strong> — EU data protection</div>
+                <div class="mb-2"><strong>CIS Controls</strong> — Critical security controls</div>
+                <div class="mb-2"><strong>CMMC</strong> — DoD maturity model</div>
+                <div class="mb-2"><strong>COBIT</strong> — IT governance</div>
+                <div class="mb-0"><strong>ISO/IEC 42001</strong> — AI management systems</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="text"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+</style>
+{% endblock %}

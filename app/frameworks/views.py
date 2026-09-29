@@ -1,10 +1,13 @@
 ﻿from django.views.generic import ListView, DetailView, TemplateView
-
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, UpdateView
+from django.contrib import messages
+from .forms import FrameworkForm, FrameworkControlForm
 from core.correlation import (
     get_framework_coverage,
     get_control_coverage_by_control_for_framework,
 )
-from .models import Framework
+from .models import Framework, FrameworkControl
 
 
 class FrameworkListView(ListView):
@@ -155,6 +158,7 @@ class ComplianceAssessmentDetailView(DepartmentScopedMixin, DetailView):
         ctx['items'] = items
         ctx['total_items'] = self.object.total_items
         ctx['status_filter'] = status_filter or ''
+        ctx['now_date'] = timezone.now().date()
         return ctx
 
 
@@ -230,3 +234,74 @@ def assessment_item_quick_status(request, pk):
         item.status = new_status
         item.save(update_fields=['status', 'updated_at'])
     return redirect('frameworks:assessment_detail', pk=item.assessment.pk)
+
+
+# ============================================================
+# FRAMEWORK CREATE / UPDATE
+# ============================================================
+
+class FrameworkCreateView(CreateView):
+    model = Framework
+    form_class = FrameworkForm
+    template_name = 'frameworks/framework_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('frameworks:detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f'Framework "{self.object.name}" created.')
+        return response
+
+
+class FrameworkUpdateView(UpdateView):
+    model = Framework
+    form_class = FrameworkForm
+    template_name = 'frameworks/framework_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('frameworks:detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f'Framework "{self.object.name}" updated.')
+        return response
+
+
+# ============================================================
+# FRAMEWORK CONTROL CREATE / UPDATE
+# ============================================================
+
+class FrameworkControlCreateView(CreateView):
+    model = FrameworkControl
+    form_class = FrameworkControlForm
+    template_name = 'frameworks/framework_control_form.html'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        fw_pk = self.request.GET.get('framework')
+        if fw_pk:
+            initial['framework'] = fw_pk
+        return initial
+
+    def get_success_url(self):
+        return reverse_lazy('frameworks:detail', kwargs={'pk': self.object.framework.pk})
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f'Requirement {self.object.code} added.')
+        return response
+
+
+class FrameworkControlUpdateView(UpdateView):
+    model = FrameworkControl
+    form_class = FrameworkControlForm
+    template_name = 'frameworks/framework_control_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('frameworks:detail', kwargs={'pk': self.object.framework.pk})
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f'Requirement {self.object.code} updated.')
+        return response
