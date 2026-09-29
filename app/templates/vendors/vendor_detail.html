@@ -4,7 +4,7 @@
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-0">
     <li class="breadcrumb-item"><a href="{% url 'vendors:list' %}">Vendors</a></li>
-    <li class="breadcrumb-item active">{{ vendor.name }}</li>
+    <li class="breadcrumb-item active">{{ vendor.vendor_id }}</li>
   </ol>
 </nav>
 {% endblock %}
@@ -12,48 +12,89 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h4 class="mb-0">{{ vendor.name }}</h4>
-        <small class="text-muted">Tier {{ vendor.tier }} Â· {{ vendor.get_data_sensitivity_display }} data</small>
+        <h4 class="mb-0"><code>{{ vendor.vendor_id }}</code> — {{ vendor.name }}</h4>
+        <small class="text-muted">{{ vendor.get_service_display }} · {{ vendor.get_status_display }}</small>
     </div>
-    <a href="/admin/vendors/vendor/{{ vendor.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'vendors:update' vendor.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        <a href="{% url 'vendors:assessment_create_for_vendor' vendor.pk %}" class="btn btn-sm btn-primary">+ New Assessment</a>
+        <a href="/admin/vendors/vendor/{{ vendor.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+    </div>
 </div>
 
 <div class="row g-3">
     <div class="col-md-4">
         <div class="card">
+            <div class="card-header bg-white"><strong>Details</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Vendor ID</span><code>{{ vendor.vendor_id }}</code></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Service</span><span>{{ vendor.get_service_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Criticality</span>
+                    <span>{% if vendor.tier == 1 %}<span class="badge bg-danger">Tier 1 — Critical</span>{% elif vendor.tier == 2 %}<span class="badge bg-warning text-dark">Tier 2 — Important</span>{% else %}<span class="badge bg-secondary">Tier 3 — Standard</span>{% endif %}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Data sensitivity</span><span>{{ vendor.get_data_sensitivity_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Status</span>
+                    <span>
+                        {% if vendor.status == 'active' %}<span class="badge bg-success">Active</span>
+                        {% elif vendor.status == 'onboarding' %}<span class="badge bg-info text-dark">Onboarding</span>
+                        {% elif vendor.status == 'under_review' %}<span class="badge bg-warning text-dark">Under Review</span>
+                        {% elif vendor.status == 'suspended' %}<span class="badge bg-secondary">Suspended</span>
+                        {% else %}<span class="badge bg-dark">Terminated</span>{% endif %}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ vendor.owner_dept.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ vendor.owner_user|default:"—" }}</span></li>
+            </ul>
+        </div>
+
+        <div class="card mt-3">
             <div class="card-header bg-white"><strong>Contact</strong></div>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Name</span><span>{{ vendor.contact_name|default:"â€”" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Email</span><span>{{ vendor.contact_email|default:"â€”" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Phone</span><span>{{ vendor.contact_phone|default:"â€”" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ vendor.owner_dept.name }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Active</span><span>{{ vendor.is_active|yesno:"Yes,No" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Name</span><span>{{ vendor.contact_name|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Email</span><span>{{ vendor.contact_email|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Phone</span><span>{{ vendor.contact_phone|default:"—" }}</span></li>
             </ul>
         </div>
 
         <div class="card mt-3">
             <div class="card-header bg-white"><strong>Contract</strong></div>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Start</span><span>{{ vendor.contract_start|default:"â€”" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">End</span><span>{{ vendor.contract_end|default:"â€”" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Start</span><span>{{ vendor.contract_start|default:"—" }}</span></li>
                 <li class="list-group-item d-flex justify-content-between">
-                    <span class="text-muted">Latest risk score</span>
+                    <span class="text-muted">Renewal date</span>
                     <span>
-                        {% if vendor.latest_score is not None %}
-                            {% if vendor.latest_score >= 60 %}<span class="badge bg-danger">{{ vendor.latest_score }}</span>
-                            {% elif vendor.latest_score >= 40 %}<span class="badge bg-warning text-dark">{{ vendor.latest_score }}</span>
-                            {% else %}<span class="badge bg-success">{{ vendor.latest_score }}</span>{% endif %}
-                        {% else %}<span class="text-muted">â€”</span>{% endif %}
+                        {% if vendor.contract_renewal_date %}
+                            {% if vendor.contract_renewal_date < now_date %}<span class="text-danger">{{ vendor.contract_renewal_date }} <i class="bi bi-clock-history"></i></span>
+                            {% else %}{{ vendor.contract_renewal_date }}{% endif %}
+                        {% else %}—{% endif %}
                     </span>
                 </li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Latest risk score</span><span>{% if vendor.latest_score %}<strong>{{ vendor.latest_score }}/5</strong>{% else %}—{% endif %}</span></li>
             </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Compliance attestations</strong></div>
+            <div class="card-body">
+                {% for fw in vendor.compliance_attestations.all %}
+                    <span class="badge bg-dark me-1 mb-1">{{ fw.name }}</span>
+                {% empty %}
+                    <div class="text-muted small">No attestations recorded.</div>
+                {% endfor %}
+                {% if vendor.compliance_notes %}
+                    <hr>
+                    <div class="small">{{ vendor.compliance_notes|linebreaks }}</div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
     <div class="col-md-8">
         <div class="card">
             <div class="card-header bg-white"><strong>Description</strong></div>
-            <div class="card-body">{{ vendor.description|default:"â€”"|linebreaks }}</div>
+            <div class="card-body">{{ vendor.description|default:"—"|linebreaks }}</div>
         </div>
 
         <div class="card mt-3">
@@ -61,11 +102,11 @@
             <ul class="list-group list-group-flush">
                 {% for a in assets %}
                     <li class="list-group-item d-flex justify-content-between">
-                        <a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>
-                        <small class="text-muted">{{ a.category.name }} Â· {{ a.owner_dept.name }}</small>
+                        <a href="{% url 'assets:detail' a.pk %}"><code>{{ a.asset_id }}</code> {{ a.name }}</a>
+                        <small class="text-muted">{{ a.get_classification_display }} · {{ a.get_environment_display }}</small>
                     </li>
                 {% empty %}
-                    <li class="list-group-item text-muted text-center">No linked assets.</li>
+                    <li class="list-group-item text-muted text-center small">No linked assets.</li>
                 {% endfor %}
             </ul>
         </div>
@@ -75,53 +116,58 @@
             <ul class="list-group list-group-flush">
                 {% for r in risks %}
                     <li class="list-group-item d-flex justify-content-between">
-                        <a href="{% url 'risks:detail' r.pk %}">{{ r.title }}</a>
-                        <small>
-                            residual {{ r.residual_score }}
-                            {% if r.appetite_breached %}<span class="badge bg-danger ms-1">Breach</span>{% endif %}
-                        </small>
+                        <a href="{% url 'risks:detail' r.pk %}">{{ r.title|truncatechars:70 }}</a>
+                        <small>residual {{ r.residual_score }}{% if r.appetite_breached %} <span class="badge bg-danger ms-1">Breach</span>{% endif %}</small>
                     </li>
                 {% empty %}
-                    <li class="list-group-item text-muted text-center">No risks through linked assets.</li>
+                    <li class="list-group-item text-muted text-center small">No risks through linked assets.</li>
                 {% endfor %}
             </ul>
         </div>
 
         <div class="card mt-3">
-                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <strong>Assessment history ({{ assessments|length }})</strong>
                 <a href="{% url 'vendors:assessment_create_for_vendor' vendor.pk %}" class="btn btn-sm btn-primary">+ New Assessment</a>
             </div>
-            
             <div class="table-responsive">
                 <table class="table mb-0 align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Date</th>
+                            <th>Assessment ID</th>
                             <th class="text-center">Score</th>
+                            <th class="text-center">Rating</th>
                             <th class="text-center">Status</th>
-                            <th>Findings</th>
+                            <th>Date</th>
+                            <th>Assessor</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
                     {% for a in assessments %}
                         <tr>
-                            <td>{{ a.assessment_date }}</td>
-                            <td class="text-center">
-                                {% if a.score >= 60 %}<span class="badge bg-danger">{{ a.score }}</span>
-                                {% elif a.score >= 40 %}<span class="badge bg-warning text-dark">{{ a.score }}</span>
-                                {% else %}<span class="badge bg-success">{{ a.score }}</span>{% endif %}
-                            </td>
+                            <td><a href="{% url 'vendors:assessment_detail' a.pk %}"><code>{{ a.assessment_id }}</code></a></td>
+                            <td class="text-center"><strong>{{ a.overall_score }}</strong>/5</td>
+                            <td class="text-center"><span class="badge" style="background:{{ a.risk_rating_color }}; color:#fff;">{{ a.get_overall_risk_rating_display }}</span></td>
                             <td class="text-center"><small>{{ a.get_status_display }}</small></td>
-                            <td><small>{{ a.findings|truncatechars:80|default:"â€”" }}</small></td>
+                            <td><small>{{ a.assessment_date }}</small></td>
+                            <td><small>{{ a.assessor|default:"—" }}</small></td>
+                            <td class="text-end"><a href="{% url 'vendors:assessment_detail' a.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>
                         </tr>
                     {% empty %}
-                        <tr><td colspan="4" class="text-center text-muted py-3">No assessments yet.</td></tr>
+                        <tr><td colspan="7" class="text-center text-muted py-3">No assessments yet.</td></tr>
                     {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
+
+        {% if vendor.notes %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Notes</strong></div>
+            <div class="card-body">{{ vendor.notes|linebreaks }}</div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

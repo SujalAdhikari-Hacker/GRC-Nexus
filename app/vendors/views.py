@@ -10,10 +10,6 @@ from .models import Vendor, VendorAssessment
 from .forms import VendorForm, VendorAssessmentForm
 
 
-# ==================================================================
-# VENDOR
-# ==================================================================
-
 class VendorListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Vendor
     template_name = 'vendors/vendor_list.html'
@@ -22,46 +18,57 @@ class VendorListView(DepartmentScopedMixin, CsvExportMixin, ListView):
 
     csv_filename = 'vendors.csv'
     csv_fields = [
+        ('Vendor ID', 'vendor_id'),
         ('Name', 'name'),
-        ('Tier', 'get_tier_display'),
-        ('Criticality', 'get_vendor_criticality_display'),
+        ('Service', 'get_service_display'),
+        ('Criticality', 'get_tier_display'),
         ('Data Sensitivity', 'get_data_sensitivity_display'),
+        ('Status', 'get_status_display'),
         ('Owner Dept', lambda v: v.owner_dept.name),
+        ('Owner', lambda v: v.owner_user.username if v.owner_user else ''),
         ('Contact Name', 'contact_name'),
         ('Contact Email', 'contact_email'),
-        ('Contact Phone', 'contact_phone'),
         ('Latest Score', lambda v: v.latest_score if v.latest_score is not None else ''),
         ('Assets', lambda v: v.provides_assets.count()),
-        ('Contract Start', lambda v: v.contract_start or ''),
-        ('Contract End', lambda v: v.contract_end or ''),
-        ('Active', lambda v: 'Yes' if v.is_active else 'No'),
+        ('Contract Renewal', lambda v: v.contract_renewal_date or ''),
     ]
 
     def get_queryset(self):
-        qs = super().get_queryset().select_related('owner_dept')
+        qs = super().get_queryset().select_related('owner_dept', 'owner_user')
         q = self.request.GET.get('q', '').strip()
         if q:
-            qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q) | Q(contact_name__icontains=q))
+            qs = qs.filter(
+                Q(vendor_id__icontains=q) | Q(name__icontains=q)
+                | Q(description__icontains=q) | Q(contact_name__icontains=q)
+            )
+        service = self.request.GET.get('service')
+        if service:
+            qs = qs.filter(service=service)
         tier = self.request.GET.get('tier')
         if tier:
             qs = qs.filter(tier=tier)
-        sens = self.request.GET.get('sensitivity')
-        if sens:
-            qs = qs.filter(data_sensitivity=sens)
-        crit = self.request.GET.get('criticality')
-        if crit:
-            qs = qs.filter(vendor_criticality=crit)
-        return qs.order_by('name')
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        return qs.order_by('vendor_id')
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx['services'] = Vendor.SERVICE_CHOICES
         ctx['tiers'] = Vendor.TIER_CHOICES
-        ctx['sensitivities'] = Vendor.SENSITIVITY_CHOICES
-        ctx['criticalities'] = Vendor.CRITICALITY_CHOICES
+        ctx['statuses'] = Vendor.STATUS_CHOICES
         ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_service'] = self.request.GET.get('service', '')
         ctx['selected_tier'] = self.request.GET.get('tier', '')
-        ctx['selected_sensitivity'] = self.request.GET.get('sensitivity', '')
-        ctx['selected_criticality'] = self.request.GET.get('criticality', '')
+        ctx['selected_status'] = self.request.GET.get('status', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(owner_dept=user.department)
+        ctx['total_count'] = base.count()
+        ctx['active_count'] = base.filter(status='active').count()
+        ctx['critical_count'] = base.filter(tier=1).count()
         return ctx
 
 
@@ -98,10 +105,6 @@ class VendorUpdateView(DepartmentScopedMixin, UpdateView):
     success_url = reverse_lazy('vendors:list')
 
 
-# ==================================================================
-# VENDOR ASSESSMENT
-# ==================================================================
-
 class VendorAssessmentListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = VendorAssessment
     template_name = 'vendors/assessment_list.html'
@@ -113,7 +116,7 @@ class VendorAssessmentListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     csv_fields = [
         ('Assessment ID', 'assessment_id'),
         ('Vendor', lambda a: a.vendor.name),
-        ('Criticality', 'get_vendor_criticality_display'),
+        ('Vendor Tier', 'get_vendor_tier_display'),
         ('Financial', 'financial_risk'),
         ('Operational', 'operational_risk'),
         ('Regulatory', 'regulatory_risk'),
@@ -146,14 +149,11 @@ class VendorAssessmentListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         user = self.request.user
         if not user.is_superuser and user.department_id:
             base = base.filter(vendor__owner_dept=user.department)
-
         ctx['total_count'] = base.count()
         ctx['high_risk_count'] = base.filter(overall_risk_rating__in=['high', 'critical']).count()
         ctx['pending_count'] = base.filter(status='pending').count()
         ctx['now_date'] = timezone.now().date()
-        ctx['overdue_count'] = base.filter(
-            next_assessment_date__lt=timezone.now().date()
-        ).count()
+        ctx['overdue_count'] = base.filter(next_assessment_date__lt=timezone.now().date()).count()
         return ctx
 
 
@@ -175,7 +175,7 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
         initial['assessment_date'] = timezone.now().date()
         if self.vendor:
             initial['vendor'] = self.vendor
-            initial['vendor_criticality'] = self.vendor.vendor_criticality
+            initial['vendor_tier'] = self.vendor.tier
         return initial
 
     def form_valid(self, form):
