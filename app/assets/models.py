@@ -157,8 +157,21 @@ class Asset(models.Model):
     is_active = models.BooleanField(default=True)
     policies = models.ManyToManyField('policies.Policy', blank=True, related_name='assets')
 
+    # ---------- Audit trail ----------
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'core.User', null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='assets_created',
+        help_text='Who created this asset'
+    )
+    updated_by = models.ForeignKey(
+        'core.User', null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='assets_updated',
+        help_text='Who last modified this asset'
+    )
 
     history = HistoricalRecords()
 
