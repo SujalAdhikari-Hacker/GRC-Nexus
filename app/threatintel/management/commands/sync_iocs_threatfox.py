@@ -1,13 +1,10 @@
 ﻿"""
 Sync recent IOCs from abuse.ch ThreatFox.
 
-Free, no API key. Returns recent malware IOCs (IPs, domains, URLs, hashes).
-
-Usage:
-    python manage.py sync_iocs_threatfox
-    python manage.py sync_iocs_threatfox --days 7
-    python manage.py sync_iocs_threatfox --days 30
+Requires a free Auth-Key from https://auth.abuse.ch/
+Set it as ABUSECH_AUTH_KEY in your .env file.
 """
+import os
 import requests
 from datetime import datetime, timezone as dt_timezone
 from django.core.management.base import BaseCommand
@@ -20,22 +17,19 @@ API_URL = 'https://threatfox-api.abuse.ch/api/v1/'
 HTTP_TIMEOUT = 60
 
 
-# Map ThreatFox threat_type → our choices
 THREAT_TYPE_MAP = {
-    'botnet_cc':     'c2',
+    'botnet_cc':        'c2',
     'payload_delivery': 'malware',
-    'payload':       'malware',
-    'malware':       'malware',
-    'ransomware':    'ransomware',
-    'phishing':      'phishing',
-    'exploit':       'exploit',
+    'payload':          'malware',
+    'malware':          'malware',
+    'ransomware':       'ransomware',
+    'phishing':         'phishing',
+    'exploit':          'exploit',
 }
 
 
 def _detect_ioc_type(value):
-    """Guess our IOC type from the ThreatFox string format."""
     if ':' in value and not value.startswith('http'):
-        # ip:port or domain:port
         host = value.split(':')[0]
         if all(c.isdigit() or c == '.' for c in host):
             return 'ipv4'
@@ -68,13 +62,25 @@ class Command(BaseCommand):
     help = 'Sync recent IOCs from abuse.ch ThreatFox'
 
     def add_arguments(self, parser):
-        parser.add_argument('--days', type=int, default=3,
-                            help='How many days back (default: 3, max: 7)')
+        parser.add_argument('--days', type=int, default=3)
+        parser.add_argument('--api-key', default=None)
 
     def handle(self, *args, **options):
-        days = min(max(options['days'], 1), 7)  # ThreatFox caps at 7 days
+        days = min(max(options['days'], 1), 7)
 
         sync_log = IOCFeedSync.objects.create(source='threatfox')
+
+        auth_key = options['api_key'] or os.getenv('ABUSECH_AUTH_KEY', '')
+        if not auth_key:
+            self.stdout.write(self.style.ERROR(
+                'No ABUSECH_AUTH_KEY set. Get one free at https://auth.abuse.ch/ '
+                'and add ABUSECH_AUTH_KEY=your_key to your .env file.'
+            ))
+            sync_log.status = 'failed'
+            sync_log.error_message = 'Missing ABUSECH_AUTH_KEY'
+            sync_log.finished_at = timezone.now()
+            sync_log.save()
+            return
 
         self.stdout.write(self.style.MIGRATE_HEADING(
             f'Syncing ThreatFox IOCs (last {days} days)...'
@@ -84,6 +90,7 @@ class Command(BaseCommand):
             r = requests.post(
                 API_URL,
                 json={'query': 'get_iocs', 'days': days},
+                headers={'Auth-Key': auth_key},
                 timeout=HTTP_TIMEOUT,
             )
             r.raise_for_status()
@@ -124,7 +131,6 @@ class Command(BaseCommand):
 
             threat_type = THREAT_TYPE_MAP.get(item.get('threat_type', ''), 'unknown')
 
-            # Confidence: ThreatFox gives 0-100, map to our 1-4
             conf_raw = item.get('confidence_level', 50)
             if conf_raw >= 90:
                 confidence = 4

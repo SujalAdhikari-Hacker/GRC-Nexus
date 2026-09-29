@@ -189,9 +189,10 @@ class IOC(models.Model):
 class IOCFeedSync(models.Model):
     """Log of every feed sync run."""
     SOURCE_CHOICES = [
-        ('otx',       'AlienVault OTX'),
-        ('threatfox', 'abuse.ch ThreatFox'),
-        ('manual',    'Manual'),
+        ('otx',           'AlienVault OTX'),
+        ('threatfox',     'abuse.ch ThreatFox'),
+        ('threatcluster', 'ThreatCluster'),
+        ('manual',        'Manual'),
     ]
 
     source = models.CharField(max_length=20, choices=SOURCE_CHOICES)
