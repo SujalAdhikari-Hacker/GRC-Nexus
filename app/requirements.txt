@@ -6,3 +6,5 @@ django-cleanup
 django-htmx
 python-decouple
 requests
+weasyprint
+openpyxl
