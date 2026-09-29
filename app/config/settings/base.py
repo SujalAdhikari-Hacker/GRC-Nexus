@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'vulnerabilities',
     'kris',
     'audits',
+    'threatintel',
 ]
 
 MIDDLEWARE = [
