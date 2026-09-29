@@ -143,13 +143,6 @@ class VendorAssessment(models.Model):
         ('completed', 'Completed'),
         ('failed',    'Failed'),
     ]
-    RISK_LEVEL_CHOICES = [
-        (1, 'Low'),
-        (2, 'Medium'),
-        (3, 'High'),
-        (4, 'Critical'),
-        (5, 'Very Critical'),
-    ]
     OVERALL_RATING_CHOICES = [
         ('low',      'Low'),
         ('medium',   'Medium'),
@@ -170,14 +163,27 @@ class VendorAssessment(models.Model):
         help_text='Auto-filled from vendor. Snapshot at assessment time.'
     )
 
-    financial_risk = models.PositiveSmallIntegerField(choices=RISK_LEVEL_CHOICES, default=1)
-    operational_risk = models.PositiveSmallIntegerField(choices=RISK_LEVEL_CHOICES, default=1)
-    regulatory_risk = models.PositiveSmallIntegerField(choices=RISK_LEVEL_CHOICES, default=1)
-    cybersecurity_risk = models.PositiveSmallIntegerField(choices=RISK_LEVEL_CHOICES, default=1)
-    reputational_risk = models.PositiveSmallIntegerField(choices=RISK_LEVEL_CHOICES, default=1)
+    # 5 risk dimensions, each 0-25
+    security_score = models.PositiveSmallIntegerField(
+        default=0, help_text='0-25. Security posture risk.'
+    )
+    compliance_score = models.PositiveSmallIntegerField(
+        default=0, help_text='0-25. Regulatory / standard adherence risk.'
+    )
+    financial_score = models.PositiveSmallIntegerField(
+        default=0, help_text='0-25. Financial stability risk.'
+    )
+    reputation_score = models.PositiveSmallIntegerField(
+        default=0, help_text='0-25. Reputation and brand impact risk.'
+    )
+    operational_score = models.PositiveSmallIntegerField(
+        default=0, help_text='0-25. Service delivery / operational risk.'
+    )
 
+    # Auto-computed
     overall_score = models.DecimalField(
-        max_digits=4, decimal_places=2, default=0, editable=False
+        max_digits=5, decimal_places=2, default=0, editable=False,
+        help_text='Total score 0-100 — sum of the 5 dimensions.'
     )
     overall_risk_rating = models.CharField(
         max_length=20, choices=OVERALL_RATING_CHOICES, default='low', editable=False
@@ -223,18 +229,28 @@ class VendorAssessment(models.Model):
         if self.vendor_id and not self.vendor_tier:
             self.vendor_tier = self.vendor.tier
 
-        dimensions = [
-            self.financial_risk, self.operational_risk, self.regulatory_risk,
-            self.cybersecurity_risk, self.reputational_risk,
-        ]
-        self.overall_score = round(sum(dimensions) / len(dimensions), 2)
+        # Clamp each dimension to 0-25
+        for f in ['security_score', 'compliance_score', 'financial_score', 'reputation_score', 'operational_score']:
+            val = getattr(self, f) or 0
+            if val < 0:
+                val = 0
+            if val > 25:
+                val = 25
+            setattr(self, f, val)
 
-        s = float(self.overall_score)
-        if s >= 4.5:
+        # Total = sum of 5 dimensions (0-100)
+        total = (
+            self.security_score + self.compliance_score + self.financial_score
+            + self.reputation_score + self.operational_score
+        )
+        self.overall_score = total
+
+        # Rating bands
+        if total >= 76:
             self.overall_risk_rating = 'critical'
-        elif s >= 3.5:
+        elif total >= 51:
             self.overall_risk_rating = 'high'
-        elif s >= 2.5:
+        elif total >= 26:
             self.overall_risk_rating = 'medium'
         else:
             self.overall_risk_rating = 'low'
@@ -247,6 +263,10 @@ class VendorAssessment(models.Model):
             errors['recommended_mitigation'] = 'Recommended mitigation must be at least 20 characters.'
         if not self.key_findings or len(self.key_findings.strip()) < 20:
             errors['key_findings'] = 'Key findings must be at least 20 characters.'
+        for f in ['security_score', 'compliance_score', 'financial_score', 'reputation_score', 'operational_score']:
+            val = getattr(self, f) or 0
+            if val < 0 or val > 25:
+                errors[f] = 'Each dimension must be between 0 and 25.'
         if errors:
             raise ValidationError(errors)
 
@@ -256,3 +276,8 @@ class VendorAssessment(models.Model):
             'low': '#059669', 'medium': '#D97706',
             'high': '#EA580C', 'critical': '#DC2626',
         }.get(self.overall_risk_rating, '#6B7280')
+
+    @property
+    def risk_rating_percent(self):
+        """Total score as percent (0-100)."""
+        return int(self.overall_score or 0)

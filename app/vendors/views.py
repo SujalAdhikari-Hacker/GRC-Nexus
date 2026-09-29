@@ -117,12 +117,12 @@ class VendorAssessmentListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ('Assessment ID', 'assessment_id'),
         ('Vendor', lambda a: a.vendor.name),
         ('Vendor Tier', 'get_vendor_tier_display'),
-        ('Financial', 'financial_risk'),
-        ('Operational', 'operational_risk'),
-        ('Regulatory', 'regulatory_risk'),
-        ('Cybersecurity', 'cybersecurity_risk'),
-        ('Reputational', 'reputational_risk'),
-        ('Overall Score', 'overall_score'),
+        ('Security', 'security_score'),
+        ('Compliance', 'compliance_score'),
+        ('Financial', 'financial_score'),
+        ('Reputation', 'reputation_score'),
+        ('Operational', 'operational_score'),
+        ('Total Score', 'overall_score'),
         ('Rating', 'get_overall_risk_rating_display'),
         ('Assessed By', lambda a: a.assessor.username if a.assessor else ''),
         ('Assessment Date', 'assessment_date'),
@@ -217,11 +217,11 @@ class VendorAssessmentDetailView(LoginRequiredMixin, DetailView):
         a = self.object
         ctx['vendor'] = a.vendor
         ctx['dimensions'] = [
-            {'label': 'Financial risk', 'value': a.financial_risk},
-            {'label': 'Operational risk', 'value': a.operational_risk},
-            {'label': 'Regulatory risk', 'value': a.regulatory_risk},
-            {'label': 'Cybersecurity risk', 'value': a.cybersecurity_risk},
-            {'label': 'Reputational risk', 'value': a.reputational_risk},
+            {'label': 'Security',     'value': a.security_score,     'max': 25},
+            {'label': 'Compliance',   'value': a.compliance_score,   'max': 25},
+            {'label': 'Financial',    'value': a.financial_score,    'max': 25},
+            {'label': 'Reputation',   'value': a.reputation_score,   'max': 25},
+            {'label': 'Operational',  'value': a.operational_score,  'max': 25},
         ]
         ctx['now_date'] = timezone.now().date()
         return ctx

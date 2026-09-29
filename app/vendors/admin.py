@@ -60,8 +60,8 @@ class VendorAdmin(SimpleHistoryAdmin):
 class VendorAssessmentAdmin(SimpleHistoryAdmin):
     list_display = (
         'assessment_id', 'vendor', 'vendor_tier',
-        'financial_risk', 'operational_risk', 'regulatory_risk',
-        'cybersecurity_risk', 'reputational_risk',
+        'security_score', 'compliance_score', 'financial_score',
+        'reputation_score', 'operational_score',
         'overall_score', 'overall_risk_rating',
         'assessment_date', 'assessor'
     )
@@ -73,3 +73,29 @@ class VendorAssessmentAdmin(SimpleHistoryAdmin):
     readonly_fields = ('assessment_id', 'overall_score', 'overall_risk_rating', 'created_at', 'updated_at')
     date_hierarchy = 'assessment_date'
     autocomplete_fields = ('vendor',)
+
+    fieldsets = (
+        ('Identification', {
+            'fields': ('assessment_id', 'vendor', 'vendor_tier', 'assessment_date', 'status')
+        }),
+        ('Risk dimensions', {
+            'fields': (
+                'security_score', 'compliance_score', 'financial_score',
+                'reputation_score', 'operational_score',
+            ),
+            'description': 'Each dimension 0-25. Total score = sum (0-100).'
+        }),
+        ('Computed', {
+            'fields': ('overall_score', 'overall_risk_rating')
+        }),
+        ('Findings', {
+            'fields': ('key_findings', 'recommended_mitigation')
+        }),
+        ('Schedule', {
+            'fields': ('next_assessment_date', 'assessor')
+        }),
+        ('Audit', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )

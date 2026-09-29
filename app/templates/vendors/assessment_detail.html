@@ -13,9 +13,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h4 class="mb-0">
-            <code>{{ assessment.assessment_id }}</code> — {{ assessment.vendor.name }}
-        </h4>
+        <h4 class="mb-0"><code>{{ assessment.assessment_id }}</code> — {{ assessment.vendor.name }}</h4>
         <small class="text-muted">
             {{ assessment.assessment_date }}
             {% if assessment.assessor %}· Assessed by {{ assessment.assessor.username }}{% endif %}
@@ -29,25 +27,26 @@
     </div>
 </div>
 
-{# ---------- Top summary cards ---------- #}
 <div class="row g-3 mb-3">
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="value" style="color:{{ assessment.risk_rating_color }};">
-                {{ assessment.get_overall_risk_rating_display }}
-            </div>
+            <div class="value" style="color:{{ assessment.risk_rating_color }};">{{ assessment.get_overall_risk_rating_display }}</div>
             <div class="label"><i class="bi bi-shield-exclamation"></i> Overall risk rating</div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="value">{{ assessment.overall_score }}<small class="text-muted" style="font-size:1rem;">/5</small></div>
-            <div class="label"><i class="bi bi-bar-chart"></i> Average score</div>
+            <div class="value">{{ assessment.overall_score|floatformat:0 }}<small class="text-muted" style="font-size:1rem;">/100</small></div>
+            <div class="label"><i class="bi bi-bar-chart"></i> Total score</div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="value" style="font-size:1.1rem;">{{ assessment.get_vendor_criticality_display }}</div>
+            <div class="value" style="font-size:1.1rem;">
+                {% if assessment.vendor_tier == 1 %}Tier 1 — Critical
+                {% elif assessment.vendor_tier == 2 %}Tier 2 — Important
+                {% else %}Tier 3 — Standard{% endif %}
+            </div>
             <div class="label"><i class="bi bi-building"></i> Vendor criticality</div>
         </div>
     </div>
@@ -60,33 +59,31 @@
 </div>
 
 <div class="row g-3">
-    {# ---------- Risk dimensions ---------- #}
     <div class="col-md-7">
         <div class="card">
-            <div class="card-header bg-white"><strong>Risk dimensions</strong> <small class="text-muted">(1 = Low risk, 5 = Very Critical risk)</small></div>
+            <div class="card-header bg-white"><strong>Risk dimensions</strong> <small class="text-muted">(each 0–25, higher = more risk)</small></div>
             <div class="card-body">
                 {% for dim in dimensions %}
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span>{{ dim.label }}</span>
                             <strong>
-                                {% if dim.value == 1 %}<span class="badge bg-success">1 · Low</span>
-                                {% elif dim.value == 2 %}<span class="badge bg-warning text-dark">2 · Medium</span>
-                                {% elif dim.value == 3 %}<span class="badge" style="background:#EA580C; color:#fff;">3 · High</span>
-                                {% elif dim.value == 4 %}<span class="badge bg-danger">4 · Critical</span>
-                                {% else %}<span class="badge bg-dark">5 · Very Critical</span>{% endif %}
+                                {% if dim.value <= 5 %}<span class="badge bg-success">{{ dim.value }}/25</span>
+                                {% elif dim.value <= 12 %}<span class="badge bg-warning text-dark">{{ dim.value }}/25</span>
+                                {% elif dim.value <= 19 %}<span class="badge" style="background:#EA580C; color:#fff;">{{ dim.value }}/25</span>
+                                {% else %}<span class="badge bg-danger">{{ dim.value }}/25</span>{% endif %}
                             </strong>
                         </div>
                         <div class="progress" style="height:8px;">
-                            <div class="progress-bar" style="width: {% widthratio dim.value 5 100 %}%; background: {% if dim.value >= 4 %}#DC2626{% elif dim.value == 3 %}#EA580C{% elif dim.value == 2 %}#D97706{% else %}#059669{% endif %};"></div>
+                            <div class="progress-bar" style="width: {% widthratio dim.value 25 100 %}%; background: {% if dim.value >= 20 %}#DC2626{% elif dim.value >= 13 %}#EA580C{% elif dim.value >= 6 %}#D97706{% else %}#059669{% endif %};"></div>
                         </div>
                     </div>
                 {% endfor %}
 
                 <hr>
                 <div class="d-flex justify-content-between">
-                    <span><strong>Overall score</strong></span>
-                    <span><strong style="color:{{ assessment.risk_rating_color }};">{{ assessment.overall_score }}/5 · {{ assessment.get_overall_risk_rating_display }}</strong></span>
+                    <span><strong>Total score</strong></span>
+                    <span><strong style="color:{{ assessment.risk_rating_color }};">{{ assessment.overall_score|floatformat:0 }}/100 · {{ assessment.get_overall_risk_rating_display }}</strong></span>
                 </div>
             </div>
         </div>
@@ -102,15 +99,14 @@
         </div>
     </div>
 
-    {# ---------- Meta ---------- #}
     <div class="col-md-5">
         <div class="card">
             <div class="card-header bg-white"><strong>Assessment metadata</strong></div>
             <ul class="list-group list-group-flush">
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Assessment ID</span><code>{{ assessment.assessment_id }}</code></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Vendor</span><a href="{% url 'vendors:detail' vendor.pk %}">{{ vendor.name }}</a></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Vendor tier</span><span>{{ vendor.get_tier_display }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Vendor criticality</span><span>{{ assessment.get_vendor_criticality_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Vendor ID</span><code>{{ vendor.vendor_id }}</code></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Vendor criticality</span><span>{{ assessment.get_vendor_tier_display }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Assessment date</span><span>{{ assessment.assessment_date }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Assessor</span><span>{{ assessment.assessor|default:"—" }}</span></li>
                 <li class="list-group-item d-flex justify-content-between">
@@ -135,7 +131,7 @@
                         <small class="text-muted">{{ a.get_classification_display }}</small>
                     </li>
                 {% empty %}
-                    <li class="list-group-item text-muted small text-center">No assets linked to this vendor.</li>
+                    <li class="list-group-item text-muted small text-center">No assets linked.</li>
                 {% endfor %}
             </ul>
         </div>

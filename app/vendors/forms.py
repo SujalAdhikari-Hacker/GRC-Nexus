@@ -27,17 +27,29 @@ class VendorAssessmentForm(forms.ModelForm):
         model = VendorAssessment
         fields = [
             'vendor', 'vendor_tier',
-            'financial_risk', 'operational_risk', 'regulatory_risk',
-            'cybersecurity_risk', 'reputational_risk',
+            'security_score', 'compliance_score', 'financial_score',
+            'reputation_score', 'operational_score',
             'assessment_date', 'next_assessment_date',
             'assessor', 'status',
             'key_findings', 'recommended_mitigation',
         ]
         widgets = {
+            'security_score':     forms.NumberInput(attrs={'min': 0, 'max': 25, 'class': 'dimension-input', 'data-dim': 'sec'}),
+            'compliance_score':   forms.NumberInput(attrs={'min': 0, 'max': 25, 'class': 'dimension-input', 'data-dim': 'cmp'}),
+            'financial_score':    forms.NumberInput(attrs={'min': 0, 'max': 25, 'class': 'dimension-input', 'data-dim': 'fin'}),
+            'reputation_score':   forms.NumberInput(attrs={'min': 0, 'max': 25, 'class': 'dimension-input', 'data-dim': 'rep'}),
+            'operational_score':  forms.NumberInput(attrs={'min': 0, 'max': 25, 'class': 'dimension-input', 'data-dim': 'ops'}),
             'assessment_date': forms.DateInput(attrs={'type': 'date'}),
             'next_assessment_date': forms.DateInput(attrs={'type': 'date'}),
             'key_findings': forms.Textarea(attrs={'rows': 5}),
             'recommended_mitigation': forms.Textarea(attrs={'rows': 5}),
+        }
+        labels = {
+            'security_score':     'Security risk (0-25)',
+            'compliance_score':   'Compliance risk (0-25)',
+            'financial_score':    'Financial risk (0-25)',
+            'reputation_score':   'Reputation risk (0-25)',
+            'operational_score':  'Operational risk (0-25)',
         }
 
     def __init__(self, *args, **kwargs):

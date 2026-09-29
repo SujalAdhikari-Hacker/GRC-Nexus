@@ -1,11 +1,11 @@
 ﻿{% extends "base.html" %}
-{% block title %}New Assessment · {{ vendor.name }}{% endblock %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Assessment{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-0">
     <li class="breadcrumb-item"><a href="{% url 'vendors:list' %}">Vendors</a></li>
-    <li class="breadcrumb-item"><a href="{% url 'vendors:detail' vendor.pk %}">{{ vendor.name }}</a></li>
-    <li class="breadcrumb-item active">New Assessment</li>
+    {% if vendor %}<li class="breadcrumb-item"><a href="{% url 'vendors:detail' vendor.pk %}">{{ vendor.name|truncatechars:30 }}</a></li>{% endif %}
+    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %} Assessment</li>
   </ol>
 </nav>
 {% endblock %}
@@ -14,51 +14,180 @@
 <div class="row g-3">
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-white"><strong>New vendor assessment</strong></div>
+            <div class="card-header bg-white"><strong>Vendor risk assessment</strong></div>
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-                    {% for field in form %}
-                        <div class="mb-3">
-                            <label class="form-label">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
-                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Vendor <span class="text-danger">*</span></label>
+                            {{ form.vendor }}
+                            {% if form.vendor.errors %}<div class="text-danger small">{{ form.vendor.errors }}</div>{% endif %}
                         </div>
-                    {% endfor %}
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.vendor_tier.label }}</label>
+                            {{ form.vendor_tier }}
+                            <div class="form-text small">Auto-filled from vendor.</div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="mb-3"><i class="bi bi-shield-exclamation"></i> Risk dimensions <small class="text-muted">(each 0–25, higher = more risk)</small></h6>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Security risk (0–25)</label>
+                            {{ form.security_score }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Compliance risk (0–25)</label>
+                            {{ form.compliance_score }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Financial risk (0–25)</label>
+                            {{ form.financial_score }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Reputation risk (0–25)</label>
+                            {{ form.reputation_score }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Operational risk (0–25)</label>
+                            {{ form.operational_score }}
+                        </div>
+                    </div>
+
+                    {# Live total #}
+                    <div class="mt-3 p-3" style="background: var(--surface-2); border-radius: 6px; border: 1px solid var(--border);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Total score</div>
+                                <div style="font-size: 1.8rem; font-weight: 700;">
+                                    <span id="liveTotal">0</span><small class="text-muted" style="font-size: 1rem;">/100</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-muted small">Risk rating</div>
+                                <div id="liveRating" class="badge bg-secondary" style="font-size: 14px; padding: 6px 14px;">—</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="mb-3"><i class="bi bi-clipboard-check"></i> Assessment details</h6>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Assessment date</label>
+                            {{ form.assessment_date }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Next assessment date</label>
+                            {{ form.next_assessment_date }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Assessor</label>
+                            {{ form.assessor }}
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">Key findings <span class="text-danger">*</span></label>
+                        {{ form.key_findings }}
+                        <div class="form-text small">Summarize what you observed (min 20 chars).</div>
+                        {% if form.key_findings.errors %}<div class="text-danger small">{{ form.key_findings.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">Recommended mitigation <span class="text-danger">*</span></label>
+                        {{ form.recommended_mitigation }}
+                        <div class="form-text small">What should be done to reduce this vendor's risk? (min 20 chars)</div>
+                        {% if form.recommended_mitigation.errors %}<div class="text-danger small">{{ form.recommended_mitigation.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">Status</label>
+                        {{ form.status }}
+                    </div>
+
+                    <hr class="my-4">
                     <button type="submit" class="btn btn-dark">Save Assessment</button>
-                    <a href="{% url 'vendors:detail' vendor.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                    {% if vendor %}<a href="{% url 'vendors:detail' vendor.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                    {% else %}<a href="{% url 'vendors:assessment_list' %}" class="btn btn-outline-secondary">Cancel</a>{% endif %}
                 </form>
             </div>
         </div>
     </div>
+
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-white"><strong>Vendor context</strong></div>
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Vendor</span><span>{{ vendor.name }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Tier</span><span>{{ vendor.get_tier_display }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Data sensitivity</span><span>{{ vendor.get_data_sensitivity_display }}</span></li>
-            </ul>
-        </div>
-        <div class="card mt-3">
+        <div class="card sticky-top" style="top:1rem;">
             <div class="card-header bg-white"><strong>Scoring guide</strong></div>
-            <div class="card-body small text-muted">
-                <ul class="ps-3 mb-0">
-                    <li><strong>0&ndash;29:</strong> Low risk</li>
-                    <li><strong>30&ndash;59:</strong> Moderate</li>
-                    <li><strong>60&ndash;79:</strong> High</li>
-                    <li><strong>80&ndash;100:</strong> Critical</li>
-                </ul>
+            <div class="card-body small">
+                <p class="mb-2"><strong>Each dimension scored 0–25:</strong></p>
+                <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-success">0-5</span> Low</span><span>Minimal risk</span></div>
+                <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-warning text-dark">6-12</span> Medium</span><span>Manageable</span></div>
+                <div class="d-flex justify-content-between mb-1"><span><span class="badge" style="background:#EA580C;">13-19</span> High</span><span>Needs action</span></div>
+                <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-danger">20-25</span> Critical</span><span>Urgent</span></div>
+
+                <hr>
+                <p class="mb-2"><strong>Overall rating (auto):</strong></p>
+                <div class="small text-muted">
+                    <div>Total 0–25 → <span class="badge bg-success">Low</span></div>
+                    <div>Total 26–50 → <span class="badge bg-warning text-dark">Medium</span></div>
+                    <div>Total 51–75 → <span class="badge" style="background:#EA580C;">High</span></div>
+                    <div>Total 76–100 → <span class="badge bg-danger">Critical</span></div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
 <style>
     input[type="text"], input[type="number"], input[type="date"], select, textarea {
         width: 100%; padding: .375rem .75rem;
         border: 1px solid var(--border); border-radius: var(--r-sm);
         background: var(--surface); color: var(--text); font-size: 13px;
     }
+    .dimension-input { max-width: 120px; }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var fields = ['security_score', 'compliance_score', 'financial_score', 'reputation_score', 'operational_score'];
+
+    function recalc() {
+        var total = 0;
+        fields.forEach(function(name) {
+            var el = document.querySelector('[name="' + name + '"]');
+            var v = parseInt(el && el.value) || 0;
+            if (v < 0) v = 0;
+            if (v > 25) v = 25;
+            total += v;
+        });
+
+        var totalEl = document.getElementById('liveTotal');
+        if (totalEl) totalEl.textContent = total;
+
+        var ratingEl = document.getElementById('liveRating');
+        if (ratingEl) {
+            var label = '', cls = 'bg-secondary';
+            if (total >= 76) { label = 'Critical'; cls = 'bg-danger'; }
+            else if (total >= 51) { label = 'High'; cls = 'bg-warning text-dark'; }
+            else if (total >= 26) { label = 'Medium'; cls = 'bg-info text-dark'; }
+            else { label = 'Low'; cls = 'bg-success'; }
+            ratingEl.textContent = label;
+            ratingEl.className = 'badge ' + cls;
+            ratingEl.style.fontSize = '14px';
+            ratingEl.style.padding = '6px 14px';
+        }
+    }
+
+    fields.forEach(function(name) {
+        var el = document.querySelector('[name="' + name + '"]');
+        if (el) el.addEventListener('input', recalc);
+    });
+    recalc();
+});
+</script>
 {% endblock %}
