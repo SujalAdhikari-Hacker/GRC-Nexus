@@ -176,8 +176,16 @@ class ControlFrameworkMatrixView(DepartmentScopedMixin, TemplateView):
         controls = controls.order_by('code')
 
         frameworks = list(Framework.objects.all().order_by('name'))
-        framework_coverage = {fw.pk: get_framework_coverage(fw) for fw in frameworks}
 
+        # Build a list of {framework, cov} tuples for the template
+        framework_rows = []
+        for fw in frameworks:
+            framework_rows.append({
+                'framework': fw,
+                'cov': get_framework_coverage(fw),
+            })
+
+        # Matrix cells
         matrix_rows = []
         for c in controls:
             direct_fc_ids = set(c.framework_controls.values_list('pk', flat=True))
@@ -203,7 +211,7 @@ class ControlFrameworkMatrixView(DepartmentScopedMixin, TemplateView):
 
         ctx['matrix_rows'] = matrix_rows
         ctx['frameworks'] = frameworks
-        ctx['framework_coverage'] = framework_coverage
+        ctx['framework_rows'] = framework_rows
         ctx['total_controls'] = controls.count()
         return ctx
 

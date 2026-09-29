@@ -21,35 +21,40 @@
 
 {# ---------- Framework coverage cards ---------- #}
 <div class="row g-3 mb-4">
-    {% for fw in frameworks %}
-    {% with cov=framework_coverage|default_if_none:'' %}
-    <div class="col-md-3">
+    {% for row in framework_rows %}
+    <div class="col-md-4 col-xl-3">
         <div class="stat-card h-100">
             <div class="d-flex justify-content-between align-items-start mb-2">
                 <div>
-                    <div style="font-weight:600; font-size:13px;">{{ fw.name }}</div>
-                    <small class="text-muted">{{ fw.version|default:"" }}</small>
+                    <div style="font-weight:600; font-size:13px;">{{ row.framework.name }}</div>
+                    <small class="text-muted">{{ row.framework.version|default:"" }}</small>
                 </div>
-                <span class="badge bg-dark">{{ framework_coverage|default_if_none:'' }}</span>
+                <span class="badge bg-dark">{{ row.cov.covered }}/{{ row.cov.total }}</span>
             </div>
-            {% for fw_id, cov in framework_coverage.items %}{% if fw_id == fw.pk %}
+
             <div class="d-flex justify-content-between small mb-1">
-                <span>{{ cov.covered }}/{{ cov.total }} covered</span>
-                <strong>{{ cov.percent }}%</strong>
+                <span>{{ row.cov.covered }} of {{ row.cov.total }} covered</span>
+                <strong>{{ row.cov.percent }}%</strong>
             </div>
             <div class="progress" style="height:8px;">
-                <div class="progress-bar {% if cov.percent >= 75 %}bg-success{% elif cov.percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
-                     style="width: {{ cov.percent }}%;"></div>
+                <div class="progress-bar {% if row.cov.percent >= 75 %}bg-success{% elif row.cov.percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                     style="width: {{ row.cov.percent }}%;"></div>
             </div>
             <div class="mt-2 small text-muted">
-                <span title="Full coverage"><strong>{{ cov.covered_full }}</strong> full</span>
-                · <span title="Partial coverage"><strong>{{ cov.covered_partial }}</strong> partial</span>
-                · <span class="text-danger"><strong>{{ cov.gap }}</strong> gap{{ cov.gap|pluralize }}</span>
+                <span title="Full coverage"><strong>{{ row.cov.covered_full }}</strong> full</span>
+                · <span title="Partial coverage"><strong>{{ row.cov.covered_partial }}</strong> partial</span>
+                · <span class="text-danger"><strong>{{ row.cov.gap }}</strong> gap{{ row.cov.gap|pluralize }}</span>
             </div>
-            {% endif %}{% endfor %}
         </div>
     </div>
-    {% endwith %}
+    {% empty %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center text-muted py-4">
+                No frameworks configured. Add frameworks in <a href="/admin/frameworks/framework/">Django admin</a>.
+            </div>
+        </div>
+    </div>
     {% endfor %}
 </div>
 
@@ -118,12 +123,12 @@
             <tfoot class="table-light" style="font-weight:600;">
                 <tr>
                     <td colspan="2" class="text-end">Coverage</td>
-                    {% for fw in frameworks %}
-                        {% for fw_id, cov in framework_coverage.items %}{% if fw_id == fw.pk %}
+                    {% for row in framework_rows %}
                         <td class="text-center">
-                            <span class="badge {% if cov.percent >= 75 %}bg-success{% elif cov.percent >= 40 %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ cov.percent }}%</span>
+                            <span class="badge {% if row.cov.percent >= 75 %}bg-success{% elif row.cov.percent >= 40 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                {{ row.cov.percent }}%
+                            </span>
                         </td>
-                        {% endif %}{% endfor %}
                     {% endfor %}
                 </tr>
             </tfoot>
