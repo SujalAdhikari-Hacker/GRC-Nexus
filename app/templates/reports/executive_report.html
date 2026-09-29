@@ -403,11 +403,11 @@
     <h2 class="section-title">Executive Summary</h2>
     <div class="section-divider"></div>
 
-    <p class="lead">{{ risk_line }}</p>
-    <p class="lead">{{ breach_line }}</p>
-    <p class="lead">{{ control_line }}</p>
-    <p class="lead">{{ vuln_line }}</p>
-    <p class="lead">{{ coverage_line }}</p>
+    <p class="lead">{{ risk_line|safe }}</p>
+    <p class="lead">{{ breach_line|safe }}</p>
+    <p class="lead">{{ control_line|safe }}</p>
+    <p class="lead">{{ vuln_line|safe }}</p>
+    <p class="lead">{{ coverage_line|safe }}</p>
 
     <div class="stat-grid">
         <div class="stat-card red">
@@ -781,7 +781,7 @@
         {% for rec in recommendations %}
         <div class="rec-item {{ rec.priority }}">
             <div class="rec-priority">{{ rec.priority }}</div>
-            <div class="rec-text">{{ rec.text }}</div>
+            <div class="rec-text">{{ rec.text|safe }}</div>
         </div>
         {% endfor %}
     </div>
@@ -793,3 +793,4 @@
 
 </body>
 </html>
+
