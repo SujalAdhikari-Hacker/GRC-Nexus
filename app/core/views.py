@@ -38,7 +38,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         risks = Risk.objects.all()
         controls = Control.objects.all()
         policies = Policy.objects.all()
-        vendors = Vendor.objects.filter(is_active=True)
+        vendors = Vendor.objects.filter(status='active')
 
         if not is_super:
             assets = assets.filter(owner_dept=user.department)
@@ -159,3 +159,4 @@ def global_search(request):
         'results': results,
         'total': total,
     })
+
