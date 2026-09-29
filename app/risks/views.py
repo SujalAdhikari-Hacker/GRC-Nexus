@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
-
+from core.reports import ReportMixin
 from core.mixins import DepartmentScopedMixin, HODOrSuperuserMixin, CsvExportMixin
 from core.correlation import get_full_risk_context
 from .models import Risk, RiskCategory, RiskAppetite, RiskTreatment
@@ -18,11 +18,15 @@ from django.views.decorators.http import require_POST
 from .models import RiskException
 from .forms import RiskExceptionForm
 
-class RiskListView(DepartmentScopedMixin, CsvExportMixin, ListView):
+class RiskListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Risk
     template_name = 'risks/risk_list.html'
     context_object_name = 'risks'
     paginate_by = 20
+
+    report_title = 'Risk Register'
+    report_filename_base = 'risk_register'
+    pdf_template = 'reports/risk_register_pdf.html'
 
     csv_filename = 'risks.csv'
     csv_fields = [
@@ -82,6 +86,35 @@ class RiskListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ctx['filter_assessed'] = self.request.GET.get('assessed', '')
         return ctx
 
+    def build_rows(self):
+        headers = ['ID', 'Title', 'Category', 'Dept', 'L', 'I', 'Inherent', 'Residual',
+                   'Breach', 'Treatment', 'Status', 'Owner', 'Identified']
+        rows = []
+        for r in self.get_queryset():
+            rows.append([
+                r.pk,
+                r.title,
+                r.category.name if r.category else '',
+                r.owner_dept.name if r.owner_dept else '',
+                r.likelihood,
+                r.impact,
+                r.inherent_score,
+                r.residual_score,
+                'Yes' if r.appetite_breached else 'No',
+                r.get_treatment_strategy_display(),
+                r.get_status_display(),
+                r.owner_user.username if r.owner_user else '',
+                r.identified_date.strftime('%Y-%m-%d') if r.identified_date else '',
+            ])
+        return headers, rows
+
+    def build_pdf_context(self):
+        qs = list(self.get_queryset())
+        return {
+            'risks': qs,
+            'total': len(qs),
+            'breached_count': sum(1 for r in qs if r.appetite_breached),
+        }
 
 class RiskDetailView(DepartmentScopedMixin, DetailView):
     model = Risk

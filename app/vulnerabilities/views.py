@@ -8,7 +8,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView, DetailView
-
+from core.reports import ReportMixin
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from .models import Vulnerability, Finding
 from .services import enrich_vulnerability, cascade_finding_to_risk
@@ -18,12 +18,16 @@ from .services import enrich_vulnerability, cascade_finding_to_risk
 # FINDINGS
 # ============================================================
 
-class FindingListView(DepartmentScopedMixin, CsvExportMixin, ListView):
+class FindingListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Finding
     template_name = 'vulnerabilities/finding_list.html'
     context_object_name = 'findings'
     paginate_by = 25
     department_field = 'owner_dept'
+
+    report_title = 'Vulnerability Findings'
+    report_filename_base = 'vulnerability_findings'
+    pdf_template = 'reports/findings_pdf.html'
 
     csv_filename = 'findings.csv'
     csv_fields = [
@@ -81,6 +85,35 @@ class FindingListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         return ctx
 
 
+    def build_rows(self):
+        headers = ['CVE', 'Title', 'Severity', 'CVSS', 'Asset', 'Status',
+                   'Assigned To', 'Team', 'Discovered', 'SLA Due', 'Overdue']
+        rows = []
+        for f in self.get_queryset():
+            rows.append([
+                f.vulnerability.cve_id or 'Manual',
+                f.vulnerability.title[:200],
+                f.vulnerability.get_cvss_severity_display(),
+                float(f.vulnerability.cvss_score),
+                f.asset.asset_id + ' — ' + f.asset.name[:40],
+                f.get_status_display(),
+                f.assigned_to.username if f.assigned_to else '',
+                f.assigned_team.name if f.assigned_team else '',
+                f.discovered_date.strftime('%Y-%m-%d') if f.discovered_date else '',
+                f.sla_due_date.strftime('%Y-%m-%d') if f.sla_due_date else '',
+                'Yes' if f.is_overdue else 'No',
+            ])
+        return headers, rows
+
+    def build_pdf_context(self):
+        qs = list(self.get_queryset())
+        return {
+            'findings': qs,
+            'total': len(qs),
+            'open_count': sum(1 for f in qs if f.status not in f.CLOSED_STATUSES),
+            'overdue_count': sum(1 for f in qs if f.is_overdue),
+        }
+    
 class FindingDetailView(DepartmentScopedMixin, DetailView):
     model = Finding
     template_name = 'vulnerabilities/finding_detail.html'
