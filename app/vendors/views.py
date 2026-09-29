@@ -10,6 +10,10 @@ from .models import Vendor, VendorAssessment
 from .forms import VendorForm, VendorAssessmentForm
 
 
+# ==================================================================
+# VENDOR
+# ==================================================================
+
 class VendorListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Vendor
     template_name = 'vendors/vendor_list.html'
@@ -34,7 +38,7 @@ class VendorListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     ]
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = super().get_queryset().select_related('owner_dept')
         q = self.request.GET.get('q', '').strip()
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q) | Q(contact_name__icontains=q))
@@ -44,15 +48,20 @@ class VendorListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         sens = self.request.GET.get('sensitivity')
         if sens:
             qs = qs.filter(data_sensitivity=sens)
+        crit = self.request.GET.get('criticality')
+        if crit:
+            qs = qs.filter(vendor_criticality=crit)
         return qs.order_by('name')
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['tiers'] = Vendor.TIER_CHOICES
         ctx['sensitivities'] = Vendor.SENSITIVITY_CHOICES
+        ctx['criticalities'] = Vendor.CRITICALITY_CHOICES
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_tier'] = self.request.GET.get('tier', '')
         ctx['selected_sensitivity'] = self.request.GET.get('sensitivity', '')
+        ctx['selected_criticality'] = self.request.GET.get('criticality', '')
         return ctx
 
 
@@ -64,6 +73,7 @@ class VendorDetailView(DepartmentScopedMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_vendor_context(self.object))
+        ctx['now_date'] = timezone.now().date()
         return ctx
 
 
@@ -87,6 +97,10 @@ class VendorUpdateView(DepartmentScopedMixin, UpdateView):
     template_name = 'vendors/vendor_form.html'
     success_url = reverse_lazy('vendors:list')
 
+
+# ==================================================================
+# VENDOR ASSESSMENT
+# ==================================================================
 
 class VendorAssessmentListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = VendorAssessment
@@ -132,6 +146,7 @@ class VendorAssessmentListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         user = self.request.user
         if not user.is_superuser and user.department_id:
             base = base.filter(vendor__owner_dept=user.department)
+
         ctx['total_count'] = base.count()
         ctx['high_risk_count'] = base.filter(overall_risk_rating__in=['high', 'critical']).count()
         ctx['pending_count'] = base.filter(status='pending').count()
@@ -170,7 +185,7 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('vendors:detail', kwargs={'pk': self.object.vendor.pk})
+        return reverse_lazy('vendors:assessment_detail', kwargs={'pk': self.object.pk})
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -184,9 +199,29 @@ class VendorAssessmentUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'vendors/assessment_form.html'
 
     def get_success_url(self):
-        return reverse_lazy('vendors:detail', kwargs={'pk': self.object.vendor.pk})
+        return reverse_lazy('vendors:assessment_detail', kwargs={'pk': self.object.pk})
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['vendor'] = self.object.vendor
+        return ctx
+
+
+class VendorAssessmentDetailView(LoginRequiredMixin, DetailView):
+    model = VendorAssessment
+    template_name = 'vendors/assessment_detail.html'
+    context_object_name = 'assessment'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        a = self.object
+        ctx['vendor'] = a.vendor
+        ctx['dimensions'] = [
+            {'label': 'Financial risk', 'value': a.financial_risk},
+            {'label': 'Operational risk', 'value': a.operational_risk},
+            {'label': 'Regulatory risk', 'value': a.regulatory_risk},
+            {'label': 'Cybersecurity risk', 'value': a.cybersecurity_risk},
+            {'label': 'Reputational risk', 'value': a.reputational_risk},
+        ]
+        ctx['now_date'] = timezone.now().date()
         return ctx

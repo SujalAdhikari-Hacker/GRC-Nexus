@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}{{ vendor.name }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -13,7 +13,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h4 class="mb-0">{{ vendor.name }}</h4>
-        <small class="text-muted">Tier {{ vendor.tier }} · {{ vendor.get_data_sensitivity_display }} data</small>
+        <small class="text-muted">Tier {{ vendor.tier }} Â· {{ vendor.get_data_sensitivity_display }} data</small>
     </div>
     <a href="/admin/vendors/vendor/{{ vendor.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
 </div>
@@ -23,9 +23,9 @@
         <div class="card">
             <div class="card-header bg-white"><strong>Contact</strong></div>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Name</span><span>{{ vendor.contact_name|default:"—" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Email</span><span>{{ vendor.contact_email|default:"—" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Phone</span><span>{{ vendor.contact_phone|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Name</span><span>{{ vendor.contact_name|default:"â€”" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Email</span><span>{{ vendor.contact_email|default:"â€”" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Phone</span><span>{{ vendor.contact_phone|default:"â€”" }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ vendor.owner_dept.name }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Active</span><span>{{ vendor.is_active|yesno:"Yes,No" }}</span></li>
             </ul>
@@ -34,8 +34,8 @@
         <div class="card mt-3">
             <div class="card-header bg-white"><strong>Contract</strong></div>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Start</span><span>{{ vendor.contract_start|default:"—" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">End</span><span>{{ vendor.contract_end|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Start</span><span>{{ vendor.contract_start|default:"â€”" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">End</span><span>{{ vendor.contract_end|default:"â€”" }}</span></li>
                 <li class="list-group-item d-flex justify-content-between">
                     <span class="text-muted">Latest risk score</span>
                     <span>
@@ -43,7 +43,7 @@
                             {% if vendor.latest_score >= 60 %}<span class="badge bg-danger">{{ vendor.latest_score }}</span>
                             {% elif vendor.latest_score >= 40 %}<span class="badge bg-warning text-dark">{{ vendor.latest_score }}</span>
                             {% else %}<span class="badge bg-success">{{ vendor.latest_score }}</span>{% endif %}
-                        {% else %}<span class="text-muted">—</span>{% endif %}
+                        {% else %}<span class="text-muted">â€”</span>{% endif %}
                     </span>
                 </li>
             </ul>
@@ -53,7 +53,7 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-header bg-white"><strong>Description</strong></div>
-            <div class="card-body">{{ vendor.description|default:"—"|linebreaks }}</div>
+            <div class="card-body">{{ vendor.description|default:"â€”"|linebreaks }}</div>
         </div>
 
         <div class="card mt-3">
@@ -62,7 +62,7 @@
                 {% for a in assets %}
                     <li class="list-group-item d-flex justify-content-between">
                         <a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>
-                        <small class="text-muted">{{ a.category.name }} · {{ a.owner_dept.name }}</small>
+                        <small class="text-muted">{{ a.category.name }} Â· {{ a.owner_dept.name }}</small>
                     </li>
                 {% empty %}
                     <li class="list-group-item text-muted text-center">No linked assets.</li>
@@ -90,7 +90,7 @@
         <div class="card mt-3">
                         <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <strong>Assessment history ({{ assessments|length }})</strong>
-                <a href="{% url 'vendors:assessment_create' vendor.pk %}" class="btn btn-sm btn-primary">+ New Assessment</a>
+                <a href="{% url 'vendors:assessment_create_for_vendor' vendor.pk %}" class="btn btn-sm btn-primary">+ New Assessment</a>
             </div>
             
             <div class="table-responsive">
@@ -113,7 +113,7 @@
                                 {% else %}<span class="badge bg-success">{{ a.score }}</span>{% endif %}
                             </td>
                             <td class="text-center"><small>{{ a.get_status_display }}</small></td>
-                            <td><small>{{ a.findings|truncatechars:80|default:"—" }}</small></td>
+                            <td><small>{{ a.findings|truncatechars:80|default:"â€”" }}</small></td>
                         </tr>
                     {% empty %}
                         <tr><td colspan="4" class="text-center text-muted py-3">No assessments yet.</td></tr>

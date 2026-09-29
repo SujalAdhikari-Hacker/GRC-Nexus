@@ -1,0 +1,144 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ assessment.assessment_id }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'vendors:list' %}">Vendors</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'vendors:assessment_list' %}">Assessments</a></li>
+    <li class="breadcrumb-item active">{{ assessment.assessment_id }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">
+            <code>{{ assessment.assessment_id }}</code> — {{ assessment.vendor.name }}
+        </h4>
+        <small class="text-muted">
+            {{ assessment.assessment_date }}
+            {% if assessment.assessor %}· Assessed by {{ assessment.assessor.username }}{% endif %}
+            · {{ assessment.get_status_display }}
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'vendors:assessment_update' assessment.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        <a href="/admin/vendors/vendorassessment/{{ assessment.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+        <a href="{% url 'vendors:detail' vendor.pk %}" class="btn btn-sm btn-outline-dark">View vendor</a>
+    </div>
+</div>
+
+{# ---------- Top summary cards ---------- #}
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="color:{{ assessment.risk_rating_color }};">
+                {{ assessment.get_overall_risk_rating_display }}
+            </div>
+            <div class="label"><i class="bi bi-shield-exclamation"></i> Overall risk rating</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ assessment.overall_score }}<small class="text-muted" style="font-size:1rem;">/5</small></div>
+            <div class="label"><i class="bi bi-bar-chart"></i> Average score</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="font-size:1.1rem;">{{ assessment.get_vendor_criticality_display }}</div>
+            <div class="label"><i class="bi bi-building"></i> Vendor criticality</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="font-size:1.1rem;">{{ assessment.status|title }}</div>
+            <div class="label"><i class="bi bi-flag"></i> Status</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    {# ---------- Risk dimensions ---------- #}
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Risk dimensions</strong> <small class="text-muted">(1 = Low risk, 5 = Very Critical risk)</small></div>
+            <div class="card-body">
+                {% for dim in dimensions %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>{{ dim.label }}</span>
+                            <strong>
+                                {% if dim.value == 1 %}<span class="badge bg-success">1 · Low</span>
+                                {% elif dim.value == 2 %}<span class="badge bg-warning text-dark">2 · Medium</span>
+                                {% elif dim.value == 3 %}<span class="badge" style="background:#EA580C; color:#fff;">3 · High</span>
+                                {% elif dim.value == 4 %}<span class="badge bg-danger">4 · Critical</span>
+                                {% else %}<span class="badge bg-dark">5 · Very Critical</span>{% endif %}
+                            </strong>
+                        </div>
+                        <div class="progress" style="height:8px;">
+                            <div class="progress-bar" style="width: {% widthratio dim.value 5 100 %}%; background: {% if dim.value >= 4 %}#DC2626{% elif dim.value == 3 %}#EA580C{% elif dim.value == 2 %}#D97706{% else %}#059669{% endif %};"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <span><strong>Overall score</strong></span>
+                    <span><strong style="color:{{ assessment.risk_rating_color }};">{{ assessment.overall_score }}/5 · {{ assessment.get_overall_risk_rating_display }}</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Key findings</strong></div>
+            <div class="card-body">{{ assessment.key_findings|default:"—"|linebreaks }}</div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Recommended mitigation</strong></div>
+            <div class="card-body">{{ assessment.recommended_mitigation|default:"—"|linebreaks }}</div>
+        </div>
+    </div>
+
+    {# ---------- Meta ---------- #}
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Assessment metadata</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Assessment ID</span><code>{{ assessment.assessment_id }}</code></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Vendor</span><a href="{% url 'vendors:detail' vendor.pk %}">{{ vendor.name }}</a></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Vendor tier</span><span>{{ vendor.get_tier_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Vendor criticality</span><span>{{ assessment.get_vendor_criticality_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Assessment date</span><span>{{ assessment.assessment_date }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Assessor</span><span>{{ assessment.assessor|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Next assessment date</span>
+                    <span>
+                        {% if assessment.next_assessment_date %}
+                            {% if assessment.next_assessment_date < now_date %}<span class="text-danger">{{ assessment.next_assessment_date }} <i class="bi bi-clock-history"></i></span>
+                            {% else %}{{ assessment.next_assessment_date }}{% endif %}
+                        {% else %}—{% endif %}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Status</span><span>{{ assessment.get_status_display }}</span></li>
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Assets supplied by this vendor</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for a in vendor.provides_assets.all %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <a href="{% url 'assets:detail' a.pk %}"><code>{{ a.asset_id }}</code> {{ a.name|truncatechars:35 }}</a>
+                        <small class="text-muted">{{ a.get_classification_display }}</small>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted small text-center">No assets linked to this vendor.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

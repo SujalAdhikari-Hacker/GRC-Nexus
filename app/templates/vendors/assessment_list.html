@@ -77,8 +77,8 @@
                     <td><small>{{ a.assessed_by|default:"—" }}</small></td>
                     <td><small class="text-muted">{{ a.findings|truncatechars:60|default:"—" }}</small></td>
                     <td class="text-end">
-                        <a href="{% url 'vendors:detail' a.vendor.pk %}" class="btn btn-sm btn-outline-dark">View vendor</a>
-                    </td>
+    <a href="{% url 'vendors:assessment_detail' a.pk %}" class="btn btn-sm btn-outline-dark">View</a>
+</td>
                 </tr>
             {% empty %}
                 <tr><td colspan="7" class="text-center text-muted py-4">No assessments match your filters.</td></tr>
