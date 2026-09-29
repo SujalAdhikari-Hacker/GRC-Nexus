@@ -17,6 +17,9 @@
         </h4>
         <small class="text-muted">{{ asset.get_asset_type_display }} · {{ asset.get_hosting_display }} · {{ asset.get_environment_display }}</small>
     </div>
+            <a href="{% url 'assets:explorer' asset.pk %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-diagram-2"></i> Explore connections
+        </a>
     <a href="/admin/assets/asset/{{ asset.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
 </div>
 

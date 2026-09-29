@@ -1,0 +1,59 @@
+﻿{% extends "base.html" %}
+{% block title %}Relationship Explorer{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'assets:list' %}">Assets</a></li>
+    <li class="breadcrumb-item active">Relationship Explorer</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Relationship Explorer</h5>
+        <small class="text-muted">Pick an asset to see how it connects to vendors, risks, controls, policies, and vulnerabilities</small>
+    </div>
+    <a href="{% url 'assets:list' %}" class="btn btn-sm btn-outline-dark">Back to assets</a>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-8"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search by asset ID or name..." value="{{ search_query }}"></div>
+            <div class="col-md-4"><button class="btn btn-sm btn-dark w-100">Search</button></div>
+        </form>
+    </div>
+    <div class="row g-3 p-3">
+        {% for a in assets %}
+        <div class="col-md-6 col-xl-4">
+            <a href="{% url 'assets:explorer' a.pk %}" class="card text-decoration-none h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <code>{{ a.asset_id }}</code>
+                        {% if a.criticality == 4 %}<span class="badge bg-danger">Critical</span>
+                        {% elif a.criticality == 3 %}<span class="badge bg-warning text-dark">High</span>
+                        {% elif a.criticality == 2 %}<span class="badge bg-info text-dark">Medium</span>
+                        {% else %}<span class="badge bg-secondary">Low</span>{% endif %}
+                    </div>
+                    <div class="fw-bold mb-2">{{ a.name|truncatechars:50 }}</div>
+                    <div class="small text-muted">
+                        {{ a.get_asset_type_display }} · {{ a.owner_dept.name }}
+                    </div>
+                    <div class="mt-2 d-flex gap-2 small">
+                        <span><i class="bi bi-exclamation-triangle text-danger"></i> {{ a.risks.count }} risks</span>
+                        <span><i class="bi bi-truck" style="color:#059669;"></i> {{ a.vendors.count }} vendors</span>
+                        <span><i class="bi bi-bug" style="color:#EA580C;"></i> {{ a.findings.count }} findings</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="text-center text-muted py-5">No assets match your search.</div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

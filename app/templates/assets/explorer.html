@@ -1,0 +1,128 @@
+﻿{% extends "base.html" %}
+{% block title %}Explorer · {{ asset.asset_id }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'assets:list' %}">Assets</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'assets:explorer_picker' %}">Explorer</a></li>
+    <li class="breadcrumb-item active">{{ asset.asset_id }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">
+            <code>{{ asset.asset_id }}</code> — {{ asset.name }}
+        </h5>
+        <small class="text-muted">{{ node_count }} nodes · {{ edge_count }} connections · click any node to open it</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'assets:detail' asset.pk %}" class="btn btn-sm btn-outline-dark">Asset detail</a>
+        <a href="{% url 'assets:explorer_picker' %}" class="btn btn-sm btn-outline-dark">Pick another</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0" style="position: relative;">
+        <div id="graph" style="width:100%; height:640px; background: var(--surface-2); border-radius: 0 0 6px 6px;"></div>
+        <div id="loadingOverlay" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center;">
+            <div class="spinner-border text-secondary" role="status"></div>
+            <div class="mt-2 small text-muted">Building graph…</div>
+        </div>
+    </div>
+    <div class="card-footer bg-white small text-muted">
+        <strong>Legend:</strong>
+        <span class="badge me-1" style="background:#0284C7; color:#fff;">Asset</span>
+        <span class="badge me-1" style="background:#059669; color:#fff;">Vendor</span>
+        <span class="badge me-1" style="background:#DC2626; color:#fff;">Risk</span>
+        <span class="badge me-1" style="background:#7C3AED; color:#fff;">Control</span>
+        <span class="badge me-1" style="background:#F59E0B; color:#0B1220;">Policy</span>
+        <span class="badge me-1" style="background:#0B1220; color:#fff;">Framework req</span>
+        <span class="badge me-1" style="background:#EA580C; color:#fff;">Vulnerability</span>
+        <span class="ms-3">Drag nodes · scroll to zoom · click to open</span>
+    </div>
+</div>
+
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<script>
+(function() {
+    const COLORS = {
+        asset:     { background: '#0284C7', border: '#0369A1', font: '#FFFFFF' },
+        vendor:    { background: '#059669', border: '#047857', font: '#FFFFFF' },
+        risk:      { background: '#DC2626', border: '#B91C1C', font: '#FFFFFF' },
+        control:   { background: '#7C3AED', border: '#6D28D9', font: '#FFFFFF' },
+        policy:    { background: '#F59E0B', border: '#D97706', font: '#0B1220' },
+        framework: { background: '#0B1220', border: '#000000', font: '#FFFFFF' },
+        finding:   { background: '#EA580C', border: '#C2410C', font: '#FFFFFF' },
+    };
+
+    const nodesRaw = {{ graph_nodes_json|safe }};
+    const edgesRaw = {{ graph_edges_json|safe }};
+
+    const nodes = nodesRaw.map(n => {
+        const c = COLORS[n.group] || COLORS.asset;
+        return {
+            id: n.id,
+            label: n.label,
+            title: n.title,
+            size: n.size,
+            shape: n.group === 'asset' ? 'hexagon' : (n.group === 'risk' ? 'diamond' : 'dot'),
+            color: {
+                background: c.background,
+                border: c.border,
+                highlight: { background: c.border, border: '#000' },
+                hover: { background: c.border, border: '#000' },
+            },
+            font: { color: c.font, size: 13, face: 'Inter', vadjust: 0 },
+            url: n.url,
+            borderWidth: n.group === 'asset' ? 3 : 2,
+        };
+    });
+
+    const edges = edgesRaw.map(e => ({
+        from: e.from,
+        to: e.to,
+        label: e.label,
+        dashes: e.dashes || false,
+        arrows: { to: { enabled: true, scaleFactor: 0.6 } },
+        color: { color: '#94A3B8', highlight: '#0B1220', hover: '#0B1220' },
+        font: { size: 10, color: '#64748B', strokeWidth: 3, strokeColor: '#FFFFFF', align: 'middle' },
+        smooth: { type: 'continuous' },
+    }));
+
+    const container = document.getElementById('graph');
+    const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+    const options = {
+        nodes: { borderWidth: 2, shadow: { enabled: true, size: 6, x: 2, y: 2 } },
+        edges: { width: 1.5 },
+        physics: {
+            stabilization: { iterations: 220, fit: true },
+            barnesHut: { gravitationalConstant: -8000, springLength: 140, springConstant: 0.04, damping: 0.4 },
+        },
+        interaction: { hover: true, tooltipDelay: 150, navigationButtons: false, multiselect: false },
+        layout: { improvedLayout: true },
+    };
+
+    const network = new vis.Network(container, data, options);
+
+    // Hide the loading overlay once physics settles
+    network.once('stabilizationIterationsDone', function() {
+        const ov = document.getElementById('loadingOverlay');
+        if (ov) ov.style.display = 'none';
+    });
+
+    // Navigate on node click
+    network.on('click', function(params) {
+        if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            const node = nodes.find(n => n.id === nodeId);
+            if (node && node.url && node.url !== '#') {
+                window.location.href = node.url;
+            }
+        }
+    });
+})();
+</script>
+{% endblock %}
