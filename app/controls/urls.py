@@ -5,6 +5,7 @@ from .views import (
     ControlEvidenceCreateView, ControlFrameworkMappingCreateView,
     ControlFrameworkMatrixView,
     ControlLifecycleView, advance_lifecycle_view, regress_lifecycle_view, set_lifecycle_view,
+    ControlEffectivenessView,
 )
 
 app_name = 'controls'
@@ -13,6 +14,7 @@ urlpatterns = [
     path('', ControlListView.as_view(), name='list'),
     path('matrix/', ControlFrameworkMatrixView.as_view(), name='framework_matrix'),
     path('lifecycle/', ControlLifecycleView.as_view(), name='lifecycle'),
+    path('effectiveness/', ControlEffectivenessView.as_view(), name='effectiveness'),
     path('new/', ControlCreateView.as_view(), name='create'),
     path('<int:pk>/', ControlDetailView.as_view(), name='detail'),
     path('<int:pk>/edit/', ControlUpdateView.as_view(), name='update'),

@@ -1,0 +1,162 @@
+﻿{% extends "base.html" %}
+{% block title %}Control Effectiveness{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'controls:list' %}">Controls</a></li>
+    <li class="breadcrumb-item active">Effectiveness</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Control Effectiveness</h5>
+        <small class="text-muted">{{ total }} control{{ total|pluralize }} across the organization</small>
+    </div>
+    <a href="{% url 'controls:list' %}" class="btn btn-sm btn-outline-dark">Back to list</a>
+</div>
+
+{# ---------- Top summary ---------- #}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="color:#059669;">{{ effective_percent }}%</div>
+            <div class="label"><i class="bi bi-check-circle"></i> Effective coverage</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="color:#059669;">{{ effective_count }}</div>
+            <div class="label"><i class="bi bi-check-circle-fill"></i> Effective</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" {% if ineffective_count %}style="border-color:#DC2626;"{% endif %}>
+            <div class="value text-danger">{{ ineffective_count }}</div>
+            <div class="label"><i class="bi bi-x-circle"></i> Ineffective</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" {% if not_tested_count %}style="border-color:#D97706;"{% endif %}>
+            <div class="value" style="color:#D97706;">{{ not_tested_count }}</div>
+            <div class="label"><i class="bi bi-question-circle"></i> Not tested</div>
+        </div>
+    </div>
+</div>
+
+{# ---------- Progress bar ---------- #}
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between mb-2">
+            <strong>Overall effectiveness distribution</strong>
+            <span class="text-muted small">{{ total }} total</span>
+        </div>
+        <div class="progress" style="height:22px;">
+            {% if effective_count %}
+                <div class="progress-bar bg-success" style="width:{% widthratio effective_count total 100 %}%;" title="Effective: {{ effective_count }}">
+                    {{ effective_count }}
+                </div>
+            {% endif %}
+            {% if partial_count %}
+                <div class="progress-bar bg-warning text-dark" style="width:{% widthratio partial_count total 100 %}%;" title="Partially effective: {{ partial_count }}">
+                    {{ partial_count }}
+                </div>
+            {% endif %}
+            {% if ineffective_count %}
+                <div class="progress-bar bg-danger" style="width:{% widthratio ineffective_count total 100 %}%;" title="Ineffective: {{ ineffective_count }}">
+                    {{ ineffective_count }}
+                </div>
+            {% endif %}
+            {% if not_tested_count %}
+                <div class="progress-bar bg-secondary" style="width:{% widthratio not_tested_count total 100 %}%;" title="Not tested: {{ not_tested_count }}">
+                    {{ not_tested_count }}
+                </div>
+            {% endif %}
+        </div>
+        <div class="d-flex gap-3 mt-2 small">
+            <span><i class="bi bi-square-fill" style="color:#059669;"></i> Effective</span>
+            <span><i class="bi bi-square-fill" style="color:#D97706;"></i> Partially effective</span>
+            <span><i class="bi bi-square-fill" style="color:#DC2626;"></i> Ineffective</span>
+            <span><i class="bi bi-square-fill" style="color:#6B7280;"></i> Not tested</span>
+        </div>
+    </div>
+</div>
+
+{# ---------- By category ---------- #}
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white"><strong>Effectiveness by category</strong></div>
+            <div class="card-body">
+                {% for c in categories %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>{{ c.label }}</span>
+                            <span><strong>{{ c.effective }}/{{ c.total }}</strong> effective <small class="text-muted">({{ c.percent }}%)</small></span>
+                        </div>
+                        <div class="progress" style="height:8px;">
+                            <div class="progress-bar {% if c.percent >= 75 %}bg-success{% elif c.percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                                 style="width:{{ c.percent }}%;"></div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-muted text-center py-3">No controls categorized yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white"><strong>Effectiveness by lifecycle stage</strong></div>
+            <div class="card-body">
+                {% for lc in lifecycles %}
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid var(--border-soft);">
+                        <span>{{ lc.label }}</span>
+                        <span>
+                            <span class="badge bg-dark">{{ lc.total }}</span>
+                            <span class="small text-muted ms-1">· {{ lc.effective }} effective</span>
+                        </span>
+                    </div>
+                {% empty %}
+                    <div class="text-muted text-center py-3">No controls yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ---------- Bucketed lists ---------- #}
+<div class="row g-3">
+    {% for bucket in buckets %}
+    <div class="col-md-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div>
+                    {% if bucket.code == 'effective' %}<span class="badge bg-success">Effective</span>
+                    {% elif bucket.code == 'partially_effective' %}<span class="badge bg-warning text-dark">Partially effective</span>
+                    {% elif bucket.code == 'ineffective' %}<span class="badge bg-danger">Ineffective</span>
+                    {% else %}<span class="badge bg-secondary">Not tested</span>{% endif %}
+                </div>
+                <span class="badge bg-dark">{{ bucket.count }}</span>
+            </div>
+            <ul class="list-group list-group-flush" style="max-height:340px; overflow-y:auto;">
+                {% for c in bucket.controls %}
+                    <li class="list-group-item">
+                        <a href="{% url 'controls:detail' c.pk %}" class="d-block">
+                            <code>{{ c.code }}</code>
+                            <span class="fw-bold">{{ c.name|truncatechars:35 }}</span>
+                        </a>
+                        <div class="small text-muted mt-1">{{ c.get_category_display }} · {{ c.owner_dept.name }}</div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small py-3">No controls in this bucket.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

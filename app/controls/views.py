@@ -88,7 +88,7 @@ class ControlDetailView(DepartmentScopedMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_control_context(self.object))
         ctx['framework_mappings'] = self.object.framework_mappings.select_related('framework_control__framework')
-        ctx['audit_tests'] = self.object.audit_tests.select_related('tester', 'audit').order_by('-test_date')[:10]
+        ctx['audit_tests'] = self.object.audit_tests.select_related('tester', 'audit').order_by('-test_date')[:10]  # ← ADD THIS
         return ctx
 
 
@@ -289,3 +289,67 @@ def set_lifecycle_view(request, pk):
         control.save()
         messages.success(request, f'{control.code} set to "{control.get_lifecycle_status_display()}".')
     return redirect(request.META.get('HTTP_REFERER') or 'controls:list')
+
+class ControlEffectivenessView(DepartmentScopedMixin, TemplateView):
+    template_name = 'controls/effectiveness.html'
+    department_field = 'owner_dept'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        qs = Control.objects.all().select_related('owner_dept')
+        if not user.is_superuser and user.department_id:
+            qs = qs.filter(owner_dept=user.department)
+
+        buckets = []
+        for code, label in Control.EFFECTIVENESS_RATING_CHOICES:
+            items = list(qs.filter(effectiveness_rating=code).order_by('code'))
+            buckets.append({
+                'code': code, 'label': label,
+                'count': len(items), 'controls': items,
+            })
+
+        all_controls = list(qs)
+        total = len(all_controls)
+        effective = sum(1 for c in all_controls if c.effectiveness_rating == 'effective')
+        partial = sum(1 for c in all_controls if c.effectiveness_rating == 'partially_effective')
+        ineffective = sum(1 for c in all_controls if c.effectiveness_rating == 'ineffective')
+        not_tested = sum(1 for c in all_controls if c.effectiveness_rating == 'not_tested')
+
+        categories = []
+        for code, label in Control.CATEGORY_CHOICES:
+            cat_controls = [c for c in all_controls if c.category == code]
+            if not cat_controls:
+                continue
+            cat_effective = sum(1 for c in cat_controls if c.effectiveness_rating == 'effective')
+            cat_total = len(cat_controls)
+            categories.append({
+                'code': code, 'label': label,
+                'total': cat_total, 'effective': cat_effective,
+                'percent': round(cat_effective / cat_total * 100) if cat_total else 0,
+            })
+
+        lifecycles = []
+        for code, label in Control.LIFECYCLE_CHOICES:
+            lc_controls = [c for c in all_controls if c.lifecycle_status == code]
+            if not lc_controls:
+                continue
+            lc_effective = sum(1 for c in lc_controls if c.effectiveness_rating == 'effective')
+            lifecycles.append({
+                'code': code, 'label': label,
+                'total': len(lc_controls), 'effective': lc_effective,
+            })
+
+        ctx.update({
+            'buckets': buckets,
+            'total': total,
+            'effective_count': effective,
+            'partial_count': partial,
+            'ineffective_count': ineffective,
+            'not_tested_count': not_tested,
+            'effective_percent': round(effective / total * 100) if total else 0,
+            'categories': categories,
+            'lifecycles': lifecycles,
+        })
+        return ctx

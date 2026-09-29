@@ -1,0 +1,133 @@
+﻿{% extends "base.html" %}
+{% block title %}Compliance Status{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'frameworks:list' %}">Frameworks</a></li>
+    <li class="breadcrumb-item active">Compliance Status</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Compliance Status</h5>
+        <small class="text-muted">Coverage across {{ total_frameworks }} framework{{ total_frameworks|pluralize }} · {{ total_requirements }} total requirements</small>
+    </div>
+    <a href="{% url 'frameworks:list' %}" class="btn btn-sm btn-outline-dark">Framework list</a>
+</div>
+
+{# ---------- Overall gauge ---------- #}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="color:{% if overall_percent >= 75 %}#059669{% elif overall_percent >= 40 %}#D97706{% else %}#DC2626{% endif %};">
+                {{ overall_percent }}%
+            </div>
+            <div class="label"><i class="bi bi-bar-chart-line"></i> Overall coverage</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ total_frameworks }}</div>
+            <div class="label"><i class="bi bi-diagram-3"></i> Active frameworks</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value">{{ total_requirements }}</div>
+            <div class="label"><i class="bi bi-list-check"></i> Total requirements</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" {% if uncovered_count %}style="border-color:#DC2626;"{% endif %}>
+            <div class="value text-danger">{{ uncovered_count }}</div>
+            <div class="label"><i class="bi bi-exclamation-triangle"></i> Uncovered requirements</div>
+        </div>
+    </div>
+</div>
+
+{# ---------- Framework cards side by side ---------- #}
+<div class="row g-3 mb-4">
+    {% for row in rows %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h6 class="mb-0"><a href="{% url 'frameworks:detail' row.framework.pk %}">{{ row.framework.name }}</a></h6>
+                        <small class="text-muted">{{ row.framework.version|default:"" }}</small>
+                    </div>
+                    <span class="badge bg-dark">{{ row.cov.covered }}/{{ row.cov.total }}</span>
+                </div>
+
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>Coverage</span>
+                    <strong>{{ row.cov.percent }}%</strong>
+                </div>
+                <div class="progress mb-2" style="height:10px;">
+                    <div class="progress-bar {% if row.cov.percent >= 75 %}bg-success{% elif row.cov.percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                         style="width: {{ row.cov.percent }}%;"></div>
+                </div>
+
+                <div class="d-flex justify-content-between small text-muted">
+                    <span><strong>{{ row.cov.covered_full }}</strong> full</span>
+                    <span><strong>{{ row.cov.covered_partial }}</strong> partial</span>
+                    <span class="text-danger"><strong>{{ row.cov.gap }}</strong> gap</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row g-3">
+    {# ---------- Top controls by framework reach ---------- #}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Top controls by framework coverage</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for item in top_controls %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <div>
+                            <a href="{% url 'controls:detail' item.control.pk %}"><code>{{ item.control.code }}</code> {{ item.control.name|truncatechars:50 }}</a>
+                            <div class="small text-muted">{{ item.control.get_category_display }} · {{ item.control.owner_dept.name }}</div>
+                        </div>
+                        <span class="badge bg-primary">{{ item.count }} requirements</span>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small">No controls mapped yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    {# ---------- Uncovered requirements ---------- #}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Uncovered requirements</strong>
+                <span class="badge bg-danger">{{ uncovered_count }}</span>
+            </div>
+            <ul class="list-group list-group-flush" style="max-height:420px; overflow-y:auto;">
+                {% for fc in uncovered %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <span class="badge bg-dark">{{ fc.framework.name }}</span>
+                                <code class="ms-1">{{ fc.code }}</code>
+                            </div>
+                        </div>
+                        <div class="small text-muted mt-1">{{ fc.title|truncatechars:90 }}</div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-success text-center small py-4">
+                        <i class="bi bi-check-circle"></i> All requirements covered — great job!
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
