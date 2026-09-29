@@ -10,3 +10,4 @@ weasyprint
 openpyxl
 matplotlib
 numpy
+django-extensions
