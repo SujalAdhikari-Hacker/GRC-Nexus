@@ -10,4 +10,4 @@ db.sqlite3
 /staticfiles/
 /media/
 postgres_data/
-.vscode/
+.vscode/.env
