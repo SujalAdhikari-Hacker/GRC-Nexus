@@ -1,0 +1,119 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ action.action_id }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'audits:list' %}">Audits</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'audits:action_list' %}">Action Plans</a></li>
+    <li class="breadcrumb-item active">{{ action.action_id }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0"><code>{{ action.action_id }}</code> — {{ action.title }}</h4>
+        <small class="text-muted">
+            {% if action.finding %}
+                Remediation for <a href="{% url 'audits:finding_detail' action.finding.pk %}">{{ action.finding.title|truncatechars:60 }}</a>
+            {% else %}Standalone action{% endif %}
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        {% if action.status != 'completed' %}
+            <form method="post" action="{% url 'audits:action_complete' action.pk %}" style="margin:0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-circle"></i> Mark complete</button>
+            </form>
+        {% endif %}
+        <a href="{% url 'audits:action_update' action.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        <a href="/admin/audits/actionitem/{{ action.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="color:{{ action.status_color }}; font-size:1.1rem;">{{ action.get_status_display }}</div>
+            <div class="label"><i class="bi bi-flag"></i> Status</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="color:{{ action.priority_color }}; font-size:1.1rem;">{{ action.get_priority_display }}</div>
+            <div class="label"><i class="bi bi-exclamation-circle"></i> Priority</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="font-size:1.1rem;">{{ action.owner_user|default:action.owner_dept.name }}</div>
+            <div class="label"><i class="bi bi-person"></i> Owner</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" {% if action.is_overdue %}style="border-color:#DC2626;"{% elif action.is_due_soon %}style="border-color:#D97706;"{% endif %}>
+            <div class="value" style="font-size:1.1rem;">{{ action.due_date|default:"—" }}</div>
+            <div class="label">
+                <i class="bi bi-calendar"></i> Due
+                {% if action.days_until_due is not None %}
+                    · {% if action.days_until_due < 0 %}<span class="text-danger">{{ action.days_until_due|cut:"-" }}d overdue</span>
+                    {% else %}{{ action.days_until_due }}d{% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between mb-1">
+            <strong>Progress</strong>
+            <span><strong>{{ action.progress_percent }}%</strong> complete</span>
+        </div>
+        <div class="progress" style="height:14px;">
+            <div class="progress-bar" style="width:{{ action.progress_percent }}%; background:{{ action.status_color }};"></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Description</strong></div>
+            <div class="card-body">{{ action.description|default:"—"|linebreaks }}</div>
+        </div>
+
+        {% if action.notes %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Notes</strong></div>
+            <div class="card-body">{{ action.notes|linebreaks }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Metadata</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Action ID</span><code>{{ action.action_id }}</code></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Created</span><span>{{ action.created_at|date:"Y-m-d" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Updated</span><span>{{ action.updated_at|date:"Y-m-d" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Completed</span><span>{{ action.completed_date|default:"—" }}</span></li>
+            </ul>
+        </div>
+
+        {% if action.finding %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Parent finding</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><a href="{% url 'audits:finding_detail' action.finding.pk %}">{{ action.finding.title|truncatechars:60 }}</a></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Severity</span><span>{{ action.finding.get_severity_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Status</span><span>{{ action.finding.get_status_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Related control</span><span>{% if action.finding.related_control %}<code>{{ action.finding.related_control.code }}</code>{% else %}—{% endif %}</span></li>
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

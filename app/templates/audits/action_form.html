@@ -1,0 +1,56 @@
+﻿{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Action{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'audits:list' %}">Audits</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'audits:action_list' %}">Action Plans</a></li>
+    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit{% else %}Create{% endif %} action item</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save Action Item</button>
+                    {% if form.instance.pk %}<a href="{% url 'audits:action_detail' form.instance.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                    {% else %}<a href="{% url 'audits:action_list' %}" class="btn btn-outline-secondary">Cancel</a>{% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Guidance</strong></div>
+            <div class="card-body small text-muted">
+                <p><strong>Title</strong> — short description of the remediation work, e.g. "Roll out MFA to all VPN users".</p>
+                <p><strong>Priority</strong> — Critical = do immediately, High = within weeks, Medium = within months, Low = when convenient.</p>
+                <p><strong>Status</strong> — set to <em>Completed</em> when done, and the item auto-sets to 100%.</p>
+                <p class="mb-0"><strong>Progress %</strong> — manual mid-way tracking, e.g. 50% when half the users are migrated.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="text"], input[type="number"], input[type="date"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+</style>
+{% endblock %}

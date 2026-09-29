@@ -1,7 +1,71 @@
 ﻿from django.contrib import admin
+from django.utils.html import format_html
 from simple_history.admin import SimpleHistoryAdmin
-from .models import Audit, EvidenceItem, EvidenceScore, ControlTest, AuditFinding
+from .models import Audit, EvidenceItem, EvidenceScore, ControlTest, AuditFinding, ActionItem
 
+
+# ============================================================
+# Action items (declared first so it can be inlined)
+# ============================================================
+
+class ActionItemInline(admin.TabularInline):
+    model = ActionItem
+    extra = 0
+    fields = ('action_id', 'title', 'priority', 'status', 'owner_user', 'due_date', 'progress_percent')
+    readonly_fields = ('action_id',)
+    show_change_link = True
+
+
+@admin.register(ActionItem)
+class ActionItemAdmin(SimpleHistoryAdmin):
+    list_display = (
+        'action_id', 'title', 'finding', 'priority_badge', 'status_badge',
+        'owner_user', 'owner_dept', 'due_date', 'progress_percent'
+    )
+    list_filter = ('status', 'priority', 'owner_dept', 'due_date')
+    search_fields = ('action_id', 'title', 'description', 'notes', 'finding__title')
+    readonly_fields = ('action_id', 'created_at', 'updated_at')
+    date_hierarchy = 'due_date'
+    autocomplete_fields = ('finding',)
+
+    fieldsets = (
+        ('Identification', {
+            'fields': ('action_id', 'finding', 'title', 'description')
+        }),
+        ('Assignment', {
+            'fields': ('owner_user', 'owner_dept', 'priority')
+        }),
+        ('Status & dates', {
+            'fields': ('status', 'progress_percent', 'due_date', 'completed_date')
+        }),
+        ('Notes', {
+            'fields': ('notes',)
+        }),
+        ('Audit', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    @admin.display(description='Priority')
+    def priority_badge(self, obj):
+        colors = {1: '#6B7280', 2: '#0284C7', 3: '#D97706', 4: '#DC2626'}
+        return format_html(
+            '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:{};color:#fff;font-size:11px;">{}</span>',
+            colors.get(obj.priority, '#6B7280'), obj.get_priority_display()
+        )
+
+    @admin.display(description='Status')
+    def status_badge(self, obj):
+        return format_html(
+            '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:{};color:#fff;font-size:11px;">{}</span>',
+            obj.status_color, obj.get_status_display()
+        )
+
+
+# ============================================================
+# Audit + findings
+# ============================================================
 
 class AuditFindingInline(admin.TabularInline):
     model = AuditFinding
@@ -19,13 +83,26 @@ class AuditAdmin(SimpleHistoryAdmin):
     date_hierarchy = 'start_date'
     inlines = [AuditFindingInline]
 
-    fieldsets = (
-        (None, {'fields': ('name', 'owner_dept')}),
-        ('Classification', {'fields': ('audit_type', 'status', 'auditor_lead')}),
-        ('Timeline', {'fields': ('start_date', 'end_date')}),
-        ('Scope', {'fields': ('scope', 'frameworks', 'notes')}),
-    )
 
+@admin.register(AuditFinding)
+class AuditFindingAdmin(SimpleHistoryAdmin):
+    list_display = (
+        'title', 'severity', 'status', 'source',
+        'related_control', 'owner_user', 'owner_dept', 'due_date', 'action_count'
+    )
+    list_filter = ('severity', 'status', 'source', 'owner_dept')
+    search_fields = ('title', 'description', 'recommendation')
+    date_hierarchy = 'due_date'
+    inlines = [ActionItemInline]
+
+    @admin.display(description='Actions')
+    def action_count(self, obj):
+        return obj.action_items.count()
+
+
+# ============================================================
+# Evidence + scoring + testing
+# ============================================================
 
 class EvidenceScoreInline(admin.StackedInline):
     model = EvidenceScore
@@ -73,21 +150,3 @@ class ControlTestAdmin(SimpleHistoryAdmin):
     list_filter = ('result', 'test_date', 'owner_dept')
     search_fields = ('control__code', 'control__name', 'procedure_notes')
     date_hierarchy = 'test_date'
-
-
-@admin.register(AuditFinding)
-class AuditFindingAdmin(SimpleHistoryAdmin):
-    list_display = (
-        'title', 'severity', 'status', 'source',
-        'related_control', 'owner_user', 'owner_dept', 'due_date'
-    )
-    list_filter = ('severity', 'status', 'source', 'owner_dept')
-    search_fields = ('title', 'description', 'recommendation')
-    date_hierarchy = 'due_date'
-    fieldsets = (
-        (None, {'fields': ('title', 'audit', 'owner_dept')}),
-        ('Classification', {'fields': ('severity', 'status', 'source')}),
-        ('Linkage', {'fields': ('related_control', 'owner_user')}),
-        ('Timeline', {'fields': ('due_date', 'closed_date')}),
-        ('Content', {'fields': ('description', 'recommendation')}),
-    )

@@ -86,8 +86,8 @@
                         <a href="{% url 'controls:effectiveness' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-bar-chart"></i><span>Control Effectiveness</span>
             </a>
-            <a href="{% url 'vulnerabilities:finding_list' %}" class="sidebar-link" style="display: flex;">
-                <i class="bi bi-bug"></i><span>Vulnerabilities</span>
+                        <a href="{% url 'vulnerabilities:live_feed' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-rss"></i><span>Live CVE Feed</span>
             </a>
             <a href="{% url 'kris:list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-speedometer"></i><span>Key Risk Indicators</span>
@@ -138,6 +138,9 @@
             <a href="{% url 'vulnerabilities:finding_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-bug"></i><span>Vulnerabilities</span>
             </a>
+                        <a href="{% url 'vulnerabilities:live_feed' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-rss"></i><span>Live CVE Feed</span>
+            </a>
             <a href="{% url 'kris:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-speedometer"></i><span>Key Risk Indicators</span>
             </a>
@@ -174,6 +177,9 @@
             </a>
                         <a href="{% url 'audits:finding_list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-exclamation-triangle"></i><span>Findings</span>
+            </a>
+                        <a href="{% url 'audits:action_list' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-list-task"></i><span>Action Plans</span>
             </a>
             <a href="{% url 'audits:test_list' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-clipboard-data"></i><span>Control Testing</span>
@@ -217,6 +223,9 @@
             {% else %}
             <a href="{% url 'core:users_list' %}" class="sidebar-link toggle-item" data-section="admin" style="display: none;">
                 <i class="bi bi-people"></i><span>Users</span>
+            </a>
+                        <a href="{% url 'audits:action_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
+                <i class="bi bi-list-task"></i><span>Action Plans</span>
             </a>
             <a href="{% url 'core:departments_list' %}" class="sidebar-link toggle-item" data-section="admin" style="display: none;">
                 <i class="bi bi-building"></i><span>Departments</span>

@@ -1,1 +1,235 @@
-﻿# Part 3 will fill in enrichment + cascade logic
+﻿"""
+Live enrichment from public APIs + cascade to risk register.
+
+APIs used (all free, no auth):
+  - NVD:  https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-XXXX-XXXX
+  - EPSS: https://api.first.org/data/v1/epss?cve=CVE-XXXX-XXXX
+  - KEV:  https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+
+NVD rate limit: 5 requests per 30 seconds without API key.
+"""
+import requests
+from datetime import datetime
+from django.utils import timezone
+from django.db import transaction
+
+from .models import Vulnerability, Finding, compute_composite_score
+
+
+NVD_URL = 'https://services.nvd.nist.gov/rest/json/cves/2.0'
+EPSS_URL = 'https://api.first.org/data/v1/epss'
+KEV_URL = 'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json'
+
+HTTP_TIMEOUT = 15
+
+
+def _severity_from_score(score):
+    if score >= 9.0:
+        return 'critical'
+    if score >= 7.0:
+        return 'high'
+    if score >= 4.0:
+        return 'medium'
+    if score > 0:
+        return 'low'
+    return 'none'
+
+
+def enrich_from_nvd(vuln):
+    """Fetch CVSS score + vector from NIST NVD API."""
+    if not vuln.cve_id:
+        return {'ok': False, 'error': 'No CVE ID set'}
+
+    try:
+        r = requests.get(NVD_URL, params={'cveId': vuln.cve_id}, timeout=HTTP_TIMEOUT)
+        r.raise_for_status()
+        data = r.json()
+    except Exception as e:
+        return {'ok': False, 'error': f'NVD fetch failed: {e}'}
+
+    items = data.get('vulnerabilities', [])
+    if not items:
+        return {'ok': False, 'error': f'CVE {vuln.cve_id} not found in NVD'}
+
+    cve = items[0]['cve']
+    metrics = cve.get('metrics', {})
+
+    score = None
+    vector = ''
+    for key in ('cvssMetricV31', 'cvssMetricV30', 'cvssMetricV2'):
+        if key in metrics and metrics[key]:
+            m = metrics[key][0]['cvssData']
+            score = m.get('baseScore')
+            vector = m.get('vectorString', '')
+            break
+
+    if score is None:
+        return {'ok': False, 'error': 'No CVSS score available in NVD'}
+
+    desc = ''
+    for d in cve.get('descriptions', []):
+        if d.get('lang') == 'en':
+            desc = d.get('value', '')
+            break
+
+    pub = cve.get('published', '')
+    pub_date = None
+    if pub:
+        try:
+            pub_date = datetime.fromisoformat(pub.replace('Z', '+00:00')).date()
+        except Exception:
+            pass
+
+    refs = '\n'.join(ref.get('url', '') for ref in cve.get('references', []))
+
+    vuln.cvss_score = score
+    vuln.cvss_vector = vector
+    vuln.cvss_severity = _severity_from_score(float(score))
+    if desc:
+        vuln.description = desc
+    if pub_date:
+        vuln.published_date = pub_date
+    if refs:
+        vuln.references = refs
+    vuln.last_enriched = timezone.now()
+    vuln.save()
+
+    return {'ok': True, 'message': f'CVSS {score} ({vuln.cvss_severity})'}
+
+
+def enrich_from_epss(vuln):
+    """Fetch EPSS probability from FIRST.org."""
+    if not vuln.cve_id:
+        return {'ok': False, 'error': 'No CVE ID set'}
+
+    try:
+        r = requests.get(EPSS_URL, params={'cve': vuln.cve_id}, timeout=HTTP_TIMEOUT)
+        r.raise_for_status()
+        data = r.json()
+    except Exception as e:
+        return {'ok': False, 'error': f'EPSS fetch failed: {e}'}
+
+    items = data.get('data', [])
+    if not items:
+        return {'ok': False, 'error': f'No EPSS data for {vuln.cve_id}'}
+
+    row = items[0]
+    vuln.epss_score = float(row.get('epss', 0))
+    vuln.epss_percentile = float(row.get('percentile', 0))
+    vuln.last_enriched = timezone.now()
+    vuln.save()
+
+    return {'ok': True, 'message': f'EPSS {vuln.epss_score:.4f}'}
+
+
+def check_cisa_kev(vuln):
+    """Check if this CVE is in the CISA Known Exploited Vulnerabilities catalog."""
+    if not vuln.cve_id:
+        return {'ok': False, 'error': 'No CVE ID set'}
+
+    try:
+        r = requests.get(KEV_URL, timeout=HTTP_TIMEOUT)
+        r.raise_for_status()
+        data = r.json()
+    except Exception as e:
+        return {'ok': False, 'error': f'KEV fetch failed: {e}'}
+
+    for item in data.get('vulnerabilities', []):
+        if item.get('cveID', '').upper() == vuln.cve_id.upper():
+            vuln.kev_status = True
+            due = item.get('dueDate', '')
+            if due:
+                try:
+                    vuln.kev_due_date = datetime.fromisoformat(due).date()
+                except Exception:
+                    pass
+            vuln.last_enriched = timezone.now()
+            vuln.save()
+            return {'ok': True, 'message': f'In KEV — due {vuln.kev_due_date or "N/A"}'}
+
+    vuln.kev_status = False
+    vuln.save()
+    return {'ok': True, 'message': 'Not in KEV catalog'}
+
+
+def enrich_vulnerability(vuln):
+    """Run all three enrichments. Return combined result."""
+    results = {
+        'nvd':  enrich_from_nvd(vuln),
+        'epss': enrich_from_epss(vuln),
+        'kev':  check_cisa_kev(vuln),
+    }
+    recalc_findings_for_vuln(vuln)
+    return results
+
+
+def recalc_findings_for_vuln(vuln):
+    """Recompute composite score for every finding linked to this vulnerability."""
+    for finding in vuln.findings.all():
+        finding.composite_score = compute_composite_score(finding)
+        finding.save(update_fields=['composite_score'])
+
+
+# ============================================================
+# CASCADE TO RISK REGISTER
+# ============================================================
+
+def should_cascade(finding):
+    vuln = finding.vulnerability
+    asset = finding.asset
+    cvss = float(vuln.cvss_score or 0)
+
+    if vuln.kev_status and asset.criticality >= 2:
+        return True
+    if cvss >= 9.0 and asset.criticality >= 3:
+        return True
+    return False
+
+
+@transaction.atomic
+def cascade_finding_to_risk(finding):
+    """Create a Risk linked to the finding's asset."""
+    from risks.models import Risk, RiskCategory
+
+    existing = Risk.objects.filter(
+        title__startswith=f"[{finding.vulnerability.cve_id}]",
+        owner_dept=finding.owner_dept,
+    ).first()
+    if existing:
+        return existing, False
+
+    vuln = finding.vulnerability
+    asset = finding.asset
+
+    cvss = float(vuln.cvss_score or 5.0)
+    impact = min(5, max(1, round(cvss / 2)))
+    likelihood = 2
+    if vuln.kev_status:
+        likelihood = 4
+    elif vuln.epss_score and float(vuln.epss_score) >= 0.5:
+        likelihood = 3
+
+    category, _ = RiskCategory.objects.get_or_create(
+        name='Information Security',
+        defaults={'description': 'Auto-created from vulnerability findings'},
+    )
+
+    risk = Risk.objects.create(
+        title=f"[{vuln.cve_id or 'VULN'}] {vuln.title[:150]}",
+        description=(
+            f"Auto-generated from finding on asset '{asset.name}'.\n"
+            f"CVSS {vuln.cvss_score} · EPSS {vuln.epss_score or 'N/A'} · "
+            f"KEV {'yes' if vuln.kev_status else 'no'}\n"
+            f"Composite score: {finding.composite_score}\n\n"
+            f"Evidence: {finding.evidence[:500]}"
+        ),
+        category=category,
+        owner_dept=finding.owner_dept,
+        likelihood=likelihood,
+        impact=impact,
+        status='identified',
+        treatment_strategy='mitigate',
+        identified_date=finding.discovered_date,
+    )
+    risk.assets.add(asset)
+    return risk, True

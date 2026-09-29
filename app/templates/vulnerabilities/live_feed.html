@@ -1,0 +1,149 @@
+﻿{% extends "base.html" %}
+{% block title %}Live CVE Feed{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'vulnerabilities:finding_list' %}">Vulnerabilities</a></li>
+    <li class="breadcrumb-item active">Live CVE Feed</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Live CVE Feed</h5>
+        <small class="text-muted">
+            Sourced from NVD API · {{ total_synced }} CVEs synced
+            {% if last_sync %} · last update {{ last_sync|date:"Y-m-d H:i" }}{% endif %}
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'vulnerabilities:vulnerability_list' %}" class="btn btn-sm btn-outline-dark">CVE Catalog</a>
+        <a href="{% url 'vulnerabilities:finding_list' %}" class="btn btn-sm btn-outline-dark">Findings</a>
+    </div>
+</div>
+
+{# ---------- Stats ---------- #}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_synced }}</div><div class="label"><i class="bi bi-database"></i> Total synced CVEs</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#0284C7;">{{ last_7_days }}</div><div class="label"><i class="bi bi-calendar-week"></i> Last 7 days</div></div></div>
+    <div class="col-md-3"><div class="stat-card" {% if critical_7d %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ critical_7d }}</div><div class="label"><i class="bi bi-exclamation-octagon"></i> Critical (7d)</div></div></div>
+    <div class="col-md-3"><div class="stat-card" {% if kev_7d %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ kev_7d }}</div><div class="label"><i class="bi bi-fire"></i> KEV in last 7d</div></div></div>
+</div>
+
+{# ---------- Filters ---------- #}
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1">
+            <div class="col-md-4"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search CVE ID or description..." value="{{ search_query }}"></div>
+            <div class="col-md-2">
+                <select name="severity" class="form-select form-select-sm">
+                    <option value="">All severities</option>
+                    {% for val, label in severities %}<option value="{{ val }}" {% if selected_severity == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="days" class="form-select form-select-sm">
+                    <option value="">All time</option>
+                    <option value="1" {% if days_filter == '1' %}selected{% endif %}>Last 24 hours</option>
+                    <option value="7" {% if days_filter == '7' %}selected{% endif %}>Last 7 days</option>
+                    <option value="30" {% if days_filter == '30' %}selected{% endif %}>Last 30 days</option>
+                    <option value="90" {% if days_filter == '90' %}selected{% endif %}>Last 90 days</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="form-check mt-1">
+                    <input class="form-check-input" type="checkbox" name="kev" value="1" id="kev" {% if kev_filter == '1' %}checked{% endif %}>
+                    <label class="form-check-label small" for="kev">KEV only</label>
+                </div>
+            </div>
+            <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>CVE ID</th>
+                    <th>Description</th>
+                    <th class="text-center" style="width:80px;">CVSS</th>
+                    <th class="text-center" style="width:60px;">KEV</th>
+                    <th class="text-center" style="width:110px;">Published</th>
+                    <th style="width:100px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for c in cves %}
+                <tr>
+                    <td>
+                        <a href="{{ c.cve_url }}" target="_blank" rel="noopener">
+                            <code>{{ c.cve_id }}</code>
+                        </a>
+                    </td>
+                    <td>
+                        <div><strong>{{ c.title|truncatechars:100 }}</strong></div>
+                        {% if c.description and c.description != c.title %}
+                            <div class="small text-muted">{{ c.description|truncatechars:140 }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if c.cvss_severity == 'critical' %}<span class="badge bg-danger">{{ c.cvss_score }}</span>
+                        {% elif c.cvss_severity == 'high' %}<span class="badge" style="background:#EA580C;">{{ c.cvss_score }}</span>
+                        {% elif c.cvss_severity == 'medium' %}<span class="badge bg-warning text-dark">{{ c.cvss_score }}</span>
+                        {% elif c.cvss_severity == 'low' %}<span class="badge bg-success">{{ c.cvss_score }}</span>
+                        {% else %}<span class="badge bg-secondary">—</span>{% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if c.kev_status %}<span class="badge bg-danger"><i class="bi bi-fire"></i></span>{% else %}<span class="text-muted">—</span>{% endif %}
+                    </td>
+                    <td class="text-center"><small>{{ c.published_date|date:"Y-m-d"|default:"—" }}</small></td>
+                    <td class="text-end">
+                        <a href="{{ c.cve_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-dark" title="Open on cve.org">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                        <a href="{% url 'vulnerabilities:vulnerability_detail' c.pk %}" class="btn btn-sm btn-outline-dark" title="View in Aegis">
+                            View
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-5">
+                        <i class="bi bi-cloud-slash" style="font-size:2.5rem; opacity:.3;"></i>
+                        <p class="mt-2 mb-1">No synced CVEs yet.</p>
+                        <p class="small mb-2">Run the sync command to populate the feed:</p>
+                        <code style="font-size:12px;">docker compose exec web python manage.py sync_recent_cves --days 30</code>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="card-footer bg-white">
+        <nav>
+            <ul class="pagination pagination-sm mb-0 justify-content-end">
+                {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}">Prev</a></li>
+                {% endif %}
+                <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% for k,v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<div class="alert alert-info mt-3">
+    <i class="bi bi-info-circle"></i>
+    <strong>How to keep this fresh:</strong> run
+    <code>docker compose exec web python manage.py sync_recent_cves --days 7</code>
+    to pull the latest CVEs from NVD. For automation, schedule this via cron / Windows Task Scheduler every few hours.
+</div>
+{% endblock %}

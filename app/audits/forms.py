@@ -58,3 +58,28 @@ class AuditFindingForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'rows': 4}),
             'recommendation': forms.Textarea(attrs={'rows': 4}),
         }
+
+
+from .models import ActionItem
+
+
+class ActionItemForm(forms.ModelForm):
+    class Meta:
+        model = ActionItem
+        fields = [
+            'finding', 'title', 'description',
+            'owner_user', 'owner_dept', 'priority',
+            'status', 'progress_percent', 'due_date', 'completed_date',
+            'notes',
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 4}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
+            'due_date': forms.DateInput(attrs={'type': 'date'}),
+            'completed_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['finding'].disabled = True

@@ -486,3 +486,109 @@ class EvidenceScoreListView(DepartmentScopedMixin, ListView):
         else:
             ctx['avg_score'] = 0
         return ctx
+
+# ============================================================
+# ACTION ITEMS (Remediation sub-tasks under findings)
+# ============================================================
+
+from django.contrib.auth.mixins import LoginRequiredMixin as _LRM3
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.views.decorators.http import require_POST
+from django.utils import timezone as _tz2
+
+from .models import ActionItem
+from .forms import ActionItemForm
+
+
+class ActionItemListView(DepartmentScopedMixin, ListView):
+    model = ActionItem
+    template_name = 'audits/action_list.html'
+    context_object_name = 'actions'
+    paginate_by = 30
+    department_field = 'owner_dept'
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('finding', 'owner_user', 'owner_dept')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(finding__title__icontains=q))
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        priority = self.request.GET.get('priority')
+        if priority:
+            qs = qs.filter(priority=priority)
+        return qs.order_by('due_date', '-priority')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['statuses'] = ActionItem.STATUS_CHOICES
+        ctx['priorities'] = ActionItem.PRIORITY_CHOICES
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_status'] = self.request.GET.get('status', '')
+        ctx['selected_priority'] = self.request.GET.get('priority', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(owner_dept=user.department)
+        all_a = list(base)
+        ctx['total_count'] = len(all_a)
+        ctx['open_count'] = sum(1 for a in all_a if a.status not in ('completed', 'cancelled'))
+        ctx['in_progress_count'] = sum(1 for a in all_a if a.status == 'in_progress')
+        ctx['completed_count'] = sum(1 for a in all_a if a.status == 'completed')
+        ctx['overdue_count'] = sum(1 for a in all_a if a.is_overdue)
+        return ctx
+
+
+class ActionItemDetailView(_LRM3, DetailView):
+    model = ActionItem
+    template_name = 'audits/action_detail.html'
+    context_object_name = 'action'
+
+
+class ActionItemCreateView(_LRM3, CreateView):
+    model = ActionItem
+    form_class = ActionItemForm
+    template_name = 'audits/action_form.html'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        finding_pk = self.request.GET.get('finding')
+        if finding_pk:
+            try:
+                f = AuditFinding.objects.get(pk=finding_pk)
+                initial['finding'] = f
+                initial['owner_dept'] = f.owner_dept
+            except AuditFinding.DoesNotExist:
+                pass
+        return initial
+
+    def get_success_url(self):
+        return reverse_lazy('audits:action_detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f'Action item {self.object.action_id} created.')
+        return response
+
+
+class ActionItemUpdateView(_LRM3, UpdateView):
+    model = ActionItem
+    form_class = ActionItemForm
+    template_name = 'audits/action_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('audits:action_detail', kwargs={'pk': self.object.pk})
+
+
+@require_POST
+def action_mark_complete(request, pk):
+    action = get_object_or_404(ActionItem, pk=pk)
+    action.status = 'completed'
+    action.progress_percent = 100
+    action.completed_date = _tz2.now().date()
+    action.save()
+    messages.success(request, f'{action.action_id} marked complete.')
+    return redirect('audits:action_detail', pk=pk)

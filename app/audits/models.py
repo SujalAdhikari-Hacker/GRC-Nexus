@@ -300,3 +300,153 @@ class AuditFinding(models.Model):
 
     def __str__(self):
         return f"[{self.get_severity_display()}] {self.title}"
+
+
+class ActionItem(models.Model):
+    """
+    Remediation task under an audit finding.
+    Multiple items can exist per finding, each with its own owner, due date, and status.
+    """
+    STATUS_CHOICES = [
+        ('not_started', 'Not Started'),
+        ('in_progress', 'In Progress'),
+        ('blocked',     'Blocked'),
+        ('completed',   'Completed'),
+        ('cancelled',   'Cancelled'),
+    ]
+    PRIORITY_CHOICES = [
+        (1, 'Low'),
+        (2, 'Medium'),
+        (3, 'High'),
+        (4, 'Critical'),
+    ]
+
+    action_id = models.CharField(
+        max_length=20, unique=True, null=True, blank=True, db_index=True,
+        help_text='Auto-generated like ACT-0001.'
+    )
+    finding = models.ForeignKey(
+        'audits.AuditFinding', on_delete=models.CASCADE,
+        related_name='action_items'
+    )
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True)
+
+    owner_user = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='action_items'
+    )
+    owner_dept = models.ForeignKey(
+        Department, on_delete=models.PROTECT,
+        related_name='action_items'
+    )
+
+    priority = models.PositiveSmallIntegerField(
+        choices=PRIORITY_CHOICES, default=2
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='not_started'
+    )
+
+    due_date = models.DateField(null=True, blank=True)
+    completed_date = models.DateField(null=True, blank=True)
+    progress_percent = models.PositiveSmallIntegerField(
+        default=0, help_text='0-100. Auto-set to 100 when completed.'
+    )
+
+    notes = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    history = HistoricalRecords()
+
+    class Meta:
+        ordering = ['due_date', '-priority']
+        verbose_name = 'Action item'
+        verbose_name_plural = 'Action items'
+
+    def __str__(self):
+        return f"{self.action_id or 'NEW'} — {self.title[:60]}"
+
+    def save(self, *args, **kwargs):
+        # Auto-generate ID
+        if not self.action_id:
+            last = ActionItem.objects.exclude(action_id__isnull=True).exclude(action_id='').order_by('-id').first()
+            next_num = 1
+            if last and last.action_id:
+                try:
+                    next_num = int(last.action_id.split('-')[-1]) + 1
+                except (ValueError, IndexError):
+                    next_num = ActionItem.objects.count() + 1
+            while ActionItem.objects.filter(action_id=f'ACT-{next_num:04d}').exists():
+                next_num += 1
+            self.action_id = f'ACT-{next_num:04d}'
+
+        # Auto-complete behaviors
+        if self.status == 'completed':
+            self.progress_percent = 100
+            if not self.completed_date:
+                from django.utils import timezone
+                self.completed_date = timezone.now().date()
+        elif self.status == 'cancelled':
+            if not self.completed_date:
+                from django.utils import timezone
+                self.completed_date = timezone.now().date()
+
+        # Clamp progress
+        if self.progress_percent < 0:
+            self.progress_percent = 0
+        if self.progress_percent > 100:
+            self.progress_percent = 100
+
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        errors = {}
+        if not self.title or len(self.title.strip()) < 5:
+            errors['title'] = 'Title must be at least 5 characters.'
+        if self.status == 'completed' and self.progress_percent != 100:
+            self.progress_percent = 100
+        if errors:
+            raise ValidationError(errors)
+
+    @property
+    def status_color(self):
+        return {
+            'not_started': '#6B7280',
+            'in_progress': '#0284C7',
+            'blocked':     '#EA580C',
+            'completed':   '#059669',
+            'cancelled':   '#94A3B8',
+        }.get(self.status, '#6B7280')
+
+    @property
+    def priority_color(self):
+        return {
+            1: '#6B7280',
+            2: '#0284C7',
+            3: '#D97706',
+            4: '#DC2626',
+        }.get(self.priority, '#6B7280')
+
+    @property
+    def days_until_due(self):
+        from django.utils import timezone
+        if not self.due_date:
+            return None
+        return (self.due_date - timezone.now().date()).days
+
+    @property
+    def is_overdue(self):
+        if self.status in ('completed', 'cancelled'):
+            return False
+        d = self.days_until_due
+        return d is not None and d < 0
+
+    @property
+    def is_due_soon(self):
+        if self.status in ('completed', 'cancelled'):
+            return False
+        d = self.days_until_due
+        return d is not None and 0 <= d <= 7

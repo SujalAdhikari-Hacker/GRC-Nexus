@@ -1,0 +1,93 @@
+﻿{% extends "base.html" %}
+{% block title %}Action Plans{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'audits:list' %}">Audits</a></li>
+    <li class="breadcrumb-item active">Action Plans</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-list-task"></i> Total action items</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#0284C7;">{{ in_progress_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> In Progress</div></div></div>
+    <div class="col-md-3"><div class="stat-card" {% if overdue_count %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ overdue_count }}</div><div class="label"><i class="bi bi-clock-history"></i> Overdue</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ completed_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Completed</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-4"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search title, description, or finding..." value="{{ search_query }}"></div>
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All statuses</option>
+                    {% for val, label in statuses %}<option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="priority" class="form-select form-select-sm">
+                    <option value="">All priorities</option>
+                    {% for val, label in priorities %}<option value="{{ val }}" {% if selected_priority == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
+        </form>
+        <a href="{% url 'audits:action_create' %}" class="btn btn-sm btn-primary text-nowrap">+ New Action</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Finding</th>
+                    <th class="text-center">Priority</th>
+                    <th class="text-center">Status</th>
+                    <th>Owner</th>
+                    <th class="text-center">Due</th>
+                    <th class="text-center" style="min-width:120px;">Progress</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for a in actions %}
+                <tr>
+                    <td><a href="{% url 'audits:action_detail' a.pk %}"><code>{{ a.action_id }}</code></a></td>
+                    <td><a href="{% url 'audits:action_detail' a.pk %}"><strong>{{ a.title|truncatechars:50 }}</strong></a></td>
+                    <td>{% if a.finding %}<a href="{% url 'audits:finding_detail' a.finding.pk %}">{{ a.finding.title|truncatechars:30 }}</a>{% else %}—{% endif %}</td>
+                    <td class="text-center"><span class="badge" style="background:{{ a.priority_color }}; color:#fff;">{{ a.get_priority_display }}</span></td>
+                    <td class="text-center"><span class="badge" style="background:{{ a.status_color }}; color:#fff;">{{ a.get_status_display }}</span></td>
+                    <td><small>{{ a.owner_user|default:a.owner_dept.name }}</small></td>
+                    <td class="text-center">
+                        <small>
+                        {% if a.due_date %}
+                            {% if a.is_overdue %}<span class="text-danger">{{ a.due_date }} <i class="bi bi-clock-history"></i></span>
+                            {% elif a.is_due_soon %}<span style="color:#D97706;">{{ a.due_date }}</span>
+                            {% else %}{{ a.due_date }}{% endif %}
+                        {% else %}—{% endif %}
+                        </small>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress flex-grow-1" style="height:6px;">
+                                <div class="progress-bar" style="width:{{ a.progress_percent }}%; background:{{ a.status_color }};"></div>
+                            </div>
+                            <small>{{ a.progress_percent }}%</small>
+                        </div>
+                    </td>
+                    <td class="text-end"><a href="{% url 'audits:action_detail' a.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="9" class="text-center text-muted py-4">
+                    No action items yet. <a href="{% url 'audits:action_create' %}">Create the first one</a>.
+                </td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

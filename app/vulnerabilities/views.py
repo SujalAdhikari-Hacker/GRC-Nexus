@@ -1,9 +1,22 @@
-﻿from django.db.models import Q, Count
+﻿from datetime import timedelta
+
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
+from django.http import HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 from django.views.generic import ListView, DetailView
 
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from .models import Vulnerability, Finding
+from .services import enrich_vulnerability, cascade_finding_to_risk
 
+
+# ============================================================
+# FINDINGS
+# ============================================================
 
 class FindingListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Finding
@@ -56,6 +69,7 @@ class FindingListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ctx['selected_status'] = self.request.GET.get('status', '')
         ctx['selected_severity'] = self.request.GET.get('severity', '')
         ctx['kev_filter'] = self.request.GET.get('kev', '')
+
         base = super().get_queryset()
         user = self.request.user
         if not user.is_superuser and user.department_id:
@@ -74,6 +88,10 @@ class FindingDetailView(DepartmentScopedMixin, DetailView):
     department_field = 'owner_dept'
 
 
+# ============================================================
+# VULNERABILITY CATALOG
+# ============================================================
+
 class VulnerabilityListView(ListView):
     model = Vulnerability
     template_name = 'vulnerabilities/vulnerability_list.html'
@@ -81,6 +99,7 @@ class VulnerabilityListView(ListView):
     paginate_by = 30
 
     def get_queryset(self):
+        from django.db.models import Count
         qs = super().get_queryset().annotate(finding_count=Count('findings'))
         q = self.request.GET.get('q', '').strip()
         if q:
@@ -110,4 +129,94 @@ class VulnerabilityDetailView(DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['findings'] = self.object.findings.select_related('asset', 'owner_dept')
+        return ctx
+
+
+# ============================================================
+# ENRICHMENT + CASCADE ACTIONS
+# ============================================================
+
+@require_POST
+def enrich_vulnerability_view(request, pk):
+    vuln = get_object_or_404(Vulnerability, pk=pk)
+    results = enrich_vulnerability(vuln)
+
+    ok_count = sum(1 for r in results.values() if r.get('ok'))
+    msgs = []
+    for source, r in results.items():
+        status = '✓' if r.get('ok') else '✗'
+        msgs.append(f"{source.upper()}: {status} {r.get('message') or r.get('error')}")
+
+    if ok_count:
+        messages.success(request, ' | '.join(msgs))
+    else:
+        messages.error(request, ' | '.join(msgs))
+
+    return redirect('vulnerabilities:vulnerability_detail', pk=pk)
+
+
+@require_POST
+def cascade_finding_view(request, pk):
+    finding = get_object_or_404(Finding, pk=pk)
+    risk, created = cascade_finding_to_risk(finding)
+    if created:
+        messages.success(request, f'Risk created: "{risk.title[:80]}"')
+    else:
+        messages.info(request, f'Risk already exists: "{risk.title[:80]}"')
+    return redirect('risks:detail', pk=risk.pk)
+
+
+# ============================================================
+# LIVE CVE FEED
+# ============================================================
+
+class LiveCVEFeedView(LoginRequiredMixin, ListView):
+    model = Vulnerability
+    template_name = 'vulnerabilities/live_feed.html'
+    context_object_name = 'cves'
+    paginate_by = 30
+
+    def get_queryset(self):
+        qs = Vulnerability.objects.exclude(cve_id__isnull=True).exclude(cve_id='').filter(source='nvd')
+
+        severity = self.request.GET.get('severity')
+        if severity:
+            qs = qs.filter(cvss_severity=severity)
+
+        kev = self.request.GET.get('kev')
+        if kev == '1':
+            qs = qs.filter(kev_status=True)
+
+        days = self.request.GET.get('days')
+        if days:
+            try:
+                cutoff = timezone.now().date() - timedelta(days=int(days))
+                qs = qs.filter(published_date__gte=cutoff)
+            except ValueError:
+                pass
+
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(cve_id__icontains=q) | Q(title__icontains=q) | Q(description__icontains=q))
+
+        return qs.order_by('-published_date', '-created_at')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        base = Vulnerability.objects.filter(source='nvd').exclude(cve_id__isnull=True)
+        last_7_days = timezone.now().date() - timedelta(days=7)
+        recent = base.filter(published_date__gte=last_7_days)
+
+        ctx['total_synced'] = base.count()
+        ctx['last_7_days'] = recent.count()
+        ctx['critical_7d'] = recent.filter(cvss_severity='critical').count()
+        ctx['kev_7d'] = recent.filter(kev_status=True).count()
+        ctx['last_sync'] = base.order_by('-last_enriched').values_list('last_enriched', flat=True).first()
+
+        ctx['severities'] = Vulnerability.SEVERITY_CHOICES
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_severity'] = self.request.GET.get('severity', '')
+        ctx['kev_filter'] = self.request.GET.get('kev', '')
+        ctx['days_filter'] = self.request.GET.get('days', '')
         return ctx
