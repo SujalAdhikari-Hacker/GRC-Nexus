@@ -238,13 +238,9 @@ class EvidenceScoreCreateView(LoginRequiredMixin, CreateView):
         self.evidence = EvidenceItem.objects.get(pk=kwargs['evidence_pk'])
         return super().dispatch(request, *args, **kwargs)
 
-    def get_initial(self):
-        initial = super().get_initial()
-        initial['assessor'] = self.request.user
-        return initial
-
     def form_valid(self, form):
         form.instance.evidence = self.evidence
+        form.instance.assessor = self.request.user
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -334,6 +330,10 @@ class ControlTestCreateView(DepartmentScopedMixin, CreateView):
             initial['control'] = control
         return initial
 
+    def form_valid(self, form):
+        form.instance.tester = self.request.user
+        return super().form_valid(form)
+
 
 class ControlTestUpdateView(DepartmentScopedMixin, UpdateView):
     model = ControlTest
@@ -341,6 +341,8 @@ class ControlTestUpdateView(DepartmentScopedMixin, UpdateView):
     template_name = 'audits/test_form.html'
     success_url = reverse_lazy('audits:test_list')
     department_field = 'owner_dept'
+
+    # On update, don't override the original tester — keep the historical record
 
 
 # ==================================================================

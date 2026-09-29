@@ -99,7 +99,8 @@ class RiskExceptionForm(forms.ModelForm):
         model = RiskException
         fields = [
             'title', 'risk', 'justification',
-            'requested_by', 'approver', 'approval_date',
+            # 'requested_by',  ← removed, auto-set to logged-in user
+            'approver', 'approval_date',
             'expiry_date', 'review_date', 'status',
             'compensating_controls', 'conditions', 'notes',
         ]

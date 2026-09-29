@@ -35,7 +35,8 @@ class ControlTestForm(forms.ModelForm):
     class Meta:
         model = ControlTest
         fields = [
-            'control', 'test_date', 'result', 'tester',
+            'control', 'test_date', 'result',
+            # 'tester',  ← removed, auto-set to logged-in user
             'procedure_notes', 'owner_dept', 'audit'
         ]
         widgets = {
