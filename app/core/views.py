@@ -119,6 +119,27 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'medium':   sum(1 for r in risks if 6 <= r.inherent_score < 12),
             'low':      sum(1 for r in risks if r.inherent_score < 6),
         }
+        # Top risky assets
+        asset_rows = []
+        for asset in assets.select_related('owner_dept', 'vendor'):
+            asset_risks = list(asset.risks.all())
+            if not asset_risks:
+                continue
+            max_residual = max((r.residual_score or 0) for r in asset_risks)
+            sum_residual = sum((r.residual_score or 0) for r in asset_risks)
+            breached = any(r.appetite_breached for r in asset_risks)
+            exposure = max_residual * (asset.criticality or 1)
+            asset_rows.append({
+                'asset': asset,
+                'risk_count': len(asset_risks),
+                'max_residual': max_residual,
+                'sum_residual': sum_residual,
+                'breached': breached,
+                'exposure': exposure,
+                'top_risk': max(asset_risks, key=lambda r: r.residual_score or 0),
+            })
+        asset_rows.sort(key=lambda x: -x['exposure'])
+        top_risky_assets = asset_rows[:8]
 
         ctx.update({
             'asset_count': assets.count(),
@@ -131,6 +152,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'vendor_count': vendors.count(),
             'top_risks': risks.order_by('-residual_score')[:5],
             'recent_assets': assets.order_by('-created_at')[:5],
+            'top_risky_assets': top_risky_assets,
             'framework_rows': framework_rows,
             'is_super': is_super,
             'heatmap': heatmap,
