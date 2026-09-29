@@ -112,7 +112,7 @@
         <div class="card mt-3">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <strong>Evidence items ({{ evidence_items|length }})</strong>
-                <a href="/admin/audits/evidenceitem/add/" class="btn btn-sm btn-primary">+ Add evidence</a>
+                <a href="{% url 'audits:evidence_create' %}?audit={{ audit.pk }}" class="btn btn-sm btn-primary">+ Add evidence</a>
             </div>
             <ul class="list-group list-group-flush">
                 {% for e in evidence_items %}
@@ -151,3 +151,4 @@
     </div>
 </div>
 {% endblock %}
+
