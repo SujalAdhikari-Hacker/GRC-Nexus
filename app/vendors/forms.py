@@ -14,7 +14,7 @@ class VendorForm(forms.ModelForm):
             'provides_assets',
         ]
         widgets = {
-            'description': forms.Textarea(attrs={'rows': 2}),
+            'description': forms.Textarea(attrs={'rows': 3}),
             'compliance_notes': forms.Textarea(attrs={'rows': 3}),
             'notes': forms.Textarea(attrs={'rows': 3}),
             'contract_start': forms.DateInput(attrs={'type': 'date'}),
@@ -34,22 +34,15 @@ class VendorAssessmentForm(forms.ModelForm):
             'key_findings', 'recommended_mitigation',
         ]
         widgets = {
-            'security_score':     forms.NumberInput(attrs={'min': 0, 'max': 25, 'class': 'dimension-input', 'data-dim': 'sec'}),
-            'compliance_score':   forms.NumberInput(attrs={'min': 0, 'max': 25, 'class': 'dimension-input', 'data-dim': 'cmp'}),
-            'financial_score':    forms.NumberInput(attrs={'min': 0, 'max': 25, 'class': 'dimension-input', 'data-dim': 'fin'}),
-            'reputation_score':   forms.NumberInput(attrs={'min': 0, 'max': 25, 'class': 'dimension-input', 'data-dim': 'rep'}),
-            'operational_score':  forms.NumberInput(attrs={'min': 0, 'max': 25, 'class': 'dimension-input', 'data-dim': 'ops'}),
+            'security_score':     forms.NumberInput(attrs={'min': 0, 'max': 25}),
+            'compliance_score':   forms.NumberInput(attrs={'min': 0, 'max': 25}),
+            'financial_score':    forms.NumberInput(attrs={'min': 0, 'max': 25}),
+            'reputation_score':   forms.NumberInput(attrs={'min': 0, 'max': 25}),
+            'operational_score':  forms.NumberInput(attrs={'min': 0, 'max': 25}),
             'assessment_date': forms.DateInput(attrs={'type': 'date'}),
             'next_assessment_date': forms.DateInput(attrs={'type': 'date'}),
             'key_findings': forms.Textarea(attrs={'rows': 5}),
             'recommended_mitigation': forms.Textarea(attrs={'rows': 5}),
-        }
-        labels = {
-            'security_score':     'Security risk (0-25)',
-            'compliance_score':   'Compliance risk (0-25)',
-            'financial_score':    'Financial risk (0-25)',
-            'reputation_score':   'Reputation risk (0-25)',
-            'operational_score':  'Operational risk (0-25)',
         }
 
     def __init__(self, *args, **kwargs):

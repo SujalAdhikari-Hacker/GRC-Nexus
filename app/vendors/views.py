@@ -10,6 +10,10 @@ from .models import Vendor, VendorAssessment
 from .forms import VendorForm, VendorAssessmentForm
 
 
+# ============================================================
+# VENDOR
+# ============================================================
+
 class VendorListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Vendor
     template_name = 'vendors/vendor_list.html'
@@ -105,6 +109,10 @@ class VendorUpdateView(DepartmentScopedMixin, UpdateView):
     success_url = reverse_lazy('vendors:list')
 
 
+# ============================================================
+# VENDOR ASSESSMENT
+# ============================================================
+
 class VendorAssessmentListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = VendorAssessment
     template_name = 'vendors/assessment_list.html'
@@ -124,7 +132,7 @@ class VendorAssessmentListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ('Operational', 'operational_score'),
         ('Total Score', 'overall_score'),
         ('Rating', 'get_overall_risk_rating_display'),
-        ('Assessed By', lambda a: a.assessor.username if a.assessor else ''),
+        ('Assessor', lambda a: a.assessor.username if a.assessor else ''),
         ('Assessment Date', 'assessment_date'),
         ('Next Assessment', lambda a: a.next_assessment_date or ''),
     ]
@@ -171,7 +179,6 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        initial['assessor'] = self.request.user
         initial['assessment_date'] = timezone.now().date()
         if self.vendor:
             initial['vendor'] = self.vendor
