@@ -36,88 +36,97 @@
         </div>
 
         <nav class="nav">
+
+            {# ==================== OVERVIEW ==================== #}
             <div class="sidebar-section-head" style="display: flex; cursor: default;">Overview</div>
             <a href="{% url 'core:dashboard' %}" class="sidebar-link {% if urlname == 'dashboard' %}active{% endif %}" style="display: flex;">
                 <i class="bi bi-grid-1x2"></i><span>Dashboard</span>
             </a>
-                        <a href="{% url 'core:executive_report' %}" target="_blank" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'core:executive_report' %}" target="_blank" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-file-earmark-pdf"></i><span>Executive Report</span>
             </a>
 
+            {# ==================== INVENTORY & LIBRARY ==================== #}
             <div class="sidebar-section-head sidebar-head-toggle" data-target="inv" style="display: flex;">
                 <span>Inventory &amp; Library</span>
                 <i class="bi bi-chevron-down section-caret"></i>
             </div>
-                        <a href="{% url 'assets:classification' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' or ns == 'vendors' or ns == 'policies' %}flex{% else %}none{% endif %};">
-                <i class="bi bi-tags"></i><span>Asset Classification</span>
-            </a>
-            <a href="{% url 'assets:owners' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' or ns == 'vendors' or ns == 'policies' %}flex{% else %}none{% endif %};">
-                <i class="bi bi-people"></i><span>Asset Owners</span>
-            </a>
-                        <a href="{% url 'assets:list' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' or ns == 'vendors' or ns == 'policies' %}flex{% else %}none{% endif %};">
+            <a href="{% url 'assets:list' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-hdd-stack"></i><span>Assets</span>
             </a>
-                        <a href="{% url 'assets:explorer_picker' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' or ns == 'vendors' or ns == 'policies' %}flex{% else %}none{% endif %};">
+            <a href="{% url 'assets:classification' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' and urlname == 'classification' %}flex{% else %}none{% endif %};">
+                <i class="bi bi-tags"></i><span>Asset Classification</span>
+            </a>
+            <a href="{% url 'assets:owners' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' and urlname == 'owners' %}flex{% else %}none{% endif %};">
+                <i class="bi bi-people"></i><span>Asset Owners</span>
+            </a>
+            <a href="{% url 'assets:explorer_picker' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' and urlname == 'explorer_picker' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-diagram-2"></i><span>Relationship Explorer</span>
             </a>
-            <a href="{% url 'vendors:list' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' or ns == 'vendors' or ns == 'policies' %}flex{% else %}none{% endif %};">
+            <a href="{% url 'vendors:list' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'vendors' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-truck"></i><span>Vendors</span>
             </a>
-            <a href="{% url 'vendors:assessment_list' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' or ns == 'vendors' or ns == 'policies' %}flex{% else %}none{% endif %};">
+            <a href="{% url 'vendors:assessment_list' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'vendors' and urlname == 'assessment_list' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-clipboard-check"></i><span>Vendor Risk Assessment</span>
             </a>
-            <a href="{% url 'policies:list' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' or ns == 'vendors' or ns == 'policies' %}flex{% else %}none{% endif %};">
+            <a href="{% url 'policies:list' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'policies' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-file-earmark-text"></i><span>Policy Library</span>
             </a>
 
+            {# ==================== RISK & CONTROLS ==================== #}
             <div class="sidebar-section-head sidebar-head-toggle" data-target="risk" style="display: flex;">
                 <span>Risk &amp; Controls</span>
                 <i class="bi bi-chevron-down section-caret"></i>
             </div>
             {% if ns == 'risks' or ns == 'controls' or ns == 'frameworks' or ns == 'vulnerabilities' or ns == 'kris' %}
-            <a href="{% url 'risks:list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'risks:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
                 <i class="bi bi-exclamation-triangle"></i><span>Risks</span>
             </a>
             {% if user.is_hod or user.is_superuser %}
-            <a href="{% url 'risks:appetite_list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'risks:appetite_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
                 <i class="bi bi-sliders"></i><span>Risk Appetite</span>
             </a>
             {% endif %}
-            <a href="{% url 'controls:list' %}" class="sidebar-link" style="display: flex;">
-                <i class="bi bi-shield-check"></i><span>Controls</span>
-            </a>
-                        <a href="{% url 'controls:effectiveness' %}" class="sidebar-link" style="display: flex;">
-                <i class="bi bi-bar-chart"></i><span>Control Effectiveness</span>
-            </a>
-                        <a href="{% url 'vulnerabilities:live_feed' %}" class="sidebar-link" style="display: flex;">
-                <i class="bi bi-rss"></i><span>Live CVE Feed</span>
-            </a>
-            <a href="{% url 'kris:list' %}" class="sidebar-link" style="display: flex;">
-                <i class="bi bi-speedometer"></i><span>Key Risk Indicators</span>
-            </a>
-                        <a href="{% url 'risks:treatment_list' %}" class="sidebar-link" style="display: flex;">
-                <i class="bi bi-list-check"></i><span>Treatments</span>
-            </a>
-                        <a href="{% url 'risks:matrix' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'risks:matrix' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
                 <i class="bi bi-grid-3x3"></i><span>Risk Matrix</span>
             </a>
-                        <a href="{% url 'risks:exception_list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'risks:exception_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
                 <i class="bi bi-shield-check"></i><span>Risk Exceptions</span>
             </a>
-
-                        <a href="{% url 'controls:framework_matrix' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'risks:treatment_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
+                <i class="bi bi-list-check"></i><span>Treatments</span>
+            </a>
+            <a href="{% url 'controls:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
+                <i class="bi bi-shield-check"></i><span>Controls</span>
+            </a>
+            <a href="{% url 'controls:effectiveness' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
+                <i class="bi bi-bar-chart"></i><span>Control Effectiveness</span>
+            </a>
+            <a href="{% url 'controls:framework_matrix' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
                 <i class="bi bi-grid-1x2"></i><span>Framework Matrix</span>
             </a>
-            <a href="{% url 'controls:lifecycle' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'controls:lifecycle' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
                 <i class="bi bi-diagram-2"></i><span>Lifecycle Board</span>
             </a>
-            <a href="{% url 'frameworks:list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'vulnerabilities:finding_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
+                <i class="bi bi-bug"></i><span>Vulnerabilities</span>
+            </a>
+            <a href="{% url 'vulnerabilities:manual_create' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
+                <i class="bi bi-plus-square"></i><span>Log Vulnerability</span>
+            </a>
+            <a href="{% url 'vulnerabilities:live_feed' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
+                <i class="bi bi-rss"></i><span>Live CVE Feed</span>
+            </a>
+            <a href="{% url 'kris:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
+                <i class="bi bi-speedometer"></i><span>Key Risk Indicators</span>
+            </a>
+            <a href="{% url 'frameworks:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
                 <i class="bi bi-diagram-3"></i><span>Frameworks</span>
             </a>
-                        <a href="{% url 'frameworks:compliance_status' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'frameworks:compliance_status' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
                 <i class="bi bi-clipboard-data"></i><span>Compliance Status</span>
             </a>
-                        <a href="{% url 'frameworks:assessment_list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'frameworks:assessment_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: flex;">
                 <i class="bi bi-clipboard-check"></i><span>Compliance Assessments</span>
             </a>
             {% else %}
@@ -128,26 +137,35 @@
             <a href="{% url 'risks:appetite_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-sliders"></i><span>Risk Appetite</span>
             </a>
-                        <a href="{% url 'risks:matrix' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+            {% endif %}
+            <a href="{% url 'risks:matrix' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-grid-3x3"></i><span>Risk Matrix</span>
             </a>
-                        <a href="{% url 'risks:exception_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+            <a href="{% url 'risks:exception_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-shield-check"></i><span>Risk Exceptions</span>
             </a>
-            {% endif %}
+            <a href="{% url 'risks:treatment_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-list-check"></i><span>Treatments</span>
+            </a>
             <a href="{% url 'controls:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-shield-check"></i><span>Controls</span>
+            </a>
+            <a href="{% url 'controls:effectiveness' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-bar-chart"></i><span>Control Effectiveness</span>
+            </a>
+            <a href="{% url 'controls:framework_matrix' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-grid-1x2"></i><span>Framework Matrix</span>
+            </a>
+            <a href="{% url 'controls:lifecycle' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-diagram-2"></i><span>Lifecycle Board</span>
             </a>
             <a href="{% url 'vulnerabilities:finding_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-bug"></i><span>Vulnerabilities</span>
             </a>
-            <a href="{% url 'vulnerabilities:manual_create' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'vulnerabilities:manual_create' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-plus-square"></i><span>Log Vulnerability</span>
             </a>
-                        <a href="{% url 'vulnerabilities:manual_create' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
-                <i class="bi bi-plus-square"></i><span>Log Vulnerability</span>
-            </a>
-                        <a href="{% url 'vulnerabilities:live_feed' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+            <a href="{% url 'vulnerabilities:live_feed' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-rss"></i><span>Live CVE Feed</span>
             </a>
             <a href="{% url 'kris:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
@@ -156,133 +174,80 @@
             <a href="{% url 'frameworks:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-diagram-3"></i><span>Frameworks</span>
             </a>
-                        <a href="{% url 'controls:lifecycle' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
-                <i class="bi bi-diagram-2"></i><span>Lifecycle Board</span>
+            <a href="{% url 'frameworks:compliance_status' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-clipboard-data"></i><span>Compliance Status</span>
             </a>
-                        <a href="{% url 'frameworks:assessment_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+            <a href="{% url 'frameworks:assessment_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-clipboard-check"></i><span>Compliance Assessments</span>
             </a>
             {% endif %}
 
-            {% if user.is_superuser %}
-            
-            {# ================= AUDIT & COMPLIANCE ================= #}
+            {# ==================== AUDIT & COMPLIANCE ==================== #}
             <div class="sidebar-section-head sidebar-head-toggle" data-target="audit" style="display: flex;">
                 <span>Audit &amp; Compliance</span>
                 <i class="bi bi-chevron-down section-caret"></i>
             </div>
-            {% if ns == 'audits' %}
-            <a href="{% url 'audits:list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'audits:list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: {% if ns == 'audits' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-clipboard-check"></i><span>Audit Schedule</span>
             </a>
-            <a href="{% url 'audits:timeline' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'audits:timeline' %}" class="sidebar-link toggle-item" data-section="audit" style="display: {% if ns == 'audits' and urlname == 'timeline' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-kanban"></i><span>Audit Timeline</span>
             </a>
-            <a href="{% url 'audits:evidence_list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'audits:evidence_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: {% if urlname == 'evidence_list' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-folder2-open"></i><span>Evidence Library</span>
             </a>
-                        <a href="{% url 'audits:score_list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'audits:score_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: {% if urlname == 'score_list' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-clipboard-data"></i><span>Evidence Scoring</span>
             </a>
-                        <a href="{% url 'audits:finding_list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'audits:test_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: {% if 'test' in urlname %}flex{% else %}none{% endif %};">
+                <i class="bi bi-clipboard-data"></i><span>Control Testing</span>
+            </a>
+            <a href="{% url 'audits:finding_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: {% if 'finding' in urlname %}flex{% else %}none{% endif %};">
                 <i class="bi bi-exclamation-triangle"></i><span>Findings</span>
             </a>
-                        <a href="{% url 'audits:action_list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'audits:action_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: {% if 'action' in urlname %}flex{% else %}none{% endif %};">
                 <i class="bi bi-list-task"></i><span>Action Plans</span>
             </a>
-            <a href="{% url 'audits:test_list' %}" class="sidebar-link" style="display: flex;">
-                <i class="bi bi-clipboard-data"></i><span>Control Testing</span>
-            </a>
-            {% else %}
-            <a href="{% url 'audits:list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
-                <i class="bi bi-clipboard-check"></i><span>Audit Schedule</span>
-            </a>
-                        <a href="{% url 'audits:finding_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
-                <i class="bi bi-exclamation-triangle"></i><span>Findings</span>
-            </a>
-            <a href="{% url 'audits:timeline' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
-                <i class="bi bi-kanban"></i><span>Audit Timeline</span>
-            </a>
-            <a href="{% url 'audits:evidence_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
-                <i class="bi bi-folder2-open"></i><span>Evidence Library</span>
-            </a>
-            <a href="{% url 'audits:test_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
-                <i class="bi bi-clipboard-data"></i><span>Control Testing</span>
-            </a>
-            <a href="{% url 'audits:finding_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
-                <i class="bi bi-exclamation-triangle"></i><span>Findings</span>
-            </a>
-                        <a href="{% url 'audits:score_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
-                <i class="bi bi-clipboard-data"></i><span>Evidence Scoring</span>
-            </a>
-                        <div class="sidebar-section-head sidebar-head-toggle" data-target="threat" style="display: flex;">
+
+            {# ==================== THREAT INTEL ==================== #}
+            <div class="sidebar-section-head sidebar-head-toggle" data-target="threat" style="display: flex;">
                 <span>Threat Intel</span>
                 <i class="bi bi-chevron-down section-caret"></i>
             </div>
-            {% if ns == 'threatintel' %}
-            <a href="{% url 'threatintel:overview' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'threatintel:overview' %}" class="sidebar-link toggle-item" data-section="threat" style="display: {% if ns == 'threatintel' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-radar"></i><span>Overview</span>
             </a>
-            <a href="{% url 'threatintel:ioc_feed' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'threatintel:ioc_feed' %}" class="sidebar-link toggle-item" data-section="threat" style="display: {% if ns == 'threatintel' and urlname == 'ioc_feed' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-rss"></i><span>IOC Feed</span>
             </a>
-            <a href="{% url 'threatintel:attack_matrix' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'threatintel:attack_matrix' %}" class="sidebar-link toggle-item" data-section="threat" style="display: {% if ns == 'threatintel' and urlname == 'attack_matrix' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-grid-3x3-gap"></i><span>ATT&CK Matrix</span>
             </a>
-            <a href="{% url 'threatintel:actor_list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'threatintel:actor_list' %}" class="sidebar-link toggle-item" data-section="threat" style="display: {% if ns == 'threatintel' and urlname == 'actor_list' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-people"></i><span>Threat Actors</span>
             </a>
-            {% else %}
-            <a href="{% url 'threatintel:overview' %}" class="sidebar-link toggle-item" data-section="threat" style="display: none;">
-                <i class="bi bi-radar"></i><span>Overview</span>
-            </a>
-                        <a href="{% url 'core:executive_report' %}" target="_blank" class="sidebar-link" style="display: flex;">
-                <i class="bi bi-file-earmark-pdf"></i><span>Executive Report</span>
-            </a>
-            <a href="{% url 'threatintel:ioc_feed' %}" class="sidebar-link toggle-item" data-section="threat" style="display: none;">
-                <i class="bi bi-rss"></i><span>IOC Feed</span>
-            </a>
-            <a href="{% url 'threatintel:attack_matrix' %}" class="sidebar-link toggle-item" data-section="threat" style="display: none;">
-                <i class="bi bi-grid-3x3-gap"></i><span>ATT&CK Matrix</span>
-            </a>
-            <a href="{% url 'threatintel:actor_list' %}" class="sidebar-link toggle-item" data-section="threat" style="display: none;">
-                <i class="bi bi-people"></i><span>Threat Actors</span>
-            </a>
-            {% endif %}
-                        <div class="sidebar-section-head sidebar-head-toggle" data-target="admin" style="display: flex;">
+
+            {# ==================== ADMINISTRATION ==================== #}
+            {% if user.is_superuser %}
+            <div class="sidebar-section-head sidebar-head-toggle" data-target="admin" style="display: flex;">
                 <span>Administration</span>
                 <i class="bi bi-chevron-down section-caret"></i>
             </div>
-            {% if ns == 'core' and 'users' in request.path %}
-            <a href="{% url 'core:users_list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'core:users_list' %}" class="sidebar-link toggle-item" data-section="admin" style="display: {% if urlname == 'users_list' or urlname == 'user_create' or urlname == 'user_update' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-people"></i><span>Users</span>
             </a>
-            <a href="{% url 'core:departments_list' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'core:departments_list' %}" class="sidebar-link toggle-item" data-section="admin" style="display: {% if 'department' in urlname %}flex{% else %}none{% endif %};">
                 <i class="bi bi-building"></i><span>Departments</span>
             </a>
-            <a href="{% url 'core:roles_permissions' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'core:roles_permissions' %}" class="sidebar-link toggle-item" data-section="admin" style="display: {% if urlname == 'roles_permissions' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-shield-lock"></i><span>Roles &amp; Permissions</span>
             </a>
-            {% else %}
-            <a href="{% url 'core:users_list' %}" class="sidebar-link toggle-item" data-section="admin" style="display: none;">
-                <i class="bi bi-people"></i><span>Users</span>
-            </a>
-                        <a href="{% url 'audits:action_list' %}" class="sidebar-link toggle-item" data-section="audit" style="display: none;">
-                <i class="bi bi-list-task"></i><span>Action Plans</span>
-            </a>
-            <a href="{% url 'core:departments_list' %}" class="sidebar-link toggle-item" data-section="admin" style="display: none;">
-                <i class="bi bi-building"></i><span>Departments</span>
-            </a>
-            <a href="{% url 'core:roles_permissions' %}" class="sidebar-link toggle-item" data-section="admin" style="display: none;">
-                <i class="bi bi-shield-lock"></i><span>Roles &amp; Permissions</span>
-            </a>
-            {% endif %}
-            {% endif %}
             <div class="sidebar-section-head" style="display: flex; cursor: default;">Admin</div>
             <a href="/admin/" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-gear"></i><span>Django Admin</span>
             </a>
             {% endif %}
+
         </nav>
 
         <div class="user-block">
