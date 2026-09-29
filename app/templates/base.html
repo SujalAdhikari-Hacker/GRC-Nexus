@@ -40,6 +40,9 @@
             <a href="{% url 'core:dashboard' %}" class="sidebar-link {% if urlname == 'dashboard' %}active{% endif %}" style="display: flex;">
                 <i class="bi bi-grid-1x2"></i><span>Dashboard</span>
             </a>
+                        <a href="{% url 'core:executive_report' %}" target="_blank" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-file-earmark-pdf"></i><span>Executive Report</span>
+            </a>
 
             <div class="sidebar-section-head sidebar-head-toggle" data-target="inv" style="display: flex;">
                 <span>Inventory &amp; Library</span>
@@ -232,6 +235,9 @@
             {% else %}
             <a href="{% url 'threatintel:overview' %}" class="sidebar-link toggle-item" data-section="threat" style="display: none;">
                 <i class="bi bi-radar"></i><span>Overview</span>
+            </a>
+                        <a href="{% url 'core:executive_report' %}" target="_blank" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-file-earmark-pdf"></i><span>Executive Report</span>
             </a>
             <a href="{% url 'threatintel:ioc_feed' %}" class="sidebar-link toggle-item" data-section="threat" style="display: none;">
                 <i class="bi bi-rss"></i><span>IOC Feed</span>

@@ -1,0 +1,795 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Aegis Executive Report</title>
+<style>
+    @page {
+        size: A4;
+        margin: 1.8cm 1.5cm;
+        @bottom-right {
+            content: "Page " counter(page) " of " counter(pages);
+            font-size: 8.5pt;
+            color: #9CA3AF;
+        }
+        @bottom-left {
+            content: "Aegis · Confidential";
+            font-size: 8.5pt;
+            color: #9CA3AF;
+        }
+    }
+    @page :first {
+        margin: 0;
+        @bottom-right { content: ""; }
+        @bottom-left { content: ""; }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+        font-family: 'Helvetica', 'Arial', sans-serif;
+        font-size: 10pt;
+        color: #111827;
+        line-height: 1.55;
+        margin: 0;
+    }
+
+    /* ---------- COVER PAGE ---------- */
+    .cover {
+        height: 297mm;
+        padding: 40mm 20mm 20mm;
+        background: linear-gradient(160deg, #0B1220 0%, #0B1220 60%, #111827 100%);
+        color: #FFFFFF;
+        page-break-after: always;
+        position: relative;
+    }
+    .cover::after {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 6mm;
+        background: #F59E0B;
+    }
+    .cover-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 60mm;
+    }
+    .cover-brand-mark {
+        width: 40px; height: 40px;
+        background: #F59E0B;
+        border-radius: 8px;
+        position: relative;
+    }
+    .cover-brand-mark::after {
+        content: "✓";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #0B1220;
+        font-size: 24px;
+        font-weight: 700;
+    }
+    .cover-brand-name {
+        font-size: 26pt;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+    .cover-eyebrow {
+        color: #F59E0B;
+        font-size: 11pt;
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        font-weight: 600;
+        margin-bottom: 12px;
+    }
+    .cover-title {
+        font-size: 34pt;
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        margin: 0 0 24px 0;
+    }
+    .cover-subtitle {
+        font-size: 13pt;
+        color: #9CA3AF;
+        max-width: 120mm;
+        margin-bottom: 60mm;
+    }
+    .cover-meta {
+        border-top: 1px solid rgba(255,255,255,0.15);
+        padding-top: 20px;
+        display: flex;
+        gap: 60px;
+        font-size: 10pt;
+    }
+    .cover-meta-block .label {
+        color: #6B7280;
+        font-size: 8.5pt;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        margin-bottom: 3px;
+    }
+    .cover-meta-block .value {
+        color: #FFFFFF;
+        font-weight: 500;
+    }
+    .cover-footer {
+        position: absolute;
+        bottom: 15mm;
+        left: 20mm;
+        right: 20mm;
+        font-size: 8pt;
+        color: #6B7280;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    /* ---------- CONTENT PAGES ---------- */
+    .section {
+        page-break-before: always;
+    }
+    .section:first-of-type {
+        page-break-before: auto;
+    }
+    .section-number {
+        font-size: 10pt;
+        color: #F59E0B;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+    .section-title {
+        font-size: 20pt;
+        font-weight: 700;
+        color: #0B1220;
+        letter-spacing: -0.01em;
+        margin: 0 0 6px 0;
+    }
+    .section-divider {
+        width: 40px;
+        height: 3px;
+        background: #F59E0B;
+        margin: 12px 0 24px 0;
+    }
+    p {
+        margin: 0 0 12px 0;
+        text-align: justify;
+    }
+    .lead {
+        font-size: 11pt;
+        color: #374151;
+        line-height: 1.65;
+    }
+
+    /* Stat cards */
+    .stat-grid {
+        display: flex;
+        gap: 10px;
+        margin: 20px 0 26px 0;
+    }
+    .stat-card {
+        flex: 1;
+        border: 1px solid #E5E7EB;
+        border-left: 4px solid #0B1220;
+        border-radius: 4px;
+        padding: 12px 14px;
+        background: #FAFBFC;
+    }
+    .stat-card.amber { border-left-color: #F59E0B; }
+    .stat-card.red { border-left-color: #DC2626; }
+    .stat-card.green { border-left-color: #059669; }
+    .stat-card.blue { border-left-color: #0284C7; }
+    .stat-card .value {
+        font-size: 22pt;
+        font-weight: 700;
+        color: #0B1220;
+        letter-spacing: -0.02em;
+        line-height: 1;
+    }
+    .stat-card .label {
+        font-size: 8pt;
+        color: #6B7280;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-top: 6px;
+        font-weight: 500;
+    }
+    .stat-card .sub {
+        font-size: 9pt;
+        color: #9CA3AF;
+        margin-top: 4px;
+    }
+
+    /* Charts */
+    .chart-block {
+        margin: 24px 0;
+        page-break-inside: avoid;
+    }
+    .chart-title {
+        font-size: 11pt;
+        font-weight: 600;
+        color: #0B1220;
+        margin-bottom: 10px;
+    }
+    .chart-caption {
+        font-size: 8.5pt;
+        color: #6B7280;
+        margin-top: 8px;
+        font-style: italic;
+    }
+    .chart-img {
+        width: 100%;
+        max-width: 100%;
+        display: block;
+    }
+    .chart-half {
+        width: 48%;
+        display: inline-block;
+        vertical-align: top;
+    }
+    .chart-half + .chart-half {
+        margin-left: 3%;
+    }
+
+    /* Tables */
+    table.data {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 8.5pt;
+        margin: 12px 0 20px 0;
+        page-break-inside: auto;
+    }
+    table.data thead { background: #0B1220; color: #FFFFFF; }
+    table.data thead th {
+        text-align: left;
+        padding: 7px 9px;
+        font-weight: 600;
+        font-size: 8pt;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+    table.data tbody td {
+        padding: 6px 9px;
+        border-bottom: 1px solid #E5E7EB;
+        vertical-align: top;
+    }
+    table.data tbody tr:nth-child(even) { background: #FAFBFC; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+
+    /* Badges */
+    .badge {
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 3px;
+        font-size: 7.5pt;
+        font-weight: 600;
+        color: #FFFFFF;
+        letter-spacing: .01em;
+    }
+    .badge-critical { background: #DC2626; }
+    .badge-high { background: #EA580C; }
+    .badge-medium { background: #D97706; }
+    .badge-low { background: #059669; }
+    .badge-none { background: #94A3B8; }
+    .badge-yes { background: #DC2626; }
+    .badge-no { background: #059669; }
+    .badge-neutral { background: #6B7280; }
+
+    /* Recommendations */
+    .rec-list {
+        margin: 20px 0;
+    }
+    .rec-item {
+        display: flex;
+        gap: 14px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        background: #FAFBFC;
+        border-left: 4px solid #6B7280;
+        page-break-inside: avoid;
+    }
+    .rec-item.high { border-left-color: #DC2626; background: #FEF2F2; }
+    .rec-item.medium { border-left-color: #D97706; background: #FFFBEB; }
+    .rec-item.low { border-left-color: #059669; background: #ECFDF5; }
+    .rec-priority {
+        font-size: 8pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        min-width: 65px;
+        padding-top: 2px;
+    }
+    .rec-item.high .rec-priority { color: #DC2626; }
+    .rec-item.medium .rec-priority { color: #D97706; }
+    .rec-item.low .rec-priority { color: #059669; }
+    .rec-text { flex: 1; font-size: 10pt; }
+
+    /* TOC */
+    .toc-list { list-style: none; padding: 0; margin: 20px 0; }
+    .toc-item {
+        display: flex;
+        padding: 8px 0;
+        border-bottom: 1px dotted #D1D5DB;
+        font-size: 10.5pt;
+    }
+    .toc-item .num { width: 40px; color: #F59E0B; font-weight: 700; }
+    .toc-item .name { flex: 1; color: #111827; }
+
+    /* Footer note */
+    .page-footer-note {
+        margin-top: 30px;
+        padding-top: 12px;
+        border-top: 1px solid #E5E7EB;
+        font-size: 8pt;
+        color: #9CA3AF;
+        font-style: italic;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+<!-- =========================================================
+     COVER PAGE
+     ========================================================= -->
+<div class="cover">
+    <div class="cover-brand">
+        <div class="cover-brand-mark"></div>
+        <div class="cover-brand-name">Aegis</div>
+    </div>
+
+    <div class="cover-eyebrow">Confidential Report</div>
+    <h1 class="cover-title">Security &amp; Risk<br>Posture Report</h1>
+    <p class="cover-subtitle">
+        An integrated view of governance, risk, compliance, control effectiveness,
+        and vulnerability posture for {{ report_scope }}.
+    </p>
+
+    <div class="cover-meta">
+        <div class="cover-meta-block">
+            <div class="label">Scope</div>
+            <div class="value">{{ report_scope }}</div>
+        </div>
+        <div class="cover-meta-block">
+            <div class="label">Generated</div>
+            <div class="value">{{ generated_at|date:"F j, Y" }}</div>
+        </div>
+        <div class="cover-meta-block">
+            <div class="label">Prepared by</div>
+            <div class="value">{{ generated_by.username }}</div>
+        </div>
+    </div>
+
+    <div class="cover-footer">
+        <span>Aegis · Governance, Risk &amp; Compliance Platform</span>
+        <span>Confidential — Internal Use Only</span>
+    </div>
+</div>
+
+<!-- =========================================================
+     TABLE OF CONTENTS
+     ========================================================= -->
+<div class="section">
+    <div class="section-number">Contents</div>
+    <h2 class="section-title">Table of Contents</h2>
+    <div class="section-divider"></div>
+
+    <ul class="toc-list">
+        <li class="toc-item"><span class="num">1</span><span class="name">Executive Summary</span></li>
+        <li class="toc-item"><span class="num">2</span><span class="name">Risk Posture</span></li>
+        <li class="toc-item"><span class="num">3</span><span class="name">Top Risks</span></li>
+        <li class="toc-item"><span class="num">4</span><span class="name">Control Coverage &amp; Effectiveness</span></li>
+        <li class="toc-item"><span class="num">5</span><span class="name">Vulnerability Landscape</span></li>
+        <li class="toc-item"><span class="num">6</span><span class="name">Compliance Status</span></li>
+        <li class="toc-item"><span class="num">7</span><span class="name">Top Risky Assets</span></li>
+        <li class="toc-item"><span class="num">8</span><span class="name">Findings &amp; Recommendations</span></li>
+    </ul>
+
+    <div class="page-footer-note">
+        This report is auto-generated from live platform data at {{ generated_at|date:"Y-m-d H:i" }} UTC.
+    </div>
+</div>
+
+<!-- =========================================================
+     1. EXECUTIVE SUMMARY
+     ========================================================= -->
+<div class="section">
+    <div class="section-number">Section 1</div>
+    <h2 class="section-title">Executive Summary</h2>
+    <div class="section-divider"></div>
+
+    <p class="lead">{{ risk_line }}</p>
+    <p class="lead">{{ breach_line }}</p>
+    <p class="lead">{{ control_line }}</p>
+    <p class="lead">{{ vuln_line }}</p>
+    <p class="lead">{{ coverage_line }}</p>
+
+    <div class="stat-grid">
+        <div class="stat-card red">
+            <div class="value">{{ breached_risks }}</div>
+            <div class="label">Appetite Breaches</div>
+            <div class="sub">of {{ total_risks }} risks</div>
+        </div>
+        <div class="stat-card amber">
+            <div class="value">{{ overdue_findings }}</div>
+            <div class="label">Overdue Findings</div>
+            <div class="sub">of {{ total_findings }} findings</div>
+        </div>
+        <div class="stat-card green">
+            <div class="value">{{ control_effectiveness_pct }}%</div>
+            <div class="label">Controls Effective</div>
+            <div class="sub">{{ effective_controls }} of {{ total_controls }}</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="value">{{ overall_coverage }}%</div>
+            <div class="label">Framework Coverage</div>
+            <div class="sub">avg across all frameworks</div>
+        </div>
+    </div>
+
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="value">{{ total_assets }}</div>
+            <div class="label">Active Assets</div>
+            <div class="sub">{{ critical_assets }} critical</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ total_vendors }}</div>
+            <div class="label">Active Vendors</div>
+            <div class="sub">{{ tier1_vendors }} tier-1</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ total_policies }}</div>
+            <div class="label">Policies</div>
+            <div class="sub">{{ approved_policies }} approved</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ open_actions }}</div>
+            <div class="label">Open Actions</div>
+            <div class="sub">{{ overdue_actions }} overdue</div>
+        </div>
+    </div>
+
+    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Key Metrics</h3>
+    <table class="data">
+        <tbody>
+            <tr><td>Average inherent risk score</td><td class="text-right"><strong>{{ avg_inherent }} / 25</strong></td></tr>
+            <tr><td>Average residual risk score</td><td class="text-right"><strong>{{ avg_residual }} / 25</strong></td></tr>
+            <tr><td>Open risks</td><td class="text-right">{{ open_risks }}</td></tr>
+            <tr><td>Critical-severity risks</td><td class="text-right">{{ critical_risks }}</td></tr>
+            <tr><td>High-severity risks</td><td class="text-right">{{ high_risks }}</td></tr>
+            <tr><td>Critical vulnerability findings</td><td class="text-right">{{ critical_findings }}</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- =========================================================
+     2. RISK POSTURE
+     ========================================================= -->
+<div class="section">
+    <div class="section-number">Section 2</div>
+    <h2 class="section-title">Risk Posture</h2>
+    <div class="section-divider"></div>
+
+    <p>
+        The risk posture presents the current state of enterprise risk across likelihood and impact dimensions.
+        The heatmap below plots every active risk by its inherent position (before controls), while the
+        residual trend visualises how control effectiveness has reduced risk exposure over the past six months.
+    </p>
+
+    <div class="chart-block">
+        <div class="chart-title">Risk Heatmap — Inherent Position</div>
+        <img src="{{ chart_heatmap }}" class="chart-img" alt="Risk Heatmap">
+        <div class="chart-caption">
+            Each cell shows the count of risks at that likelihood × impact combination.
+            Darker cells indicate concentration. Scores range from 1 (lowest) to 25 (highest).
+        </div>
+    </div>
+
+    {% if chart_category %}
+    <div class="chart-block">
+        <div class="chart-title">Risk Distribution by Category</div>
+        <img src="{{ chart_category }}" class="chart-img" style="max-width:75%; margin:0 auto;" alt="Category distribution">
+        <div class="chart-caption">
+            Breakdown of active risks across categories. Categories with the largest share warrant focused treatment.
+        </div>
+    </div>
+    {% endif %}
+
+    {% if chart_trend %}
+    <div class="chart-block">
+        <div class="chart-title">Risk Trend — Inherent vs Residual (6 months)</div>
+        <img src="{{ chart_trend }}" class="chart-img" alt="Risk trend">
+        <div class="chart-caption">
+            The gap between inherent and residual curves indicates the aggregate effectiveness of
+            mitigating controls. A narrowing gap suggests control degradation.
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- =========================================================
+     3. TOP RISKS
+     ========================================================= -->
+<div class="section">
+    <div class="section-number">Section 3</div>
+    <h2 class="section-title">Top Risks</h2>
+    <div class="section-divider"></div>
+
+    <p>
+        The following risks represent the highest residual exposure across the organization,
+        ranked by post-mitigation score. These are the priorities for executive attention.
+    </p>
+
+    <table class="data">
+        <thead>
+            <tr>
+                <th style="width:35px;">#</th>
+                <th>Risk</th>
+                <th style="width:80px;">Category</th>
+                <th class="text-center" style="width:45px;">L×I</th>
+                <th class="text-center" style="width:55px;">Inherent</th>
+                <th class="text-center" style="width:55px;">Residual</th>
+                <th class="text-center" style="width:60px;">Appetite</th>
+                <th style="width:70px;">Treatment</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in top_risks %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ r.title|truncatechars:80 }}</td>
+                <td>{{ r.category.name|truncatechars:15 }}</td>
+                <td class="text-center">{{ r.likelihood }}×{{ r.impact }}</td>
+                <td class="text-center">{{ r.inherent_score }}</td>
+                <td class="text-center"><strong>{{ r.residual_score }}</strong></td>
+                <td class="text-center">
+                    {% if r.appetite_breached %}<span class="badge badge-yes">BREACH</span>
+                    {% else %}<span class="badge badge-no">OK</span>{% endif %}
+                </td>
+                <td>{{ r.get_treatment_strategy_display }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="8" class="text-center" style="padding:20px; color:#9CA3AF;">No risks recorded.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- =========================================================
+     4. CONTROL COVERAGE
+     ========================================================= -->
+<div class="section">
+    <div class="section-number">Section 4</div>
+    <h2 class="section-title">Control Coverage &amp; Effectiveness</h2>
+    <div class="section-divider"></div>
+
+    <p>
+        The control library contains <strong>{{ total_controls }} controls</strong>, of which
+        <strong>{{ implemented_controls }} are implemented</strong> and operating in production.
+        Effectiveness is assessed against four states: fully effective, partially effective,
+        ineffective, and not tested. Untested controls provide zero assurance to the organization.
+    </p>
+
+    <div class="chart-block">
+        <div class="chart-title">Control Effectiveness Distribution</div>
+        <img src="{{ chart_control }}" class="chart-img" style="max-width:80%;" alt="Control effectiveness">
+        <div class="chart-caption">
+            <span style="color:#059669;">■</span> Effective ·
+            <span style="color:#D97706;">■</span> Partially effective ·
+            <span style="color:#DC2626;">■</span> Ineffective ·
+            <span style="color:#6B7280;">■</span> Not tested
+        </div>
+    </div>
+
+    <p style="margin-top:24px;">
+        <strong>Key observations:</strong>
+    </p>
+    <ul style="font-size:10pt; line-height:1.7; padding-left:22px;">
+        <li>{{ effective_controls }} control{{ effective_controls|pluralize }} assessed as effective ({{ control_effectiveness_pct }}% of library)</li>
+        {% if not_tested_controls %}<li><strong>{{ not_tested_controls }}</strong> control{{ not_tested_controls|pluralize }} not yet tested — schedule testing immediately</li>{% endif %}
+        {% if ineffective_controls %}<li><strong style="color:#DC2626;">{{ ineffective_controls }}</strong> control{{ ineffective_controls|pluralize }} identified as ineffective — re-design required</li>{% endif %}
+        {% if implemented_controls %}<li>{{ implemented_controls }} control{{ implemented_controls|pluralize }} confirmed implemented and operating</li>{% endif %}
+    </ul>
+</div>
+
+<!-- =========================================================
+     5. VULNERABILITY LANDSCAPE
+     ========================================================= -->
+<div class="section">
+    <div class="section-number">Section 5</div>
+    <h2 class="section-title">Vulnerability Landscape</h2>
+    <div class="section-divider"></div>
+
+    <p>
+        The vulnerability register tracks <strong>{{ total_findings }} active finding{{ total_findings|pluralize }}</strong>
+        mapped across assets and CVE sources. Findings are subject to SLA-driven remediation timelines:
+        critical within 7 days, high within 30, medium within 90, and low within 180.
+    </p>
+
+    <div class="stat-grid">
+        <div class="stat-card red">
+            <div class="value">{{ critical_findings }}</div>
+            <div class="label">Critical severity</div>
+        </div>
+        <div class="stat-card amber">
+            <div class="value">{{ open_findings }}</div>
+            <div class="label">Open findings</div>
+        </div>
+        <div class="stat-card red">
+            <div class="value">{{ overdue_findings }}</div>
+            <div class="label">Past SLA</div>
+        </div>
+        <div class="stat-card green">
+            <div class="value">{{ total_findings|add:"-"|add:open_findings }}</div>
+            <div class="label">Closed</div>
+        </div>
+    </div>
+
+    <div style="display:flex; gap:20px; margin-top:20px;">
+        {% if chart_vuln_sev %}
+        <div style="flex:1;">
+            <div class="chart-title">Findings by Severity</div>
+            <img src="{{ chart_vuln_sev }}" class="chart-img" alt="Severity distribution">
+        </div>
+        {% endif %}
+        {% if chart_sla %}
+        <div style="flex:1;">
+            <div class="chart-title">SLA Compliance</div>
+            <img src="{{ chart_sla }}" class="chart-img" alt="SLA compliance">
+        </div>
+        {% endif %}
+    </div>
+
+    {% if overdue_findings %}
+    <p style="margin-top:20px; padding:12px 14px; background:#FEF2F2; border-left:4px solid #DC2626; border-radius:4px;">
+        <strong>Attention required:</strong> {{ overdue_findings }} finding{{ overdue_findings|pluralize }}
+        {{ overdue_findings|pluralize:"is,are" }} past the agreed remediation SLA.
+        These represent unmanaged risk exposure and should be escalated to the relevant asset owners.
+    </p>
+    {% endif %}
+</div>
+
+<!-- =========================================================
+     6. COMPLIANCE STATUS
+     ========================================================= -->
+<div class="section">
+    <div class="section-number">Section 6</div>
+    <h2 class="section-title">Compliance Status</h2>
+    <div class="section-divider"></div>
+
+    <p>
+        The organization's compliance posture is measured against
+        <strong>{{ framework_rows|length }} framework{{ framework_rows|length|pluralize }}</strong>.
+        Control coverage is calculated by mapping internal controls to framework requirements,
+        weighted by the strength of the relationship (Equal = 1.0, Functional Partial = 0.7,
+        Subset/Intersects = 0.5).
+    </p>
+
+    {% if chart_frameworks %}
+    <div class="chart-block">
+        <div class="chart-title">Framework Coverage</div>
+        <img src="{{ chart_frameworks }}" class="chart-img" alt="Framework coverage">
+        <div class="chart-caption">
+            <span style="color:#059669;">■</span> ≥75% covered ·
+            <span style="color:#D97706;">■</span> 40–74% ·
+            <span style="color:#DC2626;">■</span> &lt;40%
+        </div>
+    </div>
+    {% endif %}
+
+    <table class="data">
+        <thead>
+            <tr>
+                <th>Framework</th>
+                <th class="text-center" style="width:70px;">Total</th>
+                <th class="text-center" style="width:70px;">Covered</th>
+                <th class="text-center" style="width:70px;">Gaps</th>
+                <th class="text-center" style="width:80px;">Coverage</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in framework_rows %}
+            <tr>
+                <td>{{ row.framework.name }} {% if row.framework.version %}<span style="color:#9CA3AF;">{{ row.framework.version }}</span>{% endif %}</td>
+                <td class="text-center">{{ row.cov.total }}</td>
+                <td class="text-center">{{ row.cov.covered }}</td>
+                <td class="text-center">{{ row.cov.gap }}</td>
+                <td class="text-center">
+                    {% if row.cov.percent >= 75 %}<span class="badge badge-low">{{ row.cov.percent }}%</span>
+                    {% elif row.cov.percent >= 40 %}<span class="badge badge-medium">{{ row.cov.percent }}%</span>
+                    {% else %}<span class="badge badge-critical">{{ row.cov.percent }}%</span>{% endif %}
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="5" class="text-center" style="padding:20px; color:#9CA3AF;">No frameworks configured.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- =========================================================
+     7. TOP RISKY ASSETS
+     ========================================================= -->
+<div class="section">
+    <div class="section-number">Section 7</div>
+    <h2 class="section-title">Top Risky Assets</h2>
+    <div class="section-divider"></div>
+
+    <p>
+        Assets are ranked by <strong>exposure score</strong>, defined as the maximum residual risk score
+        multiplied by the asset's criticality (1–4). Higher scores represent concentrated risk
+        that demands priority protection.
+    </p>
+
+    <table class="data">
+        <thead>
+            <tr>
+                <th style="width:80px;">Asset ID</th>
+                <th>Name</th>
+                <th style="width:80px;">Dept</th>
+                <th class="text-center" style="width:60px;">Crit.</th>
+                <th class="text-center" style="width:55px;">Risks</th>
+                <th class="text-center" style="width:70px;">Max residual</th>
+                <th class="text-center" style="width:70px;">Exposure</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in top_assets %}
+            <tr>
+                <td><strong>{{ row.asset.asset_id }}</strong></td>
+                <td>{{ row.asset.name|truncatechars:50 }}
+                    {% if row.breached %}<span class="badge badge-yes" style="margin-left:6px;">BREACH</span>{% endif %}
+                </td>
+                <td>{{ row.asset.owner_dept.name|truncatechars:12 }}</td>
+                <td class="text-center">{{ row.asset.get_criticality_display|slice:":4" }}</td>
+                <td class="text-center">{{ row.risk_count }}</td>
+                <td class="text-center">{{ row.max_residual }}</td>
+                <td class="text-center">
+                    <span class="badge {% if row.exposure >= 80 %}badge-critical{% elif row.exposure >= 50 %}badge-high{% else %}badge-medium{% endif %}">
+                        {{ row.exposure }}
+                    </span>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="7" class="text-center" style="padding:20px; color:#9CA3AF;">No asset-risk associations.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- =========================================================
+     8. RECOMMENDATIONS
+     ========================================================= -->
+<div class="section">
+    <div class="section-number">Section 8</div>
+    <h2 class="section-title">Findings &amp; Recommendations</h2>
+    <div class="section-divider"></div>
+
+    <p>
+        The following recommendations are auto-generated from the current state of the platform,
+        prioritized by severity and urgency. Each item is derived from specific signals in the
+        risk, control, and vulnerability data.
+    </p>
+
+    <div class="rec-list">
+        {% for rec in recommendations %}
+        <div class="rec-item {{ rec.priority }}">
+            <div class="rec-priority">{{ rec.priority }}</div>
+            <div class="rec-text">{{ rec.text }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="page-footer-note">
+        End of report · Generated {{ generated_at|date:"Y-m-d H:i" }} UTC by {{ generated_by.username }}
+    </div>
+</div>
+
+</body>
+</html>
