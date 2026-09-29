@@ -7,112 +7,6 @@
     <li class="breadcrumb-item active">{{ control.code }}</li>
   </ol>
 </nav>
-<div class="row g-3 mt-1">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <strong>Control tests ({{ audit_tests|length }})</strong>
-                <a href="{% url 'audits:test_create' %}?control={{ control.pk }}" class="btn btn-sm btn-primary">+ Record test</a>
-            </div>
-            <div class="row g-3 mt-1">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <strong>Audit findings ({{ audit_findings|length }})</strong>
-                <a href="{% url 'audits:finding_create' %}?control={{ control.pk }}" class="btn btn-sm btn-primary">+ Add finding</a>
-            </div>
-            <div class="table-responsive">
-                <table class="table mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Title</th>
-                            <th class="text-center">Severity</th>
-                            <th class="text-center">Status</th>
-                            <th>Source</th>
-                            <th>Owner</th>
-                            <th>Due</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% for f in audit_findings %}
-                        <tr>
-                            <td><a href="{% url 'audits:finding_detail' f.pk %}"><strong>{{ f.title|truncatechars:60 }}</strong></a></td>
-                            <td class="text-center">
-                                {% if f.severity == 'critical' %}<span class="badge bg-danger">Critical</span>
-                                {% elif f.severity == 'high' %}<span class="badge bg-warning text-dark">High</span>
-                                {% elif f.severity == 'medium' %}<span class="badge bg-info text-dark">Medium</span>
-                                {% else %}<span class="badge bg-secondary">Low</span>{% endif %}
-                            </td>
-                            <td class="text-center">
-                                {% if f.status == 'open' %}<span class="badge bg-danger">Open</span>
-                                {% elif f.status == 'in_progress' %}<span class="badge bg-warning text-dark">In Progress</span>
-                                {% elif f.status == 'resolved' %}<span class="badge bg-success">Resolved</span>
-                                {% elif f.status == 'accepted' %}<span class="badge bg-info text-dark">Accepted</span>
-                                {% else %}<span class="badge bg-secondary">Closed</span>{% endif %}
-                            </td>
-                            <td><small>{{ f.get_source_display }}</small></td>
-                            <td><small>{{ f.owner_user|default:"—" }}</small></td>
-                            <td><small>{{ f.due_date|default:"—" }}</small></td>
-                            <td class="text-end">
-                                <a href="{% url 'audits:finding_detail' f.pk %}" class="btn btn-sm btn-outline-dark">View</a>
-                            </td>
-                        </tr>
-                    {% empty %}
-                        <tr><td colspan="7" class="text-center text-muted py-3">
-                            No audit findings linked to this control.
-                            <a href="{% url 'audits:finding_create' %}?control={{ control.pk }}">Add the first one</a>.
-                        </td></tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-            <div class="table-responsive">
-                <table class="table mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Test date</th>
-                            <th class="text-center">Result</th>
-                            <th>Tester</th>
-                            <th>Procedure / Notes</th>
-                            <th>Audit</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% for t in audit_tests %}
-                        <tr>
-                            <td>{{ t.test_date }}</td>
-                            <td class="text-center">
-                                {% if t.result == 'pass' %}<span class="badge bg-success">Pass</span>
-                                {% elif t.result == 'partial' %}<span class="badge bg-warning text-dark">Partial</span>
-                                {% elif t.result == 'fail' %}<span class="badge bg-danger">Fail</span>
-                                {% elif t.result == 'self_audit' %}<span class="badge bg-info text-dark">Self Audit</span>
-                                {% elif t.result == 'continuous_monitoring' %}<span class="badge bg-primary">Continuous Monitoring</span>
-                                {% else %}<span class="badge bg-secondary">{{ t.get_result_display }}</span>{% endif %}
-                            </td>
-                            <td><small>{{ t.tester|default:"—" }}</small></td>
-                            <td><small class="text-muted">{{ t.procedure_notes|truncatechars:120|default:"—" }}</small></td>
-                            <td><small>{% if t.audit %}<a href="{% url 'audits:detail' t.audit.pk %}">{{ t.audit.name|truncatechars:30 }}</a>{% else %}—{% endif %}</small></td>
-                            <td class="text-end">
-                                <a href="{% url 'audits:test_update' t.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
-                            </td>
-                        </tr>
-                    {% empty %}
-                        <tr><td colspan="6" class="text-center text-muted py-3">
-                            No tests recorded yet.
-                            <a href="{% url 'audits:test_create' %}?control={{ control.pk }}">Record the first one</a>.
-                        </td></tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block content %}
@@ -234,6 +128,104 @@
                     <li class="list-group-item text-muted text-center">No protected assets.</li>
                 {% endfor %}
             </ul>
+        </div>
+
+        {# ============ CONTROL TESTS ============ #}
+        <div class="card mt-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Control tests ({{ audit_tests|length }})</strong>
+                <a href="{% url 'audits:test_create' %}?control={{ control.pk }}" class="btn btn-sm btn-primary">+ Record test</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Test date</th>
+                            <th class="text-center">Result</th>
+                            <th>Tester</th>
+                            <th>Procedure / Notes</th>
+                            <th>Audit</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for t in audit_tests %}
+                        <tr>
+                            <td>{{ t.test_date }}</td>
+                            <td class="text-center">
+                                {% if t.result == 'pass' %}<span class="badge bg-success">Pass</span>
+                                {% elif t.result == 'partial' %}<span class="badge bg-warning text-dark">Partial</span>
+                                {% elif t.result == 'fail' %}<span class="badge bg-danger">Fail</span>
+                                {% elif t.result == 'self_audit' %}<span class="badge bg-info text-dark">Self Audit</span>
+                                {% elif t.result == 'continuous_monitoring' %}<span class="badge bg-primary">Continuous Monitoring</span>
+                                {% else %}<span class="badge bg-secondary">{{ t.get_result_display }}</span>{% endif %}
+                            </td>
+                            <td><small>{{ t.tester|default:"—" }}</small></td>
+                            <td><small class="text-muted">{{ t.procedure_notes|truncatechars:120|default:"—" }}</small></td>
+                            <td><small>{% if t.audit %}<a href="{% url 'audits:detail' t.audit.pk %}">{{ t.audit.name|truncatechars:30 }}</a>{% else %}—{% endif %}</small></td>
+                            <td class="text-end"><a href="{% url 'audits:test_update' t.pk %}" class="btn btn-sm btn-outline-dark">Edit</a></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-3">
+                            No tests recorded yet.
+                            <a href="{% url 'audits:test_create' %}?control={{ control.pk }}">Record the first one</a>.
+                        </td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# ============ AUDIT FINDINGS ============ #}
+        <div class="card mt-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Audit findings ({{ audit_findings|length }})</strong>
+                <a href="{% url 'audits:finding_create' %}?control={{ control.pk }}" class="btn btn-sm btn-primary">+ Add finding</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Title</th>
+                            <th class="text-center">Severity</th>
+                            <th class="text-center">Status</th>
+                            <th>Source</th>
+                            <th>Owner</th>
+                            <th>Due</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for f in audit_findings %}
+                        <tr>
+                            <td><a href="{% url 'audits:finding_detail' f.pk %}"><strong>{{ f.title|truncatechars:60 }}</strong></a></td>
+                            <td class="text-center">
+                                {% if f.severity == 'critical' %}<span class="badge bg-danger">Critical</span>
+                                {% elif f.severity == 'high' %}<span class="badge bg-warning text-dark">High</span>
+                                {% elif f.severity == 'medium' %}<span class="badge bg-info text-dark">Medium</span>
+                                {% else %}<span class="badge bg-secondary">Low</span>{% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if f.status == 'open' %}<span class="badge bg-danger">Open</span>
+                                {% elif f.status == 'in_progress' %}<span class="badge bg-warning text-dark">In Progress</span>
+                                {% elif f.status == 'resolved' %}<span class="badge bg-success">Resolved</span>
+                                {% elif f.status == 'accepted' %}<span class="badge bg-info text-dark">Accepted</span>
+                                {% else %}<span class="badge bg-secondary">Closed</span>{% endif %}
+                            </td>
+                            <td><small>{{ f.get_source_display }}</small></td>
+                            <td><small>{{ f.owner_user|default:"—" }}</small></td>
+                            <td><small>{{ f.due_date|default:"—" }}</small></td>
+                            <td class="text-end"><a href="{% url 'audits:finding_detail' f.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="7" class="text-center text-muted py-3">
+                            No audit findings linked to this control.
+                            <a href="{% url 'audits:finding_create' %}?control={{ control.pk }}">Add the first one</a>.
+                        </td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         {% if evidence %}

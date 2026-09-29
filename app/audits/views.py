@@ -422,7 +422,7 @@ class FindingCreateView(DepartmentScopedMixin, CreateView):
         if not user.is_superuser and user.department_id:
             initial['owner_dept'] = user.department
 
-        # Pre-fill from query params
+        # Prefill from query params
         audit = self.request.GET.get('audit')
         if audit:
             initial['audit'] = audit

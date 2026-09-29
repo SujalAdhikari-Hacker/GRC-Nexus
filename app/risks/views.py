@@ -10,11 +10,14 @@ from core.mixins import DepartmentScopedMixin, HODOrSuperuserMixin, CsvExportMix
 from core.correlation import get_full_risk_context
 from .models import Risk, RiskCategory, RiskAppetite, RiskTreatment
 from .services import recalculate_risk
-from .forms import RiskForm, RiskTreatmentForm, RiskTreatmentUpdateForm
+from .forms import (
+    RiskForm, RiskTreatmentForm, RiskTreatmentUpdateForm,
+    RiskExceptionForm, RiskAppetiteForm,
+)
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.views.decorators.http import require_POST
-
+from .forms import RiskForm, RiskTreatmentForm, RiskTreatmentUpdateForm, RiskExceptionForm, RiskAppetiteForm
 from .models import RiskException
 from .forms import RiskExceptionForm
 
@@ -390,12 +393,8 @@ class RiskAppetiteListView(HODOrSuperuserMixin, ListView):
 
 class RiskAppetiteCreateView(HODOrSuperuserMixin, CreateView):
     model = RiskAppetite
+    form_class = RiskAppetiteForm
     template_name = 'risks/appetite_form.html'
-    fields = [
-        'department', 'category', 'appetite_level', 'appetite_statement',
-        'max_inherent_score', 'max_residual_score', 'risk_capacity',
-        'board_approved', 'approved_by', 'review_date', 'description',
-    ]
     success_url = reverse_lazy('risks:appetite_list')
 
     def get_initial(self):
@@ -405,16 +404,18 @@ class RiskAppetiteCreateView(HODOrSuperuserMixin, CreateView):
             initial['department'] = user.department
         return initial
 
+    def form_valid(self, form):
+        if form.cleaned_data.get('board_approved') and not form.instance.approved_by_id:
+            form.instance.approved_by = self.request.user
+        return super().form_valid(form)
+
 
 class RiskAppetiteUpdateView(HODOrSuperuserMixin, UpdateView):
     model = RiskAppetite
+    form_class = RiskAppetiteForm
     template_name = 'risks/appetite_form.html'
-    fields = [
-        'department', 'category', 'appetite_level', 'appetite_statement',
-        'max_inherent_score', 'max_residual_score', 'risk_capacity',
-        'board_approved', 'approved_by', 'review_date', 'description',
-    ]
     success_url = reverse_lazy('risks:appetite_list')
+
 class RiskExceptionListView(DepartmentScopedMixin, ListView):
     model = RiskException
     template_name = 'risks/exception_list.html'
@@ -731,3 +732,4 @@ def exception_revoke(request, pk):
     exc.save()
     messages.warning(request, f'{exc.exception_id} revoked.')
     return redirect('risks:exception_detail', pk=pk)
+
