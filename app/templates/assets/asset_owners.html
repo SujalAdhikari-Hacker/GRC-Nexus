@@ -1,0 +1,59 @@
+﻿{% extends "base.html" %}
+{% block title %}Asset Owners{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'assets:list' %}">Assets</a></li>
+    <li class="breadcrumb-item active">By Owner</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Assets by Owner</h5>
+        <small class="text-muted">{{ total }} active asset{{ total|pluralize }} grouped by {% if mode == 'user' %}individual owner{% else %}department{% endif %}</small>
+    </div>
+    <div class="d-flex gap-2">
+        <div class="btn-group btn-group-sm">
+            <a href="?view=department" class="btn {% if mode == 'department' %}btn-dark{% else %}btn-outline-dark{% endif %}">By Department</a>
+            <a href="?view=user" class="btn {% if mode == 'user' %}btn-dark{% else %}btn-outline-dark{% endif %}">By User</a>
+        </div>
+        <a href="{% url 'assets:classification' %}" class="btn btn-sm btn-outline-dark">By Classification</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    {% for group in groups %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="user-avatar" style="width:26px; height:26px; font-size:11px;">{{ group.label|first|upper }}</span>
+                    <strong>{{ group.label }}</strong>
+                </div>
+                <span class="badge bg-dark">{{ group.count }}</span>
+            </div>
+            <ul class="list-group list-group-flush" style="max-height:400px; overflow-y:auto;">
+                {% for a in group.assets %}
+                    <li class="list-group-item">
+                        <a href="{% url 'assets:detail' a.pk %}" class="d-block">
+                            <code>{{ a.asset_id }}</code>
+                            <span class="fw-bold">{{ a.name|truncatechars:35 }}</span>
+                        </a>
+                        <div class="small text-muted mt-1">
+                            {{ a.get_asset_type_display }} · {{ a.get_environment_display }}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="card"><div class="card-body text-center text-muted py-5">No assets found.</div></div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

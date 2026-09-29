@@ -1,6 +1,8 @@
 ﻿from django.db.models import Q
 from django.views.generic import ListView, DetailView
-
+from collections import defaultdict
+from django.views.generic import TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from core.correlation import get_full_asset_context
 from .models import Asset, AssetCategory
@@ -65,4 +67,60 @@ class AssetDetailView(DepartmentScopedMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_asset_context(self.object))
+        return ctx
+class AssetClassificationView(DepartmentScopedMixin, TemplateView):
+    template_name = 'assets/asset_classification.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        qs = Asset.objects.filter(is_active=True).select_related('owner_dept', 'vendor')
+
+        if not user.is_superuser and user.department_id:
+            qs = qs.filter(owner_dept=user.department)
+
+        buckets = []
+        for code, label in Asset.CLASSIFICATION_CHOICES:
+            items = qs.filter(classification=code).order_by('asset_id')
+            buckets.append({
+                'code': code,
+                'label': label,
+                'count': items.count(),
+                'assets': items,
+            })
+
+        ctx['buckets'] = buckets
+        ctx['total'] = qs.count()
+        return ctx
+
+
+class AssetOwnersView(DepartmentScopedMixin, TemplateView):
+    template_name = 'assets/asset_owners.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        qs = Asset.objects.filter(is_active=True).select_related('owner_dept', 'owner_user', 'vendor')
+
+        if not user.is_superuser and user.department_id:
+            qs = qs.filter(owner_dept=user.department)
+
+        mode = self.request.GET.get('view', 'department')
+        ctx['mode'] = mode
+
+        groups = defaultdict(list)
+
+        if mode == 'user':
+            for a in qs:
+                key = a.owner_user.username if a.owner_user else 'Unassigned'
+                groups[key].append(a)
+        else:
+            for a in qs:
+                groups[a.owner_dept.name].append(a)
+
+        ctx['groups'] = [
+            {'label': k, 'assets': v, 'count': len(v)}
+            for k, v in sorted(groups.items())
+        ]
+        ctx['total'] = qs.count()
         return ctx
