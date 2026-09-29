@@ -11,7 +11,12 @@ from core.correlation import get_full_risk_context
 from .models import Risk, RiskCategory, RiskAppetite, RiskTreatment
 from .services import recalculate_risk
 from .forms import RiskForm, RiskTreatmentForm, RiskTreatmentUpdateForm
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.views.decorators.http import require_POST
 
+from .models import RiskException
+from .forms import RiskExceptionForm
 
 class RiskListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Risk
@@ -377,3 +382,319 @@ class RiskAppetiteUpdateView(HODOrSuperuserMixin, UpdateView):
         'board_approved', 'approved_by', 'review_date', 'description',
     ]
     success_url = reverse_lazy('risks:appetite_list')
+class RiskExceptionListView(DepartmentScopedMixin, ListView):
+    model = RiskException
+    template_name = 'risks/exception_list.html'
+    context_object_name = 'exceptions'
+    paginate_by = 25
+    department_field = 'risk__owner_dept'
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('risk', 'approver', 'requested_by')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(title__icontains=q) | Q(justification__icontains=q))
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['statuses'] = RiskException.STATUS_CHOICES
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_status'] = self.request.GET.get('status', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(risk__owner_dept=user.department)
+
+        # Compute expired/expiring counts (Python-side, since they depend on today)
+        all_exc = list(base)
+        ctx['total_count'] = len(all_exc)
+        ctx['pending_count'] = sum(1 for e in all_exc if e.status == 'pending')
+        ctx['active_count'] = sum(1 for e in all_exc if e.status == 'active')
+        ctx['expired_count'] = sum(1 for e in all_exc if e.status == 'expired' or e.is_expired)
+        ctx['expiring_soon_count'] = sum(1 for e in all_exc if e.status == 'active' and e.is_expiring_soon)
+        return ctx
+
+
+class RiskExceptionDetailView(DepartmentScopedMixin, DetailView):
+    model = RiskException
+    template_name = 'risks/exception_detail.html'
+    context_object_name = 'exception'
+    department_field = 'risk__owner_dept'
+
+
+class RiskExceptionCreateView(LoginRequiredMixin, CreateView):
+    model = RiskException
+    form_class = RiskExceptionForm
+    template_name = 'risks/exception_form.html'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['requested_by'] = self.request.user
+        risk_pk = self.request.GET.get('risk')
+        if risk_pk:
+            try:
+                initial['risk'] = Risk.objects.get(pk=risk_pk)
+            except Risk.DoesNotExist:
+                pass
+        return initial
+
+    def form_valid(self, form):
+        if not form.instance.requested_by_id:
+            form.instance.requested_by = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('risks:exception_detail', kwargs={'pk': self.object.pk})
+
+
+class RiskExceptionUpdateView(LoginRequiredMixin, UpdateView):
+    model = RiskException
+    form_class = RiskExceptionForm
+    template_name = 'risks/exception_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('risks:exception_detail', kwargs={'pk': self.object.pk})
+
+
+@require_POST
+def exception_approve(request, pk):
+    exc = get_object_or_404(RiskException, pk=pk)
+    exc.status = 'active'
+    exc.approver = request.user
+    exc.approval_date = timezone.now().date()
+    exc.save()
+    messages.success(request, f'{exc.exception_id} approved and now active.')
+    return redirect('risks:exception_detail', pk=pk)
+
+
+@require_POST
+def exception_revoke(request, pk):
+    exc = get_object_or_404(RiskException, pk=pk)
+    exc.status = 'revoked'
+    exc.save()
+    messages.warning(request, f'{exc.exception_id} revoked.')
+    return redirect('risks:exception_detail', pk=pk)
+# ============================================================
+# RISK EXCEPTIONS
+# ============================================================
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.views.decorators.http import require_POST
+
+from .models import RiskException
+from .forms import RiskExceptionForm
+
+
+class RiskExceptionListView(DepartmentScopedMixin, ListView):
+    model = RiskException
+    template_name = 'risks/exception_list.html'
+    context_object_name = 'exceptions'
+    paginate_by = 25
+    department_field = 'risk__owner_dept'
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('risk', 'approver', 'requested_by')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(title__icontains=q) | Q(justification__icontains=q))
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['statuses'] = RiskException.STATUS_CHOICES
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_status'] = self.request.GET.get('status', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(risk__owner_dept=user.department)
+
+        all_exc = list(base)
+        ctx['total_count'] = len(all_exc)
+        ctx['pending_count'] = sum(1 for e in all_exc if e.status == 'pending')
+        ctx['active_count'] = sum(1 for e in all_exc if e.status == 'active')
+        ctx['expired_count'] = sum(1 for e in all_exc if e.status == 'expired' or e.is_expired)
+        ctx['expiring_soon_count'] = sum(1 for e in all_exc if e.status == 'active' and e.is_expiring_soon)
+        return ctx
+
+
+class RiskExceptionDetailView(DepartmentScopedMixin, DetailView):
+    model = RiskException
+    template_name = 'risks/exception_detail.html'
+    context_object_name = 'exception'
+    department_field = 'risk__owner_dept'
+
+
+class RiskExceptionCreateView(LoginRequiredMixin, CreateView):
+    model = RiskException
+    form_class = RiskExceptionForm
+    template_name = 'risks/exception_form.html'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['requested_by'] = self.request.user
+        risk_pk = self.request.GET.get('risk')
+        if risk_pk:
+            try:
+                initial['risk'] = Risk.objects.get(pk=risk_pk)
+            except Risk.DoesNotExist:
+                pass
+        return initial
+
+    def form_valid(self, form):
+        if not form.instance.requested_by_id:
+            form.instance.requested_by = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('risks:exception_detail', kwargs={'pk': self.object.pk})
+
+
+class RiskExceptionUpdateView(LoginRequiredMixin, UpdateView):
+    model = RiskException
+    form_class = RiskExceptionForm
+    template_name = 'risks/exception_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('risks:exception_detail', kwargs={'pk': self.object.pk})
+
+
+@require_POST
+def exception_approve(request, pk):
+    exc = get_object_or_404(RiskException, pk=pk)
+    exc.status = 'active'
+    exc.approver = request.user
+    exc.approval_date = timezone.now().date()
+    exc.save()
+    messages.success(request, f'{exc.exception_id} approved and now active.')
+    return redirect('risks:exception_detail', pk=pk)
+
+
+@require_POST
+def exception_revoke(request, pk):
+    exc = get_object_or_404(RiskException, pk=pk)
+    exc.status = 'revoked'
+    exc.save()
+    messages.warning(request, f'{exc.exception_id} revoked.')
+    return redirect('risks:exception_detail', pk=pk)
+
+# ============================================================
+# RISK EXCEPTIONS
+# ============================================================
+
+from django.contrib.auth.mixins import LoginRequiredMixin as _LRM2
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.views.decorators.http import require_POST
+from django.utils import timezone
+from .models import RiskException
+from .forms import RiskExceptionForm
+
+
+class RiskExceptionListView(DepartmentScopedMixin, ListView):
+    model = RiskException
+    template_name = 'risks/exception_list.html'
+    context_object_name = 'exceptions'
+    paginate_by = 25
+    department_field = 'risk__owner_dept'
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('risk', 'approver', 'requested_by')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(title__icontains=q) | Q(justification__icontains=q))
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['statuses'] = RiskException.STATUS_CHOICES
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['selected_status'] = self.request.GET.get('status', '')
+
+        base = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            base = base.filter(risk__owner_dept=user.department)
+
+        all_exc = list(base)
+        ctx['total_count'] = len(all_exc)
+        ctx['pending_count'] = sum(1 for e in all_exc if e.status == 'pending')
+        ctx['active_count'] = sum(1 for e in all_exc if e.status == 'active')
+        ctx['expired_count'] = sum(1 for e in all_exc if e.status == 'expired' or e.is_expired)
+        ctx['expiring_soon_count'] = sum(1 for e in all_exc if e.status == 'active' and e.is_expiring_soon)
+        return ctx
+
+
+class RiskExceptionDetailView(DepartmentScopedMixin, DetailView):
+    model = RiskException
+    template_name = 'risks/exception_detail.html'
+    context_object_name = 'exception'
+    department_field = 'risk__owner_dept'
+
+
+class RiskExceptionCreateView(_LRM2, CreateView):
+    model = RiskException
+    form_class = RiskExceptionForm
+    template_name = 'risks/exception_form.html'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['requested_by'] = self.request.user
+        risk_pk = self.request.GET.get('risk')
+        if risk_pk:
+            try:
+                initial['risk'] = Risk.objects.get(pk=risk_pk)
+            except Risk.DoesNotExist:
+                pass
+        return initial
+
+    def form_valid(self, form):
+        if not form.instance.requested_by_id:
+            form.instance.requested_by = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('risks:exception_detail', kwargs={'pk': self.object.pk})
+
+
+class RiskExceptionUpdateView(_LRM2, UpdateView):
+    model = RiskException
+    form_class = RiskExceptionForm
+    template_name = 'risks/exception_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('risks:exception_detail', kwargs={'pk': self.object.pk})
+
+
+@require_POST
+def exception_approve(request, pk):
+    exc = get_object_or_404(RiskException, pk=pk)
+    exc.status = 'active'
+    exc.approver = request.user
+    exc.approval_date = timezone.now().date()
+    exc.save()
+    messages.success(request, f'{exc.exception_id} approved and now active.')
+    return redirect('risks:exception_detail', pk=pk)
+
+
+@require_POST
+def exception_revoke(request, pk):
+    exc = get_object_or_404(RiskException, pk=pk)
+    exc.status = 'revoked'
+    exc.save()
+    messages.warning(request, f'{exc.exception_id} revoked.')
+    return redirect('risks:exception_detail', pk=pk)

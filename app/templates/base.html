@@ -98,6 +98,10 @@
                         <a href="{% url 'risks:matrix' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-grid-3x3"></i><span>Risk Matrix</span>
             </a>
+                        <a href="{% url 'risks:exception_list' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-shield-check"></i><span>Risk Exceptions</span>
+            </a>
+
                         <a href="{% url 'controls:framework_matrix' %}" class="sidebar-link" style="display: flex;">
                 <i class="bi bi-grid-1x2"></i><span>Framework Matrix</span>
             </a>
@@ -120,6 +124,9 @@
             </a>
                         <a href="{% url 'risks:matrix' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-grid-3x3"></i><span>Risk Matrix</span>
+            </a>
+                        <a href="{% url 'risks:exception_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-shield-check"></i><span>Risk Exceptions</span>
             </a>
             {% endif %}
             <a href="{% url 'controls:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">

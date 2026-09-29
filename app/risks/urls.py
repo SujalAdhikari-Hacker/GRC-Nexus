@@ -2,9 +2,11 @@
 from .views import (
     RiskListView, RiskDetailView, RiskCreateView, RiskUpdateView,
     risk_score_preview, RiskMatrixView,
-    RiskTreatmentCreateView, RiskTreatmentUpdateView,
-    TreatmentListView,
+    RiskTreatmentCreateView, RiskTreatmentUpdateView, TreatmentListView,
     RiskAppetiteListView, RiskAppetiteCreateView, RiskAppetiteUpdateView,
+    RiskExceptionListView, RiskExceptionDetailView,
+    RiskExceptionCreateView, RiskExceptionUpdateView,
+    exception_approve, exception_revoke,
 )
 
 app_name = 'risks'
@@ -22,6 +24,13 @@ urlpatterns = [
     path('appetite/', RiskAppetiteListView.as_view(), name='appetite_list'),
     path('appetite/new/', RiskAppetiteCreateView.as_view(), name='appetite_create'),
     path('appetite/<int:pk>/edit/', RiskAppetiteUpdateView.as_view(), name='appetite_update'),
+
+    path('exceptions/', RiskExceptionListView.as_view(), name='exception_list'),
+    path('exceptions/new/', RiskExceptionCreateView.as_view(), name='exception_create'),
+    path('exceptions/<int:pk>/', RiskExceptionDetailView.as_view(), name='exception_detail'),
+    path('exceptions/<int:pk>/edit/', RiskExceptionUpdateView.as_view(), name='exception_update'),
+    path('exceptions/<int:pk>/approve/', exception_approve, name='exception_approve'),
+    path('exceptions/<int:pk>/revoke/', exception_revoke, name='exception_revoke'),
 
     path('<int:pk>/', RiskDetailView.as_view(), name='detail'),
     path('<int:pk>/edit/', RiskUpdateView.as_view(), name='update'),

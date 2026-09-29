@@ -1,0 +1,126 @@
+﻿{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Exception{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'risks:list' %}">Risks</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'risks:exception_list' %}">Exceptions</a></li>
+    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Risk exception details</strong></div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Title <span class="text-danger">*</span></label>
+                        {{ form.title }}
+                        {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Related risk <span class="text-danger">*</span></label>
+                        {{ form.risk }}
+                        {% if form.risk.errors %}<div class="text-danger small">{{ form.risk.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Justification <span class="text-danger">*</span></label>
+                        {{ form.justification }}
+                        <div class="form-text small">{{ form.justification.help_text }}</div>
+                        {% if form.justification.errors %}<div class="text-danger small">{{ form.justification.errors }}</div>{% endif %}
+                    </div>
+
+                    <hr>
+                    <h6 class="mb-3"><i class="bi bi-person-check"></i> Approval workflow</h6>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Requested by</label>
+                            {{ form.requested_by }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Approver</label>
+                            {{ form.approver }}
+                            <div class="form-text small">{{ form.approver.help_text }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Approval date</label>
+                            {{ form.approval_date }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Expiry date <span class="text-danger">*</span></label>
+                            {{ form.expiry_date }}
+                            <div class="form-text small">{{ form.expiry_date.help_text }}</div>
+                            {% if form.expiry_date.errors %}<div class="text-danger small">{{ form.expiry_date.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Review date</label>
+                            {{ form.review_date }}
+                        </div>
+                    </div>
+
+                    <hr>
+                    <h6 class="mb-3"><i class="bi bi-shield-check"></i> Compensating measures</h6>
+
+                    <div class="mb-3">
+                        <label class="form-label">Compensating controls</label>
+                        {{ form.compensating_controls }}
+                        <div class="form-text small">{{ form.compensating_controls.help_text }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Conditions / limitations</label>
+                        {{ form.conditions }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        {{ form.notes }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        {{ form.status }}
+                    </div>
+
+                    <hr>
+                    <button type="submit" class="btn btn-dark">Save Exception</button>
+                    <a href="{% url 'risks:exception_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card sticky-top" style="top:1rem;">
+            <div class="card-header bg-white"><strong>When to use risk exceptions</strong></div>
+            <div class="card-body small text-muted">
+                <p>Use a formal exception when:</p>
+                <ul class="ps-3">
+                    <li>A risk cannot be mitigated within appetite</li>
+                    <li>Remediation is deferred due to business constraints</li>
+                    <li>Risk is consciously accepted by management</li>
+                </ul>
+                <p class="mb-0">Every exception must have an <strong>approver</strong>, an <strong>expiry date</strong>, and a <strong>justification</strong>. When it expires, the risk must be re-evaluated.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="text"], input[type="date"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+    select[multiple] { min-height: 140px; }
+</style>
+{% endblock %}

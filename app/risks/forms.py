@@ -1,5 +1,6 @@
 ﻿from django import forms
 from .models import Risk, RiskTreatment
+from .models import RiskException
 
 
 class RiskForm(forms.ModelForm):
@@ -62,3 +63,56 @@ class RiskTreatmentUpdateForm(forms.ModelForm):
         help_texts = {
             'controls': 'Controls that implement this treatment.',
         }
+class RiskExceptionForm(forms.ModelForm):
+    class Meta:
+        model = RiskException
+        fields = [
+            'title', 'risk', 'justification',
+            'requested_by', 'approver', 'approval_date',
+            'expiry_date', 'review_date', 'status',
+            'compensating_controls', 'conditions', 'notes',
+        ]
+        widgets = {
+            'justification': forms.Textarea(attrs={'rows': 4}),
+            'conditions': forms.Textarea(attrs={'rows': 3}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
+            'approval_date': forms.DateInput(attrs={'type': 'date'}),
+            'expiry_date': forms.DateInput(attrs={'type': 'date'}),
+            'review_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+        help_texts = {
+            'justification': 'Why accept this risk? (min 30 characters)',
+            'approver': 'Who formally accepts this risk on behalf of the org?',
+            'expiry_date': 'When does this exception expire? Risk must be re-evaluated after.',
+            'compensating_controls': 'Extra controls reducing the residual risk while accepted.',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['risk'].disabled = True
+from .models import RiskException
+
+
+class RiskExceptionForm(forms.ModelForm):
+    class Meta:
+        model = RiskException
+        fields = [
+            'title', 'risk', 'justification',
+            'requested_by', 'approver', 'approval_date',
+            'expiry_date', 'review_date', 'status',
+            'compensating_controls', 'conditions', 'notes',
+        ]
+        widgets = {
+            'justification': forms.Textarea(attrs={'rows': 4}),
+            'conditions': forms.Textarea(attrs={'rows': 3}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
+            'approval_date': forms.DateInput(attrs={'type': 'date'}),
+            'expiry_date': forms.DateInput(attrs={'type': 'date'}),
+            'review_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['risk'].disabled = True

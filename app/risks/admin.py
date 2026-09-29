@@ -3,6 +3,7 @@ from django.utils.html import format_html
 from simple_history.admin import SimpleHistoryAdmin
 from .models import Risk, RiskCategory, RiskAppetite, RiskTreatment
 from core.correlation import get_related_risks
+from .models import RiskException
 
 
 @admin.register(RiskCategory)
@@ -126,3 +127,48 @@ class RiskTreatmentAdmin(SimpleHistoryAdmin):
     list_filter = ('strategy', 'status', 'due_date')
     search_fields = ('risk__title', 'action_plan')
     filter_horizontal = ('controls',)
+@admin.register(RiskException)
+class RiskExceptionAdmin(SimpleHistoryAdmin):
+    list_display = (
+        'exception_id', 'title', 'risk', 'status',
+        'approver', 'approval_date', 'expiry_date', 'days_left_display'
+    )
+    list_filter = ('status', 'approval_date', 'expiry_date')
+    search_fields = ('exception_id', 'title', 'justification', 'conditions', 'notes')
+    readonly_fields = ('exception_id', 'created_at', 'updated_at', 'days_left_display')
+    filter_horizontal = ('compensating_controls',)
+    date_hierarchy = 'expiry_date'
+
+    fieldsets = (
+        ('Identification', {
+            'fields': ('exception_id', 'title', 'risk', 'status')
+        }),
+        ('Justification', {
+            'fields': ('justification', 'conditions')
+        }),
+        ('Approval', {
+            'fields': ('requested_by', 'approver', 'approval_date')
+        }),
+        ('Dates', {
+            'fields': ('expiry_date', 'review_date', 'days_left_display')
+        }),
+        ('Compensating controls', {
+            'fields': ('compensating_controls',)
+        }),
+        ('Notes', {
+            'fields': ('notes',)
+        }),
+        ('Audit', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    @admin.display(description='Days left')
+    def days_left_display(self, obj):
+        d = obj.days_until_expiry
+        if d is None:
+            return '—'
+        if d < 0:
+            return f'EXPIRED {abs(d)}d ago'
+        return f'{d} days'

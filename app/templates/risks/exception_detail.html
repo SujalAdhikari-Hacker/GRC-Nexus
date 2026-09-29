@@ -1,0 +1,147 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ exception.exception_id }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'risks:list' %}">Risks</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'risks:exception_list' %}">Exceptions</a></li>
+    <li class="breadcrumb-item active">{{ exception.exception_id }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0"><code>{{ exception.exception_id }}</code> — {{ exception.title }}</h4>
+        <small class="text-muted">
+            Related to <a href="{% url 'risks:detail' exception.risk.pk %}">{{ exception.risk.title|truncatechars:60 }}</a>
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'risks:exception_update' exception.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        {% if exception.status == 'pending' %}
+            <form method="post" action="{% url 'risks:exception_approve' exception.pk %}" style="margin:0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-success">Approve</button>
+            </form>
+        {% endif %}
+        {% if exception.status != 'revoked' %}
+            <form method="post" action="{% url 'risks:exception_revoke' exception.pk %}" style="margin:0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>
+            </form>
+        {% endif %}
+        <a href="/admin/risks/riskexception/{{ exception.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+    </div>
+</div>
+
+{# Status banner #}
+{% if exception.status == 'expired' or exception.is_expired %}
+<div class="alert alert-danger d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-octagon-fill"></i>
+    <div><strong>EXPIRED</strong> — this risk exception expired {{ exception.days_until_expiry|cut:"-" }} days ago. Risk must be re-evaluated.</div>
+</div>
+{% elif exception.is_expiring_soon %}
+<div class="alert alert-warning d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div><strong>Expiring soon</strong> — {{ exception.days_until_expiry }} days remaining. Plan re-evaluation.</div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="color:{{ exception.status_color }}; font-size:1.1rem;">{{ exception.get_status_display }}</div>
+            <div class="label"><i class="bi bi-flag"></i> Status</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="font-size:1.1rem;">{{ exception.approver|default:"—" }}</div>
+            <div class="label"><i class="bi bi-person-check"></i> Approver</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="value" style="font-size:1.1rem;">{{ exception.approval_date|default:"—" }}</div>
+            <div class="label"><i class="bi bi-calendar-check"></i> Approval date</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" {% if exception.is_expiring_soon %}style="border-color:#D97706;"{% elif exception.is_expired %}style="border-color:#DC2626;"{% endif %}>
+            <div class="value" style="font-size:1.1rem;">{{ exception.expiry_date }}</div>
+            <div class="label">
+                <i class="bi bi-clock-history"></i> Expires
+                {% if exception.days_until_expiry is not None %}
+                    · {% if exception.days_until_expiry < 0 %}<span class="text-danger">past</span>{% else %}{{ exception.days_until_expiry }}d{% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Justification</strong></div>
+            <div class="card-body">{{ exception.justification|linebreaks }}</div>
+        </div>
+
+        {% if exception.conditions %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Conditions / limitations</strong></div>
+            <div class="card-body">{{ exception.conditions|linebreaks }}</div>
+        </div>
+        {% endif %}
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Compensating controls ({{ exception.compensating_controls.count }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for c in exception.compensating_controls.all %}
+                    <li class="list-group-item">
+                        <a href="{% url 'controls:detail' c.pk %}"><code>{{ c.code }}</code> — {{ c.name }}</a>
+                        <div class="small text-muted">{{ c.get_status_display }} · effectiveness {{ c.get_effectiveness_rating_display }}</div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small">No compensating controls.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        {% if exception.notes %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Notes</strong></div>
+            <div class="card-body">{{ exception.notes|linebreaks }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Metadata</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Exception ID</span><code>{{ exception.exception_id }}</code></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Requested by</span><span>{{ exception.requested_by|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Review date</span><span>{{ exception.review_date|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Created</span><span>{{ exception.created_at|date:"Y-m-d" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Updated</span><span>{{ exception.updated_at|date:"Y-m-d" }}</span></li>
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Risk context</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Risk</span><a href="{% url 'risks:detail' exception.risk.pk %}">{{ exception.risk.title|truncatechars:30 }}</a></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Inherent</span><span>{{ exception.risk.inherent_score }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Residual</span><span><strong>{{ exception.risk.residual_score }}</strong></span></li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Appetite</span>
+                    {% if exception.risk.appetite_breached %}<span class="badge bg-danger">Breach</span>{% else %}<span class="badge bg-success">OK</span>{% endif %}
+                </li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ exception.risk.owner_dept.name }}</span></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
