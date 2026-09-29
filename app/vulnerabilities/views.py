@@ -220,3 +220,72 @@ class LiveCVEFeedView(LoginRequiredMixin, ListView):
         ctx['kev_filter'] = self.request.GET.get('kev', '')
         ctx['days_filter'] = self.request.GET.get('days', '')
         return ctx
+
+
+# ============================================================
+# MANUAL VULNERABILITY ENTRY
+# ============================================================
+
+from django.contrib.auth.mixins import LoginRequiredMixin as _LRM5
+from django.views.generic import FormView as _FV5
+from django.urls import reverse_lazy as _RL5
+from .forms import ManualVulnerabilityForm
+from django.utils import timezone as _tz5
+
+
+class ManualVulnerabilityCreateView(_LRM5, _FV5):
+    form_class = ManualVulnerabilityForm
+    template_name = 'vulnerabilities/manual_entry.html'
+    success_url = _RL5('vulnerabilities:finding_list')
+
+    def form_valid(self, form):
+        data = form.cleaned_data
+
+        # Reuse existing vulnerability if CVE matches, else create new
+        existing = data.get('existing_vulnerability')
+        if existing:
+            vuln = existing
+        else:
+            cve_id = (data.get('cve_id') or '').strip() or None
+            vuln = Vulnerability.objects.create(
+                cve_id=cve_id,
+                title=data['title'][:500],
+                description=data.get('description', ''),
+                cvss_score=data['cvss_score'],
+                cvss_severity=data['cvss_severity'],
+                source='manual',
+            )
+
+        # Compute SLA if not given
+        sla = data.get('sla_due_date')
+        if not sla:
+            from datetime import timedelta
+            days = Finding.SLA_DAYS.get(data['cvss_severity'], 90)
+            sla = data['discovered_date'] + timedelta(days=days)
+
+        finding = Finding(
+            vulnerability=vuln,
+            asset=data['asset'],
+            owner_dept=data['asset'].owner_dept,
+            port=data.get('port', ''),
+            evidence=data.get('evidence', ''),
+            status=data['status'],
+            discovered_date=data['discovered_date'],
+            sla_due_date=sla,
+            assigned_to=data.get('assigned_to'),
+            assigned_team=data.get('assigned_team'),
+            solution=data.get('solution', ''),
+            remediation_notes=data.get('remediation_notes', ''),
+        )
+        finding.save()
+
+        messages.success(self.request, f'Vulnerability logged: {vuln} on {finding.asset.asset_id}')
+        return redirect('vulnerabilities:finding_detail', pk=finding.pk)
+
+    def get_initial(self):
+        return {
+            'discovered_date': _tz5.now().date(),
+            'status': 'new',
+            'cvss_severity': 'medium',
+            'cvss_score': 5.0,
+        }

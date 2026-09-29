@@ -12,10 +12,11 @@ class Vulnerability(models.Model):
         ('none',     'None'),
     ]
     SOURCE_CHOICES = [
-        ('manual', 'Manual Entry'),
-        ('nvd',    'NVD API'),
-        ('cisa',   'CISA Feed'),
-        ('circl',  'CIRCL Feed'),
+        ('manual',        'Manual Entry'),
+        ('nvd',           'NVD API'),
+        ('cisa',          'CISA Feed'),
+        ('circl',         'CIRCL Feed'),
+        ('threatcluster', 'ThreatCluster'),
     ]
 
     cve_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
@@ -72,13 +73,29 @@ class Vulnerability(models.Model):
 
 
 class Finding(models.Model):
+    """
+    A vulnerability instance on an asset — either auto-discovered via CVE feed
+    or manually logged by an analyst.
+    """
     STATUS_CHOICES = [
-        ('open',           'Open'),
-        ('in_progress',    'In Progress'),
-        ('remediated',     'Remediated'),
-        ('accepted',       'Risk Accepted'),
-        ('false_positive', 'False Positive'),
+        ('new',                  'New'),
+        ('triaged',              'Triaged'),
+        ('in_progress',          'In Progress'),
+        ('pending_verification', 'Pending Verification'),
+        ('remediated',           'Remediated'),
+        ('accepted',             'Risk Accepted'),
+        ('false_positive',       'False Positive'),
     ]
+    CLOSED_STATUSES = ('remediated', 'accepted', 'false_positive')
+
+    # SLA days by severity
+    SLA_DAYS = {
+        'critical': 7,
+        'high':     30,
+        'medium':   90,
+        'low':      180,
+        'none':     365,
+    }
 
     vulnerability = models.ForeignKey(
         Vulnerability, on_delete=models.CASCADE, related_name='findings'
@@ -92,19 +109,40 @@ class Finding(models.Model):
 
     port = models.CharField(max_length=20, blank=True)
     evidence = models.TextField(blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='new')
     discovered_date = models.DateField()
     remediated_date = models.DateField(null=True, blank=True)
+    verified_date = models.DateField(null=True, blank=True)
+
+    # Assignment
     assigned_to = models.ForeignKey(
         'core.User', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='assigned_findings'
+        related_name='assigned_findings',
+        verbose_name='Assigned user'
     )
+    assigned_team = models.ForeignKey(
+        Department, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='assigned_findings',
+        verbose_name='Assigned team'
+    )
+
+    # SLA
+    sla_due_date = models.DateField(
+        null=True, blank=True,
+        help_text='Target remediation date. Auto-computed from severity if left blank.'
+    )
+
+    # Solution / remediation
+    solution = models.TextField(
+        blank=True, help_text='Recommended fix or solution'
+    )
+    remediation_notes = models.TextField(blank=True)
 
     composite_score = models.DecimalField(
         max_digits=5, decimal_places=2, default=0, editable=False
     )
 
-    remediation_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -120,8 +158,74 @@ class Finding(models.Model):
     def save(self, *args, **kwargs):
         if self.asset_id and not self.owner_dept_id:
             self.owner_dept = self.asset.owner_dept
+
+        # Auto-compute SLA if not set
+        if not self.sla_due_date and self.discovered_date:
+            from datetime import timedelta
+            sev = (self.vulnerability.cvss_severity if self.vulnerability_id else 'medium') or 'medium'
+            days = self.SLA_DAYS.get(sev, 90)
+            self.sla_due_date = self.discovered_date + timedelta(days=days)
+
+        # Auto-set dates when status transitions
+        from django.utils import timezone
+        today = timezone.now().date()
+        if self.status == 'remediated' and not self.remediated_date:
+            self.remediated_date = today
+        if self.status == 'remediated' and not self.verified_date:
+            self.verified_date = today
+
         self.composite_score = compute_composite_score(self)
         super().save(*args, **kwargs)
+
+    @property
+    def is_overdue(self):
+        if self.status in self.CLOSED_STATUSES:
+            return False
+        if not self.sla_due_date:
+            return False
+        from django.utils import timezone
+        return self.sla_due_date < timezone.now().date()
+
+    @property
+    def is_due_soon(self):
+        if self.status in self.CLOSED_STATUSES:
+            return False
+        if not self.sla_due_date:
+            return False
+        from django.utils import timezone
+        days_left = (self.sla_due_date - timezone.now().date()).days
+        return 0 <= days_left <= 3
+
+    @property
+    def days_until_due(self):
+        if not self.sla_due_date:
+            return None
+        from django.utils import timezone
+        return (self.sla_due_date - timezone.now().date()).days
+
+    @property
+    def status_color(self):
+        return {
+            'new':                  '#DC2626',
+            'triaged':              '#D97706',
+            'in_progress':          '#0284C7',
+            'pending_verification': '#7C3AED',
+            'remediated':           '#059669',
+            'accepted':             '#6B7280',
+            'false_positive':       '#94A3B8',
+        }.get(self.status, '#6B7280')
+
+    @property
+    def severity_color(self):
+        if not self.vulnerability_id:
+            return '#6B7280'
+        return {
+            'critical': '#DC2626',
+            'high':     '#EA580C',
+            'medium':   '#D97706',
+            'low':      '#059669',
+            'none':     '#94A3B8',
+        }.get(self.vulnerability.cvss_severity, '#6B7280')
 
 
 def compute_composite_score(finding):

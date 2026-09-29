@@ -35,43 +35,66 @@
             <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
         </form>
         <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{ k }}={{ v }}&{% endif %}{% endfor %}export=csv" class="btn btn-sm btn-outline-dark text-nowrap me-2"><i class="bi bi-download"></i> CSV</a>
-        <a href="{% url 'vulnerabilities:vulnerability_list' %}" class="btn btn-sm btn-outline-dark text-nowrap">CVE Catalog</a>
+        <a href="{% url 'vulnerabilities:manual_create' %}" class="btn btn-sm btn-primary text-nowrap"><i class="bi bi-plus-lg"></i> Log manually</a>
     </div>
 
     <div class="table-responsive">
         <table class="table mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>CVE</th><th>Vulnerability</th><th>Asset</th>
-                    <th class="text-center">CVSS</th><th class="text-center">EPSS</th>
-                    <th class="text-center">KEV</th><th class="text-center">Composite</th>
+                    <th>CVE / Title</th>
+                    <th>Asset</th>
+                    <th class="text-center">CVSS</th>
                     <th class="text-center">Status</th>
+                    <th>Assigned</th>
+                    <th class="text-center">SLA</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
             {% for f in findings %}
                 <tr>
-                    <td><a href="{% url 'vulnerabilities:finding_detail' f.pk %}"><code>{{ f.vulnerability.cve_id|default:"—" }}</code></a></td>
-                    <td><small>{{ f.vulnerability.title|truncatechars:60 }}</small></td>
-                    <td><a href="{% url 'assets:detail' f.asset.pk %}">{{ f.asset.name|truncatechars:35 }}</a></td>
-                    <td class="text-center">
-                        <span class="badge {% if f.vulnerability.cvss_severity == 'critical' %}bg-danger{% elif f.vulnerability.cvss_severity == 'high' %}bg-warning text-dark{% elif f.vulnerability.cvss_severity == 'medium' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
-                            {{ f.vulnerability.cvss_score }}
-                        </span>
+                    <td>
+                        <div>
+                            {% if f.vulnerability.cve_id %}
+                                <a href="{{ f.vulnerability.cve_url }}" target="_blank" rel="noopener"><code>{{ f.vulnerability.cve_id }}</code></a>
+                            {% else %}
+                                <span class="badge bg-secondary">Manual</span>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'vulnerabilities:finding_detail' f.pk %}"><strong>{{ f.vulnerability.title|truncatechars:60 }}</strong></a>
                     </td>
-                    <td class="text-center"><small>{{ f.vulnerability.epss_score|floatformat:2|default:"—" }}</small></td>
-                    <td class="text-center">{% if f.vulnerability.kev_status %}<span class="badge bg-danger"><i class="bi bi-fire"></i> KEV</span>{% else %}—{% endif %}</td>
-                    <td class="text-center"><strong>{{ f.composite_score }}</strong></td>
+                    <td><a href="{% url 'assets:detail' f.asset.pk %}"><code>{{ f.asset.asset_id }}</code></a> <small>{{ f.asset.name|truncatechars:30 }}</small></td>
                     <td class="text-center">
-                        {% if f.status == 'open' %}<span class="badge bg-danger">Open</span>
-                        {% elif f.status == 'in_progress' %}<span class="badge bg-warning text-dark">In Progress</span>
-                        {% elif f.status == 'remediated' %}<span class="badge bg-success">Remediated</span>
-                        {% elif f.status == 'accepted' %}<span class="badge bg-info text-dark">Accepted</span>
-                        {% else %}<span class="badge bg-secondary">{{ f.get_status_display }}</span>{% endif %}
+                        <span class="badge" style="background:{{ f.severity_color }}; color:#fff;">{{ f.vulnerability.cvss_score }}</span>
                     </td>
+                    <td class="text-center">
+                        <span class="badge" style="background:{{ f.status_color }}; color:#fff;">{{ f.get_status_display }}</span>
+                    </td>
+                    <td>
+                        <small>
+                        {% if f.assigned_to %}<i class="bi bi-person"></i> {{ f.assigned_to.username }}<br>{% endif %}
+                        {% if f.assigned_team %}<i class="bi bi-people"></i> {{ f.assigned_team.name }}{% endif %}
+                        {% if not f.assigned_to and not f.assigned_team %}—{% endif %}
+                        </small>
+                    </td>
+                    <td class="text-center">
+                        <small>
+                        {% if f.sla_due_date %}
+                            {% if f.is_overdue %}<span class="text-danger fw-bold">{{ f.sla_due_date }}<br><i class="bi bi-exclamation-triangle-fill"></i> OVERDUE</span>
+                            {% elif f.is_due_soon %}<span style="color:#D97706; font-weight:600;">{{ f.sla_due_date }}<br>due soon</span>
+                            {% else %}{{ f.sla_due_date }}{% endif %}
+                        {% else %}—{% endif %}
+                        </small>
+                    </td>
+                    <td class="text-end"><a href="{% url 'vulnerabilities:finding_detail' f.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>
                 </tr>
             {% empty %}
-                <tr><td colspan="8" class="text-center text-muted py-4">No findings match your filters.</td></tr>
+                <tr><td colspan="7" class="text-center text-muted py-4">
+                    No findings yet.
+                    <a href="{% url 'vulnerabilities:manual_create' %}">Log the first vulnerability</a>
+                    or <a href="{% url 'vulnerabilities:live_feed' %}">sync from live CVE feed</a>.
+                </td></tr>
             {% endfor %}
             </tbody>
         </table>

@@ -1,5 +1,5 @@
 ﻿{% extends "base.html" %}
-{% block title %}{{ finding.vulnerability.cve_id }}{% endblock %}
+{% block title %}{{ finding.vulnerability.cve_id|default:finding.vulnerability.title|truncatechars:40 }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-0">
@@ -12,77 +12,111 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h4 class="mb-0">{{ finding.vulnerability.cve_id|default:"Finding" }}</h4>
+        <h4 class="mb-0">
+            {% if finding.vulnerability.cve_id %}
+                <a href="{{ finding.vulnerability.cve_url }}" target="_blank" rel="noopener">{{ finding.vulnerability.cve_id }}</a>
+            {% else %}
+                {{ finding.vulnerability.title|truncatechars:60 }}
+            {% endif %}
+            <span class="badge" style="background:{{ finding.severity_color }}; color:#fff; font-size:12px;">{{ finding.vulnerability.get_cvss_severity_display }}</span>
+            <span class="badge" style="background:{{ finding.status_color }}; color:#fff; font-size:12px;">{{ finding.get_status_display }}</span>
+        </h4>
         <small class="text-muted">{{ finding.vulnerability.title }}</small>
     </div>
-    <a href="/admin/vulnerabilities/finding/{{ finding.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+    <div class="d-flex gap-2">
+        <form method="post" action="{% url 'vulnerabilities:finding_cascade' finding.pk %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-dark"><i class="bi bi-exclamation-triangle"></i> Create linked Risk</button>
+        </form>
+        <a href="/admin/vulnerabilities/finding/{{ finding.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit</a>
+    </div>
 </div>
 
+{# Overdue warning #}
+{% if finding.is_overdue %}
+<div class="alert alert-danger d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-octagon-fill"></i>
+    <div><strong>OVERDUE</strong> — SLA was {{ finding.sla_due_date }} ({{ finding.days_until_due|cut:"-" }} days ago). Escalate or update status.</div>
+</div>
+{% elif finding.is_due_soon %}
+<div class="alert alert-warning d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div><strong>Due soon</strong> — {{ finding.days_until_due }} day{{ finding.days_until_due|pluralize }} until SLA breach ({{ finding.sla_due_date }}).</div>
+</div>
+{% endif %}
+
 <div class="row g-3 mb-3">
-    <div class="col-md-3"><div class="stat-card"><div class="value">{{ finding.vulnerability.cvss_score }}</div><div class="label">CVSS · {{ finding.vulnerability.get_cvss_severity_display }}</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value">{{ finding.vulnerability.epss_score|floatformat:3|default:"—" }}</div><div class="label">EPSS probability</div></div></div>
-    <div class="col-md-3">
-        <div class="stat-card" {% if finding.vulnerability.kev_status %}style="border-color:#dc3545"{% endif %}>
-            <div class="value {% if finding.vulnerability.kev_status %}text-danger{% endif %}">
-                {% if finding.vulnerability.kev_status %}<i class="bi bi-fire"></i> Yes{% else %}No{% endif %}
-            </div>
-            <div class="label">CISA KEV listing</div>
-        </div>
-    </div>
-    <div class="col-md-3"><div class="stat-card" style="border-color:#dc3545;"><div class="value text-danger">{{ finding.composite_score }}</div><div class="label">Composite risk score</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ finding.vulnerability.cvss_score }}</div><div class="label">CVSS score</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ finding.composite_score }}</div><div class="label">Composite risk score</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="font-size:1.1rem;">{{ finding.sla_due_date|default:"—" }}</div><div class="label">SLA due date</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="font-size:1.1rem;">{% if finding.assigned_to %}{{ finding.assigned_to.username }}{% elif finding.assigned_team %}{{ finding.assigned_team.name }}{% else %}—{% endif %}</div><div class="label">Assigned to</div></div></div>
 </div>
 
 <div class="row g-3">
-    <div class="col-md-6">
+    <div class="col-md-5">
         <div class="card">
-            <div class="card-header bg-white"><strong>Finding details</strong></div>
+            <div class="card-header bg-white"><strong>Vulnerability</strong></div>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Asset</span><a href="{% url 'assets:detail' finding.asset.pk %}">{{ finding.asset.name }}</a></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ finding.owner_dept.name }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Port</span><span>{{ finding.port|default:"—" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Status</span><span>{{ finding.get_status_display }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Discovered</span><span>{{ finding.discovered_date }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Remediated</span><span>{{ finding.remediated_date|default:"—" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Assigned to</span><span>{{ finding.assigned_to|default:"—" }}</span></li>
+                {% if finding.vulnerability.cve_id %}
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">CVE ID</span><code>{{ finding.vulnerability.cve_id }}</code></li>
+                {% endif %}
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Severity</span><span><span class="badge" style="background:{{ finding.severity_color }}; color:#fff;">{{ finding.vulnerability.get_cvss_severity_display }}</span></span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">CVSS</span><span>{{ finding.vulnerability.cvss_score }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">KEV</span><span>{% if finding.vulnerability.kev_status %}<span class="badge bg-danger">Yes</span>{% else %}No{% endif %}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Source</span><span>{{ finding.vulnerability.get_source_display }}</span></li>
             </ul>
         </div>
 
         <div class="card mt-3">
-            <div class="card-header bg-white"><strong>Evidence</strong></div>
-            <div class="card-body"><pre class="small mb-0" style="white-space:pre-wrap;">{{ finding.evidence|default:"—" }}</pre></div>
+            <div class="card-header bg-white"><strong>Asset</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Asset ID</span><a href="{% url 'assets:detail' finding.asset.pk %}"><code>{{ finding.asset.asset_id }}</code></a></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Name</span><span>{{ finding.asset.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Port</span><span>{{ finding.port|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ finding.owner_dept.name }}</span></li>
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Workflow</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Status</span><span><span class="badge" style="background:{{ finding.status_color }}; color:#fff;">{{ finding.get_status_display }}</span></span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Assigned user</span><span>{{ finding.assigned_to|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Assigned team</span><span>{{ finding.assigned_team|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Discovered</span><span>{{ finding.discovered_date }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">SLA due</span><span>{{ finding.sla_due_date|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Remediated</span><span>{{ finding.remediated_date|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Verified</span><span>{{ finding.verified_date|default:"—" }}</span></li>
+            </ul>
         </div>
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-7">
         <div class="card">
-            <div class="card-header bg-white"><strong>Composite score breakdown</strong></div>
-            <div class="card-body small">
-                <div class="mb-2 d-flex justify-content-between"><span class="text-muted">CVSS base × 10</span><strong>{{ finding.vulnerability.cvss_score }} × 10 = {{ finding.vulnerability.cvss_score|floatformat:1 }}</strong></div>
-                <div class="mb-2 d-flex justify-content-between"><span class="text-muted">Asset criticality</span><strong>{{ finding.asset.get_criticality_display }}</strong></div>
-                <div class="mb-2 d-flex justify-content-between"><span class="text-muted">EPSS multiplier</span><strong>× {{ finding.vulnerability.epss_score|default:"0"|floatformat:2 }} + 1</strong></div>
-                <div class="mb-2 d-flex justify-content-between"><span class="text-muted">KEV boost</span><strong>{% if finding.vulnerability.kev_status %}× 1.5{% else %}× 1.0{% endif %}</strong></div>
-                <hr>
-                <div class="d-flex justify-content-between"><span>Final score (capped 100)</span><strong class="text-danger">{{ finding.composite_score }}</strong></div>
-            </div>
+            <div class="card-header bg-white"><strong>Description</strong></div>
+            <div class="card-body">{{ finding.vulnerability.description|default:"—"|linebreaks }}</div>
         </div>
 
+        {% if finding.evidence %}
         <div class="card mt-3">
-            <div class="card-header bg-white"><strong>CVE context</strong></div>
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">CVE ID</span><code>{{ finding.vulnerability.cve_id|default:"—" }}</code></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Published</span><span>{{ finding.vulnerability.published_date|default:"—" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">CVSS vector</span><small>{{ finding.vulnerability.cvss_vector|default:"—" }}</small></li>
-            </ul>
-            <div class="card-body small text-muted">
-                {{ finding.vulnerability.description|default:"No description." }}
-            </div>
-            {% if finding.vulnerability.references %}
-            <div class="card-footer bg-white small">
-                <strong>References:</strong><br>
-                {% for line in finding.vulnerability.references.splitlines %}<a href="{{ line }}" target="_blank">{{ line }}</a><br>{% endfor %}
-            </div>
-            {% endif %}
+            <div class="card-header bg-white"><strong>Evidence</strong></div>
+            <div class="card-body"><pre class="small mb-0" style="white-space:pre-wrap;">{{ finding.evidence }}</pre></div>
         </div>
+        {% endif %}
+
+        {% if finding.solution %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Solution / recommended fix</strong></div>
+            <div class="card-body">{{ finding.solution|linebreaks }}</div>
+        </div>
+        {% endif %}
+
+        {% if finding.remediation_notes %}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Remediation notes</strong></div>
+            <div class="card-body">{{ finding.remediation_notes|linebreaks }}</div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

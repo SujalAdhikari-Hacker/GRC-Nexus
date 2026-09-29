@@ -138,6 +138,12 @@
             <a href="{% url 'vulnerabilities:finding_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-bug"></i><span>Vulnerabilities</span>
             </a>
+            <a href="{% url 'vulnerabilities:manual_create' %}" class="sidebar-link" style="display: flex;">
+                <i class="bi bi-plus-square"></i><span>Log Vulnerability</span>
+            </a>
+                        <a href="{% url 'vulnerabilities:manual_create' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
+                <i class="bi bi-plus-square"></i><span>Log Vulnerability</span>
+            </a>
                         <a href="{% url 'vulnerabilities:live_feed' %}" class="sidebar-link toggle-item" data-section="risk" style="display: none;">
                 <i class="bi bi-rss"></i><span>Live CVE Feed</span>
             </a>
