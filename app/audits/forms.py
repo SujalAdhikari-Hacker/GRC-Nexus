@@ -1,6 +1,47 @@
 ﻿from django import forms
-from .models import EvidenceItem, EvidenceScore, ControlTest, AuditFinding
 
+from .models import (
+    Audit, EvidenceItem, EvidenceScore, ControlTest,
+    AuditFinding, ActionItem,
+)
+
+
+# ============================================================
+# AUDIT
+# ============================================================
+
+class AuditForm(forms.ModelForm):
+    class Meta:
+        model = Audit
+        fields = [
+            'name', 'owner_dept', 'audit_type', 'status',
+            'auditor_lead', 'start_date', 'end_date',
+            'scope', 'frameworks', 'notes',
+        ]
+        widgets = {
+            'scope':        forms.Textarea(attrs={'rows': 4}),
+            'notes':        forms.Textarea(attrs={'rows': 3}),
+            'start_date':   forms.DateInput(attrs={'type': 'date'}),
+            'end_date':     forms.DateInput(attrs={'type': 'date'}),
+        }
+        help_texts = {
+            'scope':      'What this audit covers — systems, processes, departments.',
+            'start_date': 'Date the audit engagement begins.',
+            'end_date':   'Expected or actual completion date.',
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get('start_date')
+        end = cleaned.get('end_date')
+        if start and end and end < start:
+            self.add_error('end_date', 'End date cannot be before start date.')
+        return cleaned
+
+
+# ============================================================
+# EVIDENCE
+# ============================================================
 
 class EvidenceItemForm(forms.ModelForm):
     class Meta:
@@ -19,7 +60,7 @@ class EvidenceScoreForm(forms.ModelForm):
         model = EvidenceScore
         fields = [
             'relevance', 'completeness', 'timeliness',
-            'reliability', 'sufficiency', 'assessor', 'assessor_notes'
+            'reliability', 'sufficiency', 'assessor_notes'
         ]
         widgets = {
             'relevance':        forms.NumberInput(attrs={'min': 0, 'max': 20}),
@@ -31,12 +72,15 @@ class EvidenceScoreForm(forms.ModelForm):
         }
 
 
+# ============================================================
+# CONTROL TEST
+# ============================================================
+
 class ControlTestForm(forms.ModelForm):
     class Meta:
         model = ControlTest
         fields = [
             'control', 'test_date', 'result',
-            # 'tester',  ← removed, auto-set to logged-in user
             'procedure_notes', 'owner_dept', 'audit'
         ]
         widgets = {
@@ -44,6 +88,10 @@ class ControlTestForm(forms.ModelForm):
             'procedure_notes': forms.Textarea(attrs={'rows': 4}),
         }
 
+
+# ============================================================
+# AUDIT FINDING
+# ============================================================
 
 class AuditFindingForm(forms.ModelForm):
     class Meta:
@@ -61,8 +109,9 @@ class AuditFindingForm(forms.ModelForm):
         }
 
 
-from .models import ActionItem
-
+# ============================================================
+# ACTION ITEM
+# ============================================================
 
 class ActionItemForm(forms.ModelForm):
     class Meta:
@@ -78,6 +127,7 @@ class ActionItemForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'rows': 3}),
             'due_date': forms.DateInput(attrs={'type': 'date'}),
             'completed_date': forms.DateInput(attrs={'type': 'date'}),
+            'progress_percent': forms.NumberInput(attrs={'min': 0, 'max': 100}),
         }
 
     def __init__(self, *args, **kwargs):

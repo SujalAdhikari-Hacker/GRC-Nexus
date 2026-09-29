@@ -12,31 +12,92 @@
 {% block content %}
 <div class="row g-3">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit{% else %}Create{% endif %} audit</strong></div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    {% for field in form %}
-                        <div class="mb-3">
-                            <label class="form-label">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
-                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-clipboard-check"></i> Audit identification</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Audit name <span class="text-danger">*</span></label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Owner department <span class="text-danger">*</span></label>
+                            {{ form.owner_dept }}
+                            {% if form.owner_dept.errors %}<div class="text-danger small">{{ form.owner_dept.errors }}</div>{% endif %}
                         </div>
-                    {% endfor %}
-                    <button type="submit" class="btn btn-dark">Save Audit</button>
-                    <a href="{% url 'audits:list' %}" class="btn btn-outline-secondary">Cancel</a>
-                </form>
+                        <div class="col-md-6">
+                            <label class="form-label">Auditor lead</label>
+                            {{ form.auditor_lead }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Audit type</label>
+                            {{ form.audit_type }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            {{ form.status }}
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-calendar"></i> Schedule</strong></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Start date</label>
+                            {{ form.start_date }}
+                            <div class="form-text small">{{ form.start_date.help_text }}</div>
+                            {% if form.start_date.errors %}<div class="text-danger small">{{ form.start_date.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">End date</label>
+                            {{ form.end_date }}
+                            <div class="form-text small">{{ form.end_date.help_text }}</div>
+                            {% if form.end_date.errors %}<div class="text-danger small">{{ form.end_date.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-file-earmark-text"></i> Scope &amp; frameworks</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Scope</label>
+                        {{ form.scope }}
+                        <div class="form-text small">{{ form.scope.help_text }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Frameworks in scope</label>
+                        {{ form.frameworks }}
+                        <div class="form-text small">Hold Ctrl (Cmd on Mac) to select multiple.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        {{ form.notes }}
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-dark">Save Audit</button>
+            <a href="{% url 'audits:list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
     </div>
+
     <div class="col-md-4">
-        <div class="card">
+        <div class="card sticky-top" style="top:1rem;">
             <div class="card-header bg-white"><strong>Audit types</strong></div>
             <div class="card-body small text-muted">
                 <ul class="ps-3 mb-0">
-                    <li><strong>External</strong> — conducted by third party</li>
+                    <li><strong>External</strong> — conducted by a third party</li>
                     <li><strong>Internal</strong> — conducted by your team</li>
                     <li><strong>Self-Assessment</strong> — department self-review</li>
                 </ul>
@@ -45,7 +106,7 @@
         <div class="card mt-3">
             <div class="card-header bg-white"><strong>Status flow</strong></div>
             <div class="card-body small text-muted">
-                <div class="d-flex flex-wrap gap-1">
+                <div class="d-flex flex-wrap gap-1 mb-2">
                     <span class="badge bg-secondary">Planned</span>
                     <span class="text-muted">→</span>
                     <span class="badge bg-warning text-dark">Planning</span>
@@ -54,6 +115,7 @@
                     <span class="text-muted">→</span>
                     <span class="badge bg-success">Complete</span>
                 </div>
+                <p class="mb-0">Update the status as the engagement progresses.</p>
             </div>
         </div>
     </div>
@@ -65,6 +127,6 @@
         border: 1px solid var(--border); border-radius: var(--r-sm);
         background: var(--surface); color: var(--text); font-size: 13px;
     }
-    select[multiple] { min-height: 120px; }
+    select[multiple] { min-height: 140px; }
 </style>
 {% endblock %}

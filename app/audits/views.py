@@ -6,8 +6,11 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, T
 from django.utils import timezone
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from .models import Audit, EvidenceItem, EvidenceScore, ControlTest, AuditFinding
-from .forms import EvidenceItemForm, EvidenceScoreForm, ControlTestForm, AuditFindingForm
-
+from .forms import AuditForm, EvidenceItemForm, EvidenceScoreForm, ControlTestForm, AuditFindingForm, ActionItemForm
+from .forms import (
+    AuditForm, EvidenceItemForm, EvidenceScoreForm,
+    ControlTestForm, AuditFindingForm, ActionItemForm,
+)
 
 # ==================================================================
 # AUDIT
@@ -84,12 +87,8 @@ class AuditDetailView(DepartmentScopedMixin, DetailView):
 
 class AuditCreateView(DepartmentScopedMixin, CreateView):
     model = Audit
+    form_class = AuditForm
     template_name = 'audits/audit_form.html'
-    fields = [
-        'name', 'owner_dept', 'audit_type', 'status',
-        'auditor_lead', 'start_date', 'end_date',
-        'scope', 'frameworks', 'notes',
-    ]
     success_url = reverse_lazy('audits:list')
 
     def get_initial(self):
@@ -97,17 +96,15 @@ class AuditCreateView(DepartmentScopedMixin, CreateView):
         user = self.request.user
         if not user.is_superuser and user.department_id:
             initial['owner_dept'] = user.department
+        from django.utils import timezone
+        initial['start_date'] = timezone.now().date()
         return initial
 
 
 class AuditUpdateView(DepartmentScopedMixin, UpdateView):
     model = Audit
+    form_class = AuditForm
     template_name = 'audits/audit_form.html'
-    fields = [
-        'name', 'owner_dept', 'audit_type', 'status',
-        'auditor_lead', 'start_date', 'end_date',
-        'scope', 'frameworks', 'notes',
-    ]
     success_url = reverse_lazy('audits:list')
     department_field = 'owner_dept'
 
@@ -662,3 +659,4 @@ class AuditReportView(LoginRequiredMixin, DetailView):
         safe_name = ''.join(c if c.isalnum() else '_' for c in audit.name)[:40]
         filename = f'audit_{audit.pk}_{safe_name}_{timezone.now().strftime("%Y%m%d")}.pdf'
         return _render_pdf_audit(request, 'reports/audit_report.html', ctx, filename)
+
