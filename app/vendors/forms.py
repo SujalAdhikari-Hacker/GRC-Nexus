@@ -30,7 +30,7 @@ class VendorAssessmentForm(forms.ModelForm):
             'security_score', 'compliance_score', 'financial_score',
             'reputation_score', 'operational_score',
             'assessment_date', 'next_assessment_date',
-            'assessor', 'status',
+            'status',
             'key_findings', 'recommended_mitigation',
         ]
         widgets = {
