@@ -1,118 +1,116 @@
-{% extends "base.html" %}
-{% block title %}{{ asset.name }}{% endblock %}
+﻿{% extends "base.html" %}
+{% block title %}{{ asset.asset_id }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-0">
     <li class="breadcrumb-item"><a href="{% url 'assets:list' %}">Assets</a></li>
-    <li class="breadcrumb-item active">{{ asset.name }}</li>
+    <li class="breadcrumb-item active">{{ asset.asset_id }}</li>
   </ol>
 </nav>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">{{ asset.name }}</h4>
+    <div>
+        <h4 class="mb-0">
+            <code>{{ asset.asset_id }}</code> — {{ asset.name }}
+        </h4>
+        <small class="text-muted">{{ asset.get_asset_type_display }} · {{ asset.get_hosting_display }} · {{ asset.get_environment_display }}</small>
+    </div>
     <a href="/admin/assets/asset/{{ asset.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
 </div>
 
 <div class="row g-3">
     <div class="col-md-4">
         <div class="card">
-            <div class="card-header bg-white"><strong>Details</strong></div>
+            <div class="card-header bg-white"><strong>Identification</strong></div>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Category</span><span>{{ asset.category.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Asset ID</span><code>{{ asset.asset_id }}</code></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Name</span><span>{{ asset.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Type</span><span>{{ asset.get_asset_type_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Hosting</span><span>{{ asset.get_hosting_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Vendor</span>
+                    <span>{% if asset.vendor %}<a href="{% url 'vendors:detail' asset.vendor.pk %}">{{ asset.vendor.name }}</a>{% else %}—{% endif %}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Classification</span>
+                    <span>
+                        {% if asset.classification == 'restricted' %}<span class="badge bg-danger">Restricted</span>
+                        {% elif asset.classification == 'confidential' %}<span class="badge bg-warning text-dark">Confidential</span>
+                        {% elif asset.classification == 'internal' %}<span class="badge bg-info text-dark">Internal</span>
+                        {% else %}<span class="badge bg-secondary">Public</span>{% endif %}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Environment</span><span>{{ asset.get_environment_display }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ asset.owner_dept.name }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Criticality</span><span>{{ asset.get_criticality_display }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">C / I / A</span><span>{{ asset.confidentiality }} / {{ asset.integrity }} / {{ asset.availability }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Value</span><span>${{ asset.value }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ asset.owner_user|default:"—" }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Active</span><span>{{ asset.is_active|yesno:"Yes,No" }}</span></li>
             </ul>
         </div>
-    </div>
 
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-white"><strong>Risks ({{ risks|length }})</strong></div>
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Risk ratings</strong></div>
             <ul class="list-group list-group-flush">
-                {% for r in risks %}
-                    <li class="list-group-item">
-                        <div>{{ r.title }}</div>
-                        <small class="text-muted">
-                            inherent {{ r.inherent_score }} · residual {{ r.residual_score }}
-                            {% if r.appetite_breached %}<span class="badge bg-danger ms-1">Breach</span>{% endif %}
-                        </small>
-                    </li>
-                {% empty %}
-                    <li class="list-group-item text-muted text-center">No linked risks.</li>
-                {% endfor %}
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Criticality</span><span>{{ asset.get_criticality_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Confidentiality</span><span>{{ asset.get_confidentiality_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Integrity</span><span>{{ asset.get_integrity_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Availability</span><span>{{ asset.get_availability_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">CIA avg</span><span>{{ asset.cia_score }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Value</span><span>${{ asset.value }}</span></li>
             </ul>
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-8">
         <div class="card">
+            <div class="card-header bg-white"><strong>Description</strong></div>
+            <div class="card-body">{{ asset.description|default:"—"|linebreaks }}</div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Risks ({{ risks|length }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for r in risks %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <a href="{% url 'risks:detail' r.pk %}">{{ r.title|truncatechars:70 }}</a>
+                        <small>residual {{ r.residual_score }}{% if r.appetite_breached %} <span class="badge bg-danger ms-1">Breach</span>{% endif %}</small>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small">No linked risks.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card mt-3">
             <div class="card-header bg-white"><strong>Controls ({{ controls|length }})</strong></div>
             <ul class="list-group list-group-flush">
                 {% for c in controls %}
                     <li class="list-group-item">
-                        <div>{{ c.code }} — {{ c.name }}</div>
-                        <small class="text-muted">{{ c.get_control_type_display }} · eff {{ c.effectiveness }}/5</small>
+                        <a href="{% url 'controls:detail' c.pk %}"><code>{{ c.code }}</code></a> — {{ c.name|truncatechars:60 }}
+                        <div class="small text-muted">{{ c.get_control_type_display }} · effectiveness {{ c.get_effectiveness_rating_display }}</div>
                     </li>
                 {% empty %}
-                    <li class="list-group-item text-muted text-center">No mitigating controls.</li>
+                    <li class="list-group-item text-muted text-center small">No mitigating controls.</li>
                 {% endfor %}
             </ul>
         </div>
-    </div>
 
-    <div class="col-md-6">
-        <div class="card">
+        <div class="card mt-3">
             <div class="card-header bg-white"><strong>Applicable policies ({{ policies|length }})</strong></div>
             <ul class="list-group list-group-flush">
                 {% for p in policies %}
                     <li class="list-group-item">
-                        <strong>{{ p.code }}</strong> — {{ p.title }}
+                        <a href="{% url 'policies:detail' p.pk %}"><code>{{ p.code }}</code></a> — {{ p.title }}
                         <span class="badge bg-secondary ms-1">{{ p.get_status_display }}</span>
                     </li>
                 {% empty %}
-                    <li class="list-group-item text-muted text-center">No applicable policies.</li>
+                    <li class="list-group-item text-muted text-center small">No applicable policies.</li>
                 {% endfor %}
             </ul>
         </div>
-    </div>
 
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-white"><strong>Vendors ({{ vendors|length }})</strong></div>
-            <ul class="list-group list-group-flush">
-                {% for v in vendors %}
-                    <li class="list-group-item">
-                        {{ v.name }}
-                        <span class="badge bg-secondary ms-1">Tier {{ v.tier }}</span>
-                    </li>
-                {% empty %}
-                    <li class="list-group-item text-muted text-center">No linked vendors.</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header bg-white"><strong>Framework coverage ({{ framework_controls|length }})</strong></div>
-            <div class="card-body">
-                {% for fc in framework_controls %}
-                    <span class="badge bg-dark me-1 mb-1">{{ fc.framework.name }} {{ fc.code }}</span>
-                {% empty %}
-                    <span class="text-muted">No framework controls covered.</span>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-<div class="row g-3 mt-1">
-    <div class="col-12">
-        <div class="card">
+        <div class="card mt-3">
             <div class="card-header bg-white"><strong>Vulnerability findings ({{ asset.findings.count }})</strong></div>
             <ul class="list-group list-group-flush">
                 {% for f in asset.findings.all %}
@@ -122,10 +120,7 @@
                                 <code>{{ f.vulnerability.cve_id|default:"—" }}</code>
                                 {{ f.vulnerability.title|truncatechars:50 }}
                             </a>
-                            <div class="small text-muted">
-                                CVSS {{ f.vulnerability.cvss_score }}
-                                {% if f.vulnerability.kev_status %}<span class="badge bg-danger ms-1">KEV</span>{% endif %}
-                            </div>
+                            <div class="small text-muted">CVSS {{ f.vulnerability.cvss_score }}{% if f.vulnerability.kev_status %} <span class="badge bg-danger">KEV</span>{% endif %}</div>
                         </div>
                         <div class="text-end">
                             <strong>{{ f.composite_score }}</strong>
@@ -133,9 +128,20 @@
                         </div>
                     </li>
                 {% empty %}
-                    <li class="list-group-item text-muted text-center">No findings on this asset.</li>
+                    <li class="list-group-item text-muted text-center small">No vulnerability findings.</li>
                 {% endfor %}
             </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Framework coverage ({{ framework_controls|length }})</strong></div>
+            <div class="card-body">
+                {% for fc in framework_controls %}
+                    <span class="badge bg-dark me-1 mb-1">{{ fc.framework.name }} {{ fc.code }}</span>
+                {% empty %}
+                    <span class="text-muted small">No framework controls covered.</span>
+                {% endfor %}
+            </div>
         </div>
     </div>
 </div>

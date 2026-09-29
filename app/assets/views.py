@@ -1,4 +1,4 @@
-from django.db.models import Q
+﻿from django.db.models import Q
 from django.views.generic import ListView, DetailView
 
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
@@ -14,39 +14,46 @@ class AssetListView(DepartmentScopedMixin, CsvExportMixin, ListView):
 
     csv_filename = 'assets.csv'
     csv_fields = [
+        ('Asset ID', 'asset_id'),
         ('Name', 'name'),
-        ('Category', lambda a: a.category.name),
-        ('Department', lambda a: a.owner_dept.name),
+        ('Type', 'get_asset_type_display'),
+        ('Hosting', 'get_hosting_display'),
+        ('Vendor', lambda a: a.vendor.name if a.vendor else ''),
+        ('Classification', 'get_classification_display'),
+        ('Owner Dept', lambda a: a.owner_dept.name),
+        ('Owner User', lambda a: a.owner_user.username if a.owner_user else ''),
+        ('Environment', 'get_environment_display'),
         ('Criticality', 'get_criticality_display'),
-        ('Confidentiality', 'confidentiality'),
-        ('Integrity', 'integrity'),
-        ('Availability', 'availability'),
         ('CIA Avg', 'cia_score'),
-        ('Value', 'value'),
-        ('Active', lambda a: 'Yes' if a.is_active else 'No'),
-        ('Risk Count', lambda a: a.risks.count()),
+        ('Description', 'description'),
         ('Created', lambda a: a.created_at.strftime('%Y-%m-%d')),
     ]
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = super().get_queryset().select_related('owner_dept', 'vendor', 'owner_user')
         q = self.request.GET.get('q', '').strip()
         if q:
-            qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
-        cat = self.request.GET.get('category')
-        if cat:
-            qs = qs.filter(category_id=cat)
-        crit = self.request.GET.get('criticality')
-        if crit:
-            qs = qs.filter(criticality=crit)
-        return qs
+            qs = qs.filter(
+                Q(asset_id__icontains=q) | Q(name__icontains=q) | Q(description__icontains=q)
+            )
+        atype = self.request.GET.get('type')
+        if atype:
+            qs = qs.filter(asset_type=atype)
+        classification = self.request.GET.get('classification')
+        if classification:
+            qs = qs.filter(classification=classification)
+        environment = self.request.GET.get('environment')
+        if environment:
+            qs = qs.filter(environment=environment)
+        return qs.order_by('asset_id')
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['categories'] = AssetCategory.objects.all()
         ctx['search_query'] = self.request.GET.get('q', '')
-        ctx['selected_category'] = self.request.GET.get('category', '')
-        ctx['selected_criticality'] = self.request.GET.get('criticality', '')
+        ctx['selected_type'] = self.request.GET.get('type', '')
+        ctx['selected_classification'] = self.request.GET.get('classification', '')
+        ctx['selected_environment'] = self.request.GET.get('environment', '')
         return ctx
 
 
