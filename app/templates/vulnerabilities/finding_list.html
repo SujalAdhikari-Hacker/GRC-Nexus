@@ -35,6 +35,12 @@
             <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
         </form>
         <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{ k }}={{ v }}&{% endif %}{% endfor %}export=csv" class="btn btn-sm btn-outline-dark text-nowrap me-2"><i class="bi bi-download"></i> CSV</a>
+                <a href="?{% for k,v in request.GET.items %}{% if k != 'format' %}{{ k }}={{ v }}&{% endif %}{% endfor %}format=pdf" class="btn btn-sm btn-outline-dark text-nowrap me-2" title="Download PDF">
+            <i class="bi bi-file-pdf"></i> PDF
+        </a>
+        <a href="?{% for k,v in request.GET.items %}{% if k != 'format' %}{{ k }}={{ v }}&{% endif %}{% endfor %}format=xlsx" class="btn btn-sm btn-outline-dark text-nowrap me-2" title="Download Excel">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+        </a>
         <a href="{% url 'vulnerabilities:manual_create' %}" class="btn btn-sm btn-primary text-nowrap"><i class="bi bi-plus-lg"></i> Log manually</a>
     </div>
 

@@ -592,3 +592,37 @@ def action_mark_complete(request, pk):
     action.save()
     messages.success(request, f'{action.action_id} marked complete.')
     return redirect('audits:action_detail', pk=pk)
+
+
+# ============================================================
+# AUDIT PDF REPORT
+# ============================================================
+
+from core.reports import render_pdf as _render_pdf_audit
+
+
+class AuditReportView(LoginRequiredMixin, DetailView):
+    """Renders a full audit engagement report as PDF."""
+    model = Audit
+
+    def get(self, request, *args, **kwargs):
+        from django.utils import timezone
+        audit = self.get_object()
+        findings = audit.findings.select_related(
+            'related_control', 'owner_user'
+        ).prefetch_related('action_items').order_by('-severity')
+        tests = audit.control_tests.select_related('control', 'tester').order_by('-test_date')
+        evidence_items = audit.evidence_items.select_related(
+            'related_control', 'owner_user'
+        ).prefetch_related('scoring')
+
+        ctx = {
+            'audit': audit,
+            'findings': findings,
+            'tests': tests,
+            'evidence_items': evidence_items,
+            'generated_at': timezone.now(),
+            'generated_by': request.user,
+        }
+        filename = f'audit_{audit.pk}_{audit.name[:40].replace(" ", "_")}_{timezone.now().strftime("%Y%m%d")}.pdf'
+        return _render_pdf_audit(request, 'reports/audit_report.html', ctx, filename)

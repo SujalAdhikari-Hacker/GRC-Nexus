@@ -1,0 +1,653 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Audit Report · {{ audit.name }}</title>
+<style>
+    @page {
+        size: A4 portrait;
+        margin: 1.8cm 1.5cm;
+        @bottom-right {
+            content: "Page " counter(page) " of " counter(pages);
+            font-size: 8.5pt;
+            color: #9CA3AF;
+        }
+        @bottom-left {
+            content: "Aegis · Confidential";
+            font-size: 8.5pt;
+            color: #9CA3AF;
+        }
+    }
+    @page :first {
+        margin: 0;
+        @bottom-right { content: ""; }
+        @bottom-left { content: ""; }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+        font-family: 'Helvetica', 'Arial', sans-serif;
+        font-size: 10pt;
+        color: #111827;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    /* ---------- COVER ---------- */
+    .cover {
+        height: 297mm;
+        padding: 40mm 20mm 20mm;
+        background: linear-gradient(160deg, #0B1220 0%, #0B1220 65%, #111827 100%);
+        color: #FFFFFF;
+        page-break-after: always;
+        position: relative;
+    }
+    .cover::after {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 6mm;
+        background: #F59E0B;
+    }
+    .cover-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 50mm;
+    }
+    .cover-brand-mark {
+        width: 40px; height: 40px;
+        background: #F59E0B;
+        border-radius: 8px;
+        position: relative;
+    }
+    .cover-brand-mark::after {
+        content: "\2713";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #0B1220;
+        font-size: 24px;
+        font-weight: 700;
+    }
+    .cover-brand-name {
+        font-size: 26pt;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+    .cover-eyebrow {
+        color: #F59E0B;
+        font-size: 11pt;
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        font-weight: 600;
+        margin-bottom: 12px;
+    }
+    .cover-title {
+        font-size: 30pt;
+        font-weight: 700;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 0 0 20px 0;
+    }
+    .cover-badges {
+        margin-bottom: 40mm;
+    }
+    .cover-badge {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 4px;
+        font-size: 10pt;
+        font-weight: 600;
+        margin-right: 8px;
+    }
+    .cover-badge.type { background: rgba(245, 158, 11, 0.2); color: #F59E0B; }
+    .cover-badge.status { background: rgba(255,255,255,0.1); color: #FFFFFF; }
+
+    .cover-meta {
+        border-top: 1px solid rgba(255,255,255,0.15);
+        padding-top: 20px;
+    }
+    .cover-meta-row {
+        display: flex;
+        gap: 60px;
+        margin-bottom: 16px;
+    }
+    .cover-meta-block .label {
+        color: #6B7280;
+        font-size: 8.5pt;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        margin-bottom: 3px;
+    }
+    .cover-meta-block .value {
+        color: #FFFFFF;
+        font-weight: 500;
+        font-size: 11pt;
+    }
+    .cover-footer {
+        position: absolute;
+        bottom: 15mm;
+        left: 20mm;
+        right: 20mm;
+        font-size: 8pt;
+        color: #6B7280;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    /* ---------- CONTENT ---------- */
+    .section {
+        page-break-before: always;
+    }
+    .section:first-of-type {
+        page-break-before: auto;
+    }
+    .section-number {
+        font-size: 10pt;
+        color: #F59E0B;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+    .section-title {
+        font-size: 18pt;
+        font-weight: 700;
+        color: #0B1220;
+        letter-spacing: -0.01em;
+        margin: 0 0 6px 0;
+    }
+    .section-divider {
+        width: 40px;
+        height: 3px;
+        background: #F59E0B;
+        margin: 12px 0 22px 0;
+    }
+    p { margin: 0 0 12px 0; text-align: justify; }
+
+    /* Info grid */
+    .info-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 20px 0 26px 0;
+    }
+    .info-block {
+        flex: 1;
+        min-width: 45%;
+        border: 1px solid #E5E7EB;
+        border-radius: 4px;
+        padding: 12px 14px;
+        background: #FAFBFC;
+    }
+    .info-block .label {
+        font-size: 8pt;
+        color: #6B7280;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+    .info-block .value {
+        font-size: 11pt;
+        font-weight: 500;
+        color: #111827;
+    }
+    .info-block.full { min-width: 100%; }
+
+    /* Stat grid */
+    .stat-grid {
+        display: flex;
+        gap: 10px;
+        margin: 20px 0 26px 0;
+    }
+    .stat-card {
+        flex: 1;
+        border: 1px solid #E5E7EB;
+        border-left: 4px solid #0B1220;
+        border-radius: 4px;
+        padding: 12px 14px;
+        background: #FAFBFC;
+    }
+    .stat-card.amber { border-left-color: #F59E0B; }
+    .stat-card.red { border-left-color: #DC2626; }
+    .stat-card.green { border-left-color: #059669; }
+    .stat-card.blue { border-left-color: #0284C7; }
+    .stat-card .value {
+        font-size: 22pt;
+        font-weight: 700;
+        color: #0B1220;
+        letter-spacing: -0.02em;
+        line-height: 1;
+    }
+    .stat-card .label {
+        font-size: 8pt;
+        color: #6B7280;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-top: 6px;
+        font-weight: 500;
+    }
+
+    /* Tables */
+    table.data {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 8.5pt;
+        margin: 12px 0 20px 0;
+    }
+    table.data thead { background: #0B1220; color: #FFFFFF; }
+    table.data thead th {
+        text-align: left;
+        padding: 7px 9px;
+        font-weight: 600;
+        font-size: 8pt;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+    table.data tbody td {
+        padding: 6px 9px;
+        border-bottom: 1px solid #E5E7EB;
+        vertical-align: top;
+    }
+    table.data tbody tr:nth-child(even) { background: #FAFBFC; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+
+    /* Badges */
+    .badge {
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 3px;
+        font-size: 7.5pt;
+        font-weight: 600;
+        color: #FFFFFF;
+        letter-spacing: .01em;
+    }
+    .badge-critical { background: #DC2626; }
+    .badge-high { background: #EA580C; }
+    .badge-medium { background: #D97706; }
+    .badge-low { background: #059669; }
+    .badge-neutral { background: #6B7280; }
+    .badge-success { background: #059669; }
+    .badge-fail { background: #DC2626; }
+
+    /* Finding block */
+    .finding {
+        border: 1px solid #E5E7EB;
+        border-left: 4px solid #6B7280;
+        border-radius: 4px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        page-break-inside: avoid;
+    }
+    .finding.critical { border-left-color: #DC2626; background: #FEF2F2; }
+    .finding.high { border-left-color: #EA580C; background: #FFF7ED; }
+    .finding.medium { border-left-color: #D97706; background: #FFFBEB; }
+    .finding.low { border-left-color: #059669; }
+    .finding-title {
+        font-size: 11pt;
+        font-weight: 700;
+        color: #0B1220;
+        margin-bottom: 6px;
+    }
+    .finding-meta {
+        font-size: 8.5pt;
+        color: #6B7280;
+        margin-bottom: 8px;
+    }
+    .finding-meta .badge { margin-right: 6px; }
+    .finding-section {
+        font-size: 9pt;
+        margin-top: 8px;
+    }
+    .finding-section strong { color: #374151; }
+
+    .page-footer-note {
+        margin-top: 30px;
+        padding-top: 12px;
+        border-top: 1px solid #E5E7EB;
+        font-size: 8pt;
+        color: #9CA3AF;
+        font-style: italic;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+<!-- ================= COVER ================= -->
+<div class="cover">
+    <div class="cover-brand">
+        <div class="cover-brand-mark"></div>
+        <div class="cover-brand-name">Aegis</div>
+    </div>
+
+    <div class="cover-eyebrow">Audit Report</div>
+    <h1 class="cover-title">{{ audit.name }}</h1>
+
+    <div class="cover-badges">
+        <span class="cover-badge type">{{ audit.get_audit_type_display }}</span>
+        <span class="cover-badge status">{{ audit.get_status_display }}</span>
+    </div>
+
+    <div class="cover-meta">
+        <div class="cover-meta-row">
+            <div class="cover-meta-block">
+                <div class="label">Audit Lead</div>
+                <div class="value">{{ audit.auditor_lead.username|default:"—" }}</div>
+            </div>
+            <div class="cover-meta-block">
+                <div class="label">Owner Dept</div>
+                <div class="value">{{ audit.owner_dept.name }}</div>
+            </div>
+        </div>
+        <div class="cover-meta-row">
+            <div class="cover-meta-block">
+                <div class="label">Start Date</div>
+                <div class="value">{{ audit.start_date|date:"F j, Y"|default:"—" }}</div>
+            </div>
+            <div class="cover-meta-block">
+                <div class="label">End Date</div>
+                <div class="value">{{ audit.end_date|date:"F j, Y"|default:"In Progress" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cover-footer">
+        <span>Aegis · Governance, Risk &amp; Compliance Platform</span>
+        <span>Confidential — Internal Use Only</span>
+    </div>
+</div>
+
+<!-- ================= 1. AUDIT OVERVIEW ================= -->
+<div class="section">
+    <div class="section-number">Section 1</div>
+    <h2 class="section-title">Audit Overview</h2>
+    <div class="section-divider"></div>
+
+    <div class="info-grid">
+        <div class="info-block">
+            <div class="label">Audit Name</div>
+            <div class="value">{{ audit.name }}</div>
+        </div>
+        <div class="info-block">
+            <div class="label">Type</div>
+            <div class="value">{{ audit.get_audit_type_display }}</div>
+        </div>
+        <div class="info-block">
+            <div class="label">Status</div>
+            <div class="value">{{ audit.get_status_display }}</div>
+        </div>
+        <div class="info-block">
+            <div class="label">Auditor Lead</div>
+            <div class="value">{{ audit.auditor_lead.username|default:"—" }}</div>
+        </div>
+        <div class="info-block">
+            <div class="label">Start Date</div>
+            <div class="value">{{ audit.start_date|date:"Y-m-d"|default:"—" }}</div>
+        </div>
+        <div class="info-block">
+            <div class="label">End Date</div>
+            <div class="value">{{ audit.end_date|date:"Y-m-d"|default:"—" }}</div>
+        </div>
+        <div class="info-block">
+            <div class="label">Owner Department</div>
+            <div class="value">{{ audit.owner_dept.name }}</div>
+        </div>
+        <div class="info-block">
+            <div class="label">Frameworks in Scope</div>
+            <div class="value">
+                {% for fw in audit.frameworks.all %}{{ fw.name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {% if audit.scope %}
+    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin:20px 0 8px;">Scope</h3>
+    <p>{{ audit.scope|linebreaksbr }}</p>
+    {% endif %}
+
+    {% if audit.notes %}
+    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin:20px 0 8px;">Notes</h3>
+    <p>{{ audit.notes|linebreaksbr }}</p>
+    {% endif %}
+
+    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Summary Statistics</h3>
+    <div class="stat-grid">
+        <div class="stat-card {% if audit.finding_count %}red{% endif %}">
+            <div class="value">{{ audit.finding_count }}</div>
+            <div class="label">Findings</div>
+        </div>
+        <div class="stat-card amber">
+            <div class="value">{{ audit.open_finding_count }}</div>
+            <div class="label">Open Findings</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="value">{{ tests|length }}</div>
+            <div class="label">Control Tests</div>
+        </div>
+        <div class="stat-card green">
+            <div class="value">{{ evidence_items|length }}</div>
+            <div class="label">Evidence Items</div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= 2. FINDINGS ================= -->
+{% if findings %}
+<div class="section">
+    <div class="section-number">Section 2</div>
+    <h2 class="section-title">Audit Findings</h2>
+    <div class="section-divider"></div>
+
+    <p>
+        {{ findings|length }} finding{{ findings|length|pluralize }} recorded during this audit engagement.
+        Findings are listed below with severity, status, ownership, and recommendations.
+    </p>
+
+    {% for f in findings %}
+    <div class="finding {{ f.severity }}">
+        <div class="finding-title">{{ f.title }}</div>
+        <div class="finding-meta">
+            <span class="badge badge-{{ f.severity }}">{{ f.get_severity_display }}</span>
+            <span class="badge badge-neutral">{{ f.get_status_display }}</span>
+            <span class="badge badge-neutral">{{ f.get_source_display }}</span>
+            {% if f.related_control %}· Control <strong>{{ f.related_control.code }}</strong>{% endif %}
+            {% if f.owner_user %}· Owner <strong>{{ f.owner_user.username }}</strong>{% endif %}
+            {% if f.due_date %}· Due <strong>{{ f.due_date|date:"Y-m-d" }}</strong>{% endif %}
+        </div>
+
+        {% if f.description %}
+        <div class="finding-section">
+            <strong>Description:</strong> {{ f.description|truncatechars:400 }}
+        </div>
+        {% endif %}
+
+        {% if f.recommendation %}
+        <div class="finding-section">
+            <strong>Recommendation:</strong> {{ f.recommendation|truncatechars:400 }}
+        </div>
+        {% endif %}
+
+        {% if f.action_items.count %}
+        <div class="finding-section">
+            <strong>Remediation actions ({{ f.action_items.count }}):</strong>
+            <table class="data" style="margin-top:6px;">
+                <thead>
+                    <tr>
+                        <th style="width:80px;">ID</th>
+                        <th>Action</th>
+                        <th class="text-center" style="width:60px;">Priority</th>
+                        <th class="text-center" style="width:80px;">Status</th>
+                        <th class="text-center" style="width:70px;">Due</th>
+                        <th class="text-center" style="width:60px;">Progress</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for a in f.action_items.all %}
+                    <tr>
+                        <td><strong>{{ a.action_id }}</strong></td>
+                        <td>{{ a.title|truncatechars:70 }}</td>
+                        <td class="text-center"><span class="badge badge-{{ a.get_priority_display|lower }}">{{ a.get_priority_display }}</span></td>
+                        <td class="text-center">{{ a.get_status_display }}</td>
+                        <td class="text-center">{{ a.due_date|date:"Y-m-d"|default:"—" }}</td>
+                        <td class="text-center">{{ a.progress_percent }}%</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- ================= 3. CONTROL TESTS ================= -->
+{% if tests %}
+<div class="section">
+    <div class="section-number">Section 3</div>
+    <h2 class="section-title">Control Testing</h2>
+    <div class="section-divider"></div>
+
+    <p>
+        {{ tests|length }} control test{{ tests|length|pluralize }} performed during this audit.
+        Each test evaluates whether a specific control is operating as designed.
+    </p>
+
+    <table class="data">
+        <thead>
+            <tr>
+                <th style="width:90px;">Control</th>
+                <th>Name</th>
+                <th class="text-center" style="width:80px;">Test Date</th>
+                <th class="text-center" style="width:90px;">Result</th>
+                <th style="width:90px;">Tester</th>
+                <th>Procedure / Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for t in tests %}
+            <tr>
+                <td><strong>{{ t.control.code }}</strong></td>
+                <td>{{ t.control.name|truncatechars:50 }}</td>
+                <td class="text-center">{{ t.test_date|date:"Y-m-d" }}</td>
+                <td class="text-center">
+                    {% if t.result == 'pass' %}<span class="badge badge-success">Pass</span>
+                    {% elif t.result == 'fail' %}<span class="badge badge-fail">Fail</span>
+                    {% elif t.result == 'partial' %}<span class="badge badge-medium">Partial</span>
+                    {% else %}<span class="badge badge-neutral">{{ t.get_result_display }}</span>{% endif %}
+                </td>
+                <td>{{ t.tester.username|default:"—" }}</td>
+                <td>{{ t.procedure_notes|truncatechars:150|default:"—" }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- ================= 4. EVIDENCE ================= -->
+{% if evidence_items %}
+<div class="section">
+    <div class="section-number">Section 4</div>
+    <h2 class="section-title">Evidence Collected</h2>
+    <div class="section-divider"></div>
+
+    <p>
+        {{ evidence_items|length }} piece{{ evidence_items|length|pluralize }} of evidence collected
+        to support this audit. Each item is scored across five dimensions: relevance, completeness,
+        timeliness, reliability, and sufficiency.
+    </p>
+
+    <table class="data">
+        <thead>
+            <tr>
+                <th style="width:40px;">#</th>
+                <th>Title</th>
+                <th style="width:70px;">Type</th>
+                <th style="width:80px;">Control</th>
+                <th style="width:80px;">Owner</th>
+                <th class="text-center" style="width:70px;">Score</th>
+                <th class="text-center" style="width:70px;">Rating</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for e in evidence_items %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ e.title|truncatechars:70 }}</td>
+                <td>{{ e.get_evidence_type_display }}</td>
+                <td>{{ e.related_control.code|default:"—" }}</td>
+                <td>{{ e.owner_user.username|default:"—" }}</td>
+                <td class="text-center">
+                    {% if e.score %}<strong>{{ e.score.total_score }}</strong>/100{% else %}—{% endif %}
+                </td>
+                <td class="text-center">
+                    {% if e.score %}
+                        {% if e.score.rating == 'excellent' %}<span class="badge badge-success">Excellent</span>
+                        {% elif e.score.rating == 'good' %}<span class="badge badge-neutral">Good</span>
+                        {% elif e.score.rating == 'partial' %}<span class="badge badge-medium">Partial</span>
+                        {% else %}<span class="badge badge-fail">Weak</span>{% endif %}
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- ================= 5. CLOSING ================= -->
+<div class="section">
+    <div class="section-number">Section 5</div>
+    <h2 class="section-title">Report Closure</h2>
+    <div class="section-divider"></div>
+
+    <p>
+        This report summarises the findings, control testing activity, and evidence collected during
+        the <strong>{{ audit.name }}</strong> engagement.
+        {% if audit.status == 'complete' %}
+            The audit has been formally closed.
+        {% else %}
+            The audit is currently <strong>{{ audit.get_status_display|lower }}</strong>.
+        {% endif %}
+    </p>
+
+    {% if audit.open_finding_count %}
+    <p style="padding:12px 14px; background:#FEF2F2; border-left:4px solid #DC2626; border-radius:4px;">
+        <strong>Outstanding items:</strong> {{ audit.open_finding_count }} finding{{ audit.open_finding_count|pluralize }}
+        remain{{ audit.open_finding_count|pluralize:"s," }} open. Remediation tracking is ongoing.
+    </p>
+    {% else %}
+    <p style="padding:12px 14px; background:#ECFDF5; border-left:4px solid #059669; border-radius:4px;">
+        <strong>All findings resolved.</strong> No outstanding remediation items.
+    </p>
+    {% endif %}
+
+    <div style="margin-top:60px; display:flex; gap:60px;">
+        <div style="flex:1;">
+            <div style="border-top:1px solid #111827; padding-top:6px; font-size:9pt;">
+                <strong>Audit Lead</strong><br>
+                <span style="color:#6B7280;">{{ audit.auditor_lead.username|default:"—" }}</span>
+            </div>
+        </div>
+        <div style="flex:1;">
+            <div style="border-top:1px solid #111827; padding-top:6px; font-size:9pt;">
+                <strong>Department Head</strong><br>
+                <span style="color:#6B7280;">{{ audit.owner_dept.name }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-footer-note">
+        End of report · Generated {{ generated_at|date:"Y-m-d H:i" }} UTC
+        {% if generated_by %}by {{ generated_by.username }}{% endif %}
+    </div>
+</div>
+
+</body>
+</html>
