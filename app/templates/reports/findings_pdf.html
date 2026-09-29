@@ -1,0 +1,17 @@
+﻿{% extends "reports/base_pdf.html" %}
+{% block content %}
+<p>Total findings: {{ total }} · Open: {{ open_count }} · Overdue: {{ overdue_count }}</p>
+<table>
+    <thead><tr><th>CVE</th><th>Title</th><th>Severity</th><th>Asset</th><th>Status</th><th>SLA</th></tr></thead>
+    <tbody>
+    {% for f in findings %}
+        <tr><td>{{ f.vulnerability.cve_id|default:"Manual" }}</td>
+            <td>{{ f.vulnerability.title|truncatechars:50 }}</td>
+            <td>{{ f.vulnerability.get_cvss_severity_display }}</td>
+            <td>{{ f.asset.asset_id }}</td>
+            <td>{{ f.get_status_display }}</td>
+            <td>{{ f.sla_due_date|default:"—" }}</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

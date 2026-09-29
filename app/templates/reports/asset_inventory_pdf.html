@@ -1,0 +1,25 @@
+﻿{% extends "reports/base_pdf.html" %}
+{% block content %}
+<p>Total assets: {{ total }}</p>
+<table>
+    <thead><tr>
+        <th>Asset ID</th><th>Name</th><th>Hostname</th><th>IP</th>
+        <th>Type</th><th>Hosting</th><th>Cloud</th><th>OS</th><th>Criticality</th>
+    </tr></thead>
+    <tbody>
+    {% for a in assets %}
+        <tr>
+            <td><strong>{{ a.asset_id }}</strong></td>
+            <td>{{ a.name|truncatechars:40 }}</td>
+            <td>{{ a.hostname|default:"—" }}</td>
+            <td>{{ a.ip_address|default:"—" }}</td>
+            <td>{{ a.get_asset_type_display }}</td>
+            <td>{{ a.get_hosting_display }}</td>
+            <td>{{ a.get_cloud_provider_display }}</td>
+            <td>{{ a.get_os_family_display }}</td>
+            <td>{{ a.get_criticality_display }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
