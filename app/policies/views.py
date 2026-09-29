@@ -1,6 +1,8 @@
 ﻿from django.db.models import Q
 from django.views.generic import ListView, DetailView
-
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, UpdateView
+from .forms import PolicyForm
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from core.correlation import get_full_policy_context
 from .models import Policy, PolicyCategory
@@ -57,3 +59,46 @@ class PolicyDetailView(DepartmentScopedMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_policy_context(self.object))
         return ctx
+
+
+# ============================================================
+# POLICY CREATE / UPDATE
+# ============================================================
+
+class PolicyCreateView(DepartmentScopedMixin, CreateView):
+    model = Policy
+    form_class = PolicyForm
+    template_name = 'policies/policy_form.html'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            initial['owner_dept'] = user.department
+        initial['version'] = '1.0'
+        initial['status'] = 'draft'
+        return initial
+
+    def get_success_url(self):
+        return reverse_lazy('policies:detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        from django.contrib import messages
+        response = super().form_valid(form)
+        messages.success(self.request, f'Policy {self.object.code} created.')
+        return response
+
+
+class PolicyUpdateView(DepartmentScopedMixin, UpdateView):
+    model = Policy
+    form_class = PolicyForm
+    template_name = 'policies/policy_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('policies:detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        from django.contrib import messages
+        response = super().form_valid(form)
+        messages.success(self.request, f'Policy {self.object.code} updated.')
+        return response

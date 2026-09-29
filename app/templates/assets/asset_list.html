@@ -55,7 +55,7 @@
         <a href="?{% for k,v in request.GET.items %}{% if k != 'format' %}{{ k }}={{ v }}&{% endif %}{% endfor %}format=xlsx" class="btn btn-sm btn-outline-dark text-nowrap me-2" title="Download as Excel">
             <i class="bi bi-file-earmark-excel"></i> Excel
         </a>
-        <a href="/admin/assets/asset/add/" class="btn btn-sm btn-primary text-nowrap">+ New Asset</a>
+        <a href="{% url 'assets:create' %}" class="btn btn-sm btn-primary text-nowrap">+ New Asset</a>
     </div>
 
     <div class="table-responsive">
@@ -131,3 +131,4 @@
     {% endif %}
 </div>
 {% endblock %}
+

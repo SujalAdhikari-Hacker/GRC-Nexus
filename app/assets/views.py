@@ -1,48 +1,84 @@
-﻿import json
+﻿from django.db.models import Q
+from django.views.generic import ListView, DetailView
 from collections import defaultdict
-
-from django.db.models import Q
-from django.views.generic import ListView, DetailView, TemplateView
+from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
-
 from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from core.correlation import get_full_asset_context
-from core.reports import ReportMixin
 from .models import Asset, AssetCategory
+import json
+from django.views.generic import TemplateView
+from core.reports import ReportMixin
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, UpdateView
+from .forms import AssetForm
+
 
 
 # ============================================================
-# ASSET LIST + DETAIL
+# ASSET CREATE / UPDATE
 # ============================================================
 
-class AssetListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListView):
+class AssetCreateView(DepartmentScopedMixin, CreateView):
+    model = Asset
+    form_class = AssetForm
+    template_name = 'assets/asset_form.html'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        user = self.request.user
+        if not user.is_superuser and user.department_id:
+            initial['owner_dept'] = user.department
+        return initial
+
+    def get_success_url(self):
+        return reverse_lazy('assets:detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        from django.contrib import messages
+        response = super().form_valid(form)
+        messages.success(self.request, f'Asset {self.object.asset_id} created.')
+        return response
+
+
+class AssetUpdateView(DepartmentScopedMixin, UpdateView):
+    model = Asset
+    form_class = AssetForm
+    template_name = 'assets/asset_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('assets:detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        from django.contrib import messages
+        response = super().form_valid(form)
+        messages.success(self.request, f'Asset {self.object.asset_id} updated.')
+        return response
+
+class AssetListView(DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Asset
     template_name = 'assets/asset_list.html'
     context_object_name = 'assets'
     paginate_by = 20
 
-    report_title = 'Asset Inventory'
-    report_filename_base = 'asset_inventory'
-    pdf_template = 'reports/asset_inventory_pdf.html'
-
     csv_filename = 'assets.csv'
     csv_fields = [
         ('Asset ID', 'asset_id'),
         ('Name', 'name'),
+        ('Type', 'get_asset_type_display'),
+        ('Hosting', 'get_hosting_display'),
+        ('Vendor', lambda a: a.vendor.name if a.vendor else ''),
+        ('Classification', 'get_classification_display'),
+        ('Owner Dept', lambda a: a.owner_dept.name),
+        ('Owner User', lambda a: a.owner_user.username if a.owner_user else ''),
         ('Hostname', 'hostname'),
         ('IP Address', 'ip_address'),
         ('FQDN', 'fqdn'),
-        ('Type', 'get_asset_type_display'),
-        ('Hosting', 'get_hosting_display'),
         ('Cloud Provider', 'get_cloud_provider_display'),
         ('Cloud Region', 'cloud_region'),
         ('Location', 'location'),
         ('OS Family', 'get_os_family_display'),
         ('OS Version', 'os_version'),
-        ('Vendor', lambda a: a.vendor.name if a.vendor else ''),
-        ('Classification', 'get_classification_display'),
-        ('Owner Dept', lambda a: a.owner_dept.name),
-        ('Owner User', lambda a: a.owner_user.username if a.owner_user else ''),
         ('Environment', 'get_environment_display'),
         ('Criticality', 'get_criticality_display'),
         ('CIA Avg', 'cia_score'),
@@ -55,9 +91,7 @@ class AssetListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListView
         q = self.request.GET.get('q', '').strip()
         if q:
             qs = qs.filter(
-                Q(asset_id__icontains=q) | Q(name__icontains=q) |
-                Q(hostname__icontains=q) | Q(ip_address__icontains=q) |
-                Q(description__icontains=q)
+                Q(asset_id__icontains=q) | Q(name__icontains=q) | Q(description__icontains=q)
             )
         atype = self.request.GET.get('type')
         if atype:
@@ -68,12 +102,6 @@ class AssetListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListView
         environment = self.request.GET.get('environment')
         if environment:
             qs = qs.filter(environment=environment)
-        cloud = self.request.GET.get('cloud')
-        if cloud:
-            qs = qs.filter(cloud_provider=cloud)
-        os_family = self.request.GET.get('os')
-        if os_family:
-            qs = qs.filter(os_family=os_family)
         return qs.order_by('asset_id')
 
     def get_context_data(self, **kwargs):
@@ -83,37 +111,9 @@ class AssetListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListView
         ctx['selected_type'] = self.request.GET.get('type', '')
         ctx['selected_classification'] = self.request.GET.get('classification', '')
         ctx['selected_environment'] = self.request.GET.get('environment', '')
-        ctx['selected_cloud'] = self.request.GET.get('cloud', '')
-        ctx['selected_os'] = self.request.GET.get('os', '')
+        ctx['selected_cloud'] = self.request.GET.get('cloud', '')       # NEW
+        ctx['selected_os'] = self.request.GET.get('os', '')             # NEW
         return ctx
-
-    def build_rows(self):
-        headers = ['Asset ID', 'Name', 'Hostname', 'IP', 'Type', 'Hosting', 'Cloud',
-                   'Region', 'OS', 'Vendor', 'Classification', 'Owner', 'Env', 'Criticality']
-        qs = self.get_queryset()
-        rows = []
-        for a in qs:
-            rows.append([
-                a.asset_id,
-                a.name,
-                a.hostname,
-                a.ip_address or '',
-                a.get_asset_type_display(),
-                a.get_hosting_display(),
-                a.get_cloud_provider_display(),
-                a.cloud_region,
-                f"{a.get_os_family_display()}{(' — ' + a.os_version) if a.os_version else ''}",
-                a.vendor.name if a.vendor else '',
-                a.get_classification_display(),
-                a.owner_dept.name if a.owner_dept else '',
-                a.get_environment_display(),
-                a.get_criticality_display(),
-            ])
-        return headers, rows
-
-    def build_pdf_context(self):
-        qs = list(self.get_queryset())
-        return {'assets': qs, 'total': len(qs)}
 
 
 class AssetDetailView(DepartmentScopedMixin, DetailView):
@@ -125,12 +125,6 @@ class AssetDetailView(DepartmentScopedMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_asset_context(self.object))
         return ctx
-
-
-# ============================================================
-# ASSET CLASSIFICATION VIEW
-# ============================================================
-
 class AssetClassificationView(DepartmentScopedMixin, TemplateView):
     template_name = 'assets/asset_classification.html'
 
@@ -156,10 +150,6 @@ class AssetClassificationView(DepartmentScopedMixin, TemplateView):
         ctx['total'] = qs.count()
         return ctx
 
-
-# ============================================================
-# ASSET OWNERS VIEW
-# ============================================================
 
 class AssetOwnersView(DepartmentScopedMixin, TemplateView):
     template_name = 'assets/asset_owners.html'
@@ -192,11 +182,6 @@ class AssetOwnersView(DepartmentScopedMixin, TemplateView):
         ctx['total'] = qs.count()
         return ctx
 
-
-# ============================================================
-# RELATIONSHIP EXPLORER
-# ============================================================
-
 class AssetExplorerPickerView(DepartmentScopedMixin, ListView):
     model = Asset
     template_name = 'assets/explorer_picker.html'
@@ -209,6 +194,13 @@ class AssetExplorerPickerView(DepartmentScopedMixin, ListView):
         if q:
             qs = qs.filter(Q(asset_id__icontains=q) | Q(name__icontains=q))
         return qs.order_by('asset_id')
+
+        cloud = self.request.GET.get('cloud')
+        if cloud:
+            qs = qs.filter(cloud_provider=cloud)
+        os_family = self.request.GET.get('os')
+        if os_family:
+            qs = qs.filter(os_family=os_family)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -247,6 +239,7 @@ class AssetExplorerView(DepartmentScopedMixin, DetailView):
         def add_edge(a, b, label='', dashes=False):
             edges.append({'from': a, 'to': b, 'label': label, 'dashes': dashes})
 
+        # Center: the asset
         add_node(
             f'asset-{asset.pk}',
             f'{asset.asset_id}\n{asset.name}',
@@ -256,11 +249,13 @@ class AssetExplorerView(DepartmentScopedMixin, DetailView):
             size=40,
         )
 
+        # Vendors
         for v in asset.vendors.all():
             nid = f'vendor-{v.pk}'
             add_node(nid, v.name, 'vendor', url=f'/vendors/{v.pk}/', size=26)
             add_edge(f'asset-{asset.pk}', nid, 'supplied by')
 
+        # Risks + their controls + their framework mappings
         for r in asset.risks.all():
             nid = f'risk-{r.pk}'
             prefix = '! ' if r.appetite_breached else ''
@@ -296,11 +291,13 @@ class AssetExplorerView(DepartmentScopedMixin, DetailView):
                     )
                     add_edge(cid, fcid, 'satisfies', dashes=True)
 
+        # Policies
         for p in get_policies_for_asset(asset):
             nid = f'policy-{p.pk}'
             add_node(nid, p.code, 'policy', url=f'/policies/{p.pk}/', title=p.title, size=18)
             add_edge(f'asset-{asset.pk}', nid, 'governed by', dashes=True)
 
+        # Vulnerability findings
         for f in asset.findings.all():
             nid = f'finding-{f.pk}'
             label = f.vulnerability.cve_id or f.vulnerability.title[:18]
@@ -316,4 +313,4 @@ class AssetExplorerView(DepartmentScopedMixin, DetailView):
         ctx['graph_edges_json'] = json.dumps(edges)
         ctx['node_count'] = len(nodes)
         ctx['edge_count'] = len(edges)
-        return ctx
+        return ctx    

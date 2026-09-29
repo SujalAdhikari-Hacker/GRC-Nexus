@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}Policies{% endblock %}
 {% block breadcrumb %}<h5 class="mb-0">Policy Library</h5>{% endblock %}
 
@@ -34,7 +34,7 @@
    class="btn btn-sm btn-outline-dark text-nowrap me-2">
     <i class="bi bi-download"></i> Export CSV
 </a>
-        <a href="/admin/policies/policy/add/" class="btn btn-sm btn-primary text-nowrap">+ New Policy</a>
+        <a href="{% url 'policies:create' %}" class="btn btn-sm btn-primary text-nowrap">+ New Policy</a>
     </div>
 
     <div class="table-responsive">
@@ -56,7 +56,7 @@
                 <tr>
                     <td><code>{{ p.code }}</code></td>
                     <td><a href="{% url 'policies:detail' p.pk %}">{{ p.title }}</a></td>
-                    <td><small>{{ p.category.name|default:"—" }}</small></td>
+                    <td><small>{{ p.category.name|default:"â€”" }}</small></td>
                     <td><small>{{ p.owner_dept.name }}</small></td>
                     <td class="text-center">{{ p.version }}</td>
                     <td class="text-center">
@@ -65,7 +65,7 @@
                         {% elif p.status == 'draft' %}<span class="badge bg-secondary">Draft</span>
                         {% else %}<span class="badge bg-dark">Retired</span>{% endif %}
                     </td>
-                    <td><small>{{ p.next_review_date|default:"—" }}</small></td>
+                    <td><small>{{ p.next_review_date|default:"â€”" }}</small></td>
                     <td class="text-end">
                         <a href="{% url 'policies:detail' p.pk %}" class="btn btn-sm btn-outline-dark">View</a>
                     </td>

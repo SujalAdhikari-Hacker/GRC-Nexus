@@ -1,0 +1,158 @@
+﻿{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Policy{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'policies:list' %}">Policies</a></li>
+    {% if form.instance.pk %}
+        <li class="breadcrumb-item"><a href="{% url 'policies:detail' form.instance.pk %}">{{ form.instance.code }}</a></li>
+        <li class="breadcrumb-item active">Edit</li>
+    {% else %}
+        <li class="breadcrumb-item active">New Policy</li>
+    {% endif %}
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+            {# Identification #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-file-earmark-text"></i> Identification</strong></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Policy code <span class="text-danger">*</span></label>
+                            {{ form.code }}
+                            <div class="form-text small">{{ form.code.help_text }}</div>
+                            {% if form.code.errors %}<div class="text-danger small">{{ form.code.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Title <span class="text-danger">*</span></label>
+                            {{ form.title }}
+                            {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Category</label>
+                            {{ form.category }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Version</label>
+                            {{ form.version }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            {{ form.status }}
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">Description</label>
+                        {{ form.description }}
+                    </div>
+                </div>
+            </div>
+
+            {# Content #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-body-text"></i> Policy content</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Body text</label>
+                        {{ form.content }}
+                        <div class="form-text small">{{ form.content.help_text }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">PDF attachment</label>
+                        {{ form.document }}
+                        <div class="form-text small">{{ form.document.help_text }}</div>
+                        {% if form.instance.pk and form.instance.document %}
+                            <div class="mt-2 small">
+                                Currently attached: <a href="{{ form.instance.document.url }}" target="_blank">{{ form.instance.document.name }}</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {# Ownership & approval #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-person-check"></i> Ownership &amp; approval</strong></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Owner department <span class="text-danger">*</span></label>
+                            {{ form.owner_dept }}
+                            {% if form.owner_dept.errors %}<div class="text-danger small">{{ form.owner_dept.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Approved by</label>
+                            {{ form.approved_by }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Approval date</label>
+                            {{ form.approval_date }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Next review date</label>
+                            {{ form.next_review_date }}
+                            {% if form.next_review_date.errors %}<div class="text-danger small">{{ form.next_review_date.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Applicability #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-building"></i> Applicability</strong></div>
+                <div class="card-body">
+                    <label class="form-label">Applies to departments</label>
+                    {{ form.applies_to_departments }}
+                    <div class="form-text small">{{ form.applies_to_departments.help_text }}</div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-dark">{% if form.instance.pk %}Save Changes{% else %}Create Policy{% endif %}</button>
+            <a href="{% url 'policies:list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card sticky-top" style="top:1rem;">
+            <div class="card-header bg-white"><strong>Status workflow</strong></div>
+            <div class="card-body small">
+                <div class="mb-2"><span class="badge bg-secondary">Draft</span> — being written</div>
+                <div class="mb-2"><span class="badge bg-warning text-dark">Under Review</span> — pending approval</div>
+                <div class="mb-2"><span class="badge bg-success">Approved</span> — currently enforced</div>
+                <div class="mb-2"><span class="badge bg-dark">Retired</span> — no longer applicable</div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Policy best practices</strong></div>
+            <div class="card-body small text-muted">
+                <ul class="ps-3 mb-0">
+                    <li>Use a unique code that follows your naming convention</li>
+                    <li>Include a review date — usually 12 months out</li>
+                    <li>Link to departments rather than individual users</li>
+                    <li>Attach the official PDF for legal/compliance proof</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="text"], input[type="date"], input[type="file"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+    select[multiple] { min-height: 160px; }
+</style>
+{% endblock %}

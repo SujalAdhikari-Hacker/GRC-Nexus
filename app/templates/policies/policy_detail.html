@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}{{ policy.code }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -12,8 +12,8 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h4 class="mb-0">{{ policy.code }} — {{ policy.title }}</h4>
-        <small class="text-muted">Version {{ policy.version }} · {{ policy.get_status_display }}</small>
+        <h4 class="mb-0">{{ policy.code }} â€” {{ policy.title }}</h4>
+        <small class="text-muted">Version {{ policy.version }} Â· {{ policy.get_status_display }}</small>
     </div>
     <div>
         {% if policy.document %}
@@ -21,7 +21,7 @@
                 <i class="bi bi-file-pdf"></i> Download PDF
             </a>
         {% endif %}
-        <a href="/admin/policies/policy/{{ policy.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+        <a href="{% url 'policies:update' policy.pk %}" class="btn btn-sm btn-outline-dark">Edit in admin</a>
     </div>
 </div>
 
@@ -30,11 +30,11 @@
         <div class="card">
             <div class="card-header bg-white"><strong>Details</strong></div>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Category</span><span>{{ policy.category.name|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Category</span><span>{{ policy.category.name|default:"â€”" }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ policy.owner_dept.name }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Approved by</span><span>{{ policy.approved_by|default:"—" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Approval date</span><span>{{ policy.approval_date|default:"—" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Next review</span><span>{{ policy.next_review_date|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Approved by</span><span>{{ policy.approved_by|default:"â€”" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Approval date</span><span>{{ policy.approval_date|default:"â€”" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Next review</span><span>{{ policy.next_review_date|default:"â€”" }}</span></li>
             </ul>
         </div>
 
@@ -53,7 +53,7 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-header bg-white"><strong>Description</strong></div>
-            <div class="card-body">{{ policy.description|default:"—"|linebreaks }}</div>
+            <div class="card-body">{{ policy.description|default:"â€”"|linebreaks }}</div>
         </div>
 
         {% if policy.content %}
@@ -69,7 +69,7 @@
                 {% for a in assets %}
                     <li class="list-group-item d-flex justify-content-between">
                         <a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>
-                        <small class="text-muted">{{ a.category.name }} · {{ a.owner_dept.name }}</small>
+                        <small class="text-muted">{{ a.category.name }} Â· {{ a.owner_dept.name }}</small>
                     </li>
                 {% empty %}
                     <li class="list-group-item text-muted text-center">No assets linked yet.</li>

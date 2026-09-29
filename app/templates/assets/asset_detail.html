@@ -20,7 +20,7 @@
             <a href="{% url 'assets:explorer' asset.pk %}" class="btn btn-sm btn-primary">
             <i class="bi bi-diagram-2"></i> Explore connections
         </a>
-    <a href="/admin/assets/asset/{{ asset.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+    <a href="{% url 'assets:update' asset.pk %}" class="btn btn-sm btn-outline-dark">Edit in admin</a>
 </div>
 
 <div class="row g-3">
@@ -158,3 +158,4 @@
     </div>
 </div>
 {% endblock %}
+

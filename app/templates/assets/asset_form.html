@@ -1,0 +1,245 @@
+﻿{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Asset{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'assets:list' %}">Assets</a></li>
+    {% if form.instance.pk %}
+        <li class="breadcrumb-item"><a href="{% url 'assets:detail' form.instance.pk %}">{{ form.instance.asset_id }}</a></li>
+        <li class="breadcrumb-item active">Edit</li>
+    {% else %}
+        <li class="breadcrumb-item active">New Asset</li>
+    {% endif %}
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+            {# Identification #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-tag"></i> Identification</strong></div>
+                <div class="card-body">
+                    {% if form.instance.pk %}
+                    <div class="mb-3">
+                        <label class="form-label">Asset ID</label>
+                        <div class="form-control" style="background: var(--surface-2); font-family: monospace; display: flex; align-items: center; gap: 8px;">
+                            <i class="bi bi-hash" style="color: #0284C7;"></i>
+                            <strong>{{ form.instance.asset_id }}</strong>
+                        </div>
+                        <div class="form-text small">Auto-generated — cannot be changed.</div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="bi bi-info-circle"></i> Asset ID will be auto-generated (e.g. <code>AST-0016</code>).
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Name <span class="text-danger">*</span></label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Hostname</label>
+                            {{ form.hostname }}
+                            <div class="form-text small">{{ form.hostname.help_text }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">IP address</label>
+                            {{ form.ip_address }}
+                            {% if form.ip_address.errors %}<div class="text-danger small">{{ form.ip_address.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">FQDN</label>
+                            {{ form.fqdn }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Classification #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-diagram-3"></i> Classification</strong></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Asset type</label>
+                            {{ form.asset_type }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Hosting</label>
+                            {{ form.hosting }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cloud provider</label>
+                            {{ form.cloud_provider }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cloud region</label>
+                            {{ form.cloud_region }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Location / country</label>
+                            {{ form.location }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">OS family</label>
+                            {{ form.os_family }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">OS version</label>
+                            {{ form.os_version }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Business context #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-briefcase"></i> Business context</strong></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Vendor</label>
+                            {{ form.vendor }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Classification</label>
+                            {{ form.classification }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Environment</label>
+                            {{ form.environment }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Ownership #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-person"></i> Ownership</strong></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label">Owner department <span class="text-danger">*</span></label>
+                            {{ form.owner_dept }}
+                            {% if form.owner_dept.errors %}<div class="text-danger small">{{ form.owner_dept.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Owner user</label>
+                            {{ form.owner_user }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label d-block">Active</label>
+                            <div class="form-check mt-2">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Risk ratings #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-shield-exclamation"></i> Risk ratings</strong></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Criticality</label>
+                            {{ form.criticality }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Confidentiality</label>
+                            {{ form.confidentiality }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Integrity</label>
+                            {{ form.integrity }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Availability</label>
+                            {{ form.availability }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Estimated value</label>
+                            {{ form.value }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Legacy category</label>
+                            {{ form.category }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Governance #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-file-earmark-text"></i> Governance</strong></div>
+                <div class="card-body">
+                    <label class="form-label">Policies</label>
+                    {{ form.policies }}
+                    <div class="form-text small">{{ form.policies.help_text }}</div>
+                </div>
+            </div>
+
+            {# Description #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-journal-text"></i> Description</strong></div>
+                <div class="card-body">
+                    {{ form.description }}
+                    <div class="form-text small">Required — at least 20 characters. Explain what this asset is and does.</div>
+                    {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors }}</div>{% endif %}
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-dark">{% if form.instance.pk %}Save Changes{% else %}Create Asset{% endif %}</button>
+            <a href="{% url 'assets:list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card sticky-top" style="top:1rem;">
+            <div class="card-header bg-white"><strong>Criticality guide</strong></div>
+            <div class="card-body small">
+                <div class="mb-2"><span class="badge bg-danger">Critical</span> — service outage or data loss halts the business</div>
+                <div class="mb-2"><span class="badge bg-warning text-dark">High</span> — significant business impact</div>
+                <div class="mb-2"><span class="badge bg-info text-dark">Medium</span> — moderate impact, workarounds exist</div>
+                <div class="mb-2"><span class="badge bg-secondary">Low</span> — minor impact if lost</div>
+                <hr>
+                <p class="mb-0">Criticality drives composite risk scoring. Set it accurately.</p>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Cascade behavior</strong></div>
+            <div class="card-body small text-muted">
+                <p>When you save this asset:</p>
+                <ul class="ps-3 mb-0">
+                    <li>A <strong>baseline risk</strong> is auto-created</li>
+                    <li>Applicable <strong>policies</strong> are auto-linked</li>
+                    <li>Vendor asset list updates automatically</li>
+                    <li>An entry is added to the <strong>audit trail</strong></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="text"], input[type="number"], input[type="date"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+    select[multiple] { min-height: 140px; }
+</style>
+{% endblock %}
