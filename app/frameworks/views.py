@@ -178,14 +178,22 @@ class ComplianceAssessmentCreateView(DepartmentScopedMixin, CreateView):
         return initial
 
     def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        form.instance.updated_by = self.request.user
         response = super().form_valid(form)
-        # Auto-populate one item per framework control
-        for fc in self.object.framework.controls.all():
-            ComplianceAssessmentItem.objects.create(
+        # Auto-populate one item per framework control, inheriting accountability
+        items = [
+            ComplianceAssessmentItem(
                 assessment=self.object,
                 framework_control=fc,
                 status='not_assessed',
+                created_by=self.request.user,
+                updated_by=self.request.user,
             )
+            for fc in self.object.framework.controls.all()
+        ]
+        if items:
+            ComplianceAssessmentItem.objects.bulk_create(items)
         messages.success(
             self.request,
             f'Assessment {self.object.assessment_id} created with {self.object.total_items} checklist items.'

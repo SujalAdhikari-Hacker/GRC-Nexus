@@ -85,6 +85,16 @@ class ComplianceAssessment(_dj_models.Model):
 
     created_at = _dj_models.DateTimeField(auto_now_add=True)
     updated_at = _dj_models.DateTimeField(auto_now=True)
+    created_by = _dj_models.ForeignKey(
+        'core.User', on_delete=_dj_models.SET_NULL, null=True, blank=True,
+        related_name='created_assessments', editable=False,
+        help_text='User who created this record (auto-set).'
+    )
+    updated_by = _dj_models.ForeignKey(
+        'core.User', on_delete=_dj_models.SET_NULL, null=True, blank=True,
+        related_name='updated_assessments', editable=False,
+        help_text='User who last updated this record (auto-set).'
+    )
 
     history = _HR()
 
@@ -199,6 +209,16 @@ class ComplianceAssessmentItem(_dj_models.Model):
 
     created_at = _dj_models.DateTimeField(auto_now_add=True)
     updated_at = _dj_models.DateTimeField(auto_now=True)
+    created_by = _dj_models.ForeignKey(
+        'core.User', on_delete=_dj_models.SET_NULL, null=True, blank=True,
+        related_name='created_assessment_items', editable=False,
+        help_text='User who created this record (auto-set).'
+    )
+    updated_by = _dj_models.ForeignKey(
+        'core.User', on_delete=_dj_models.SET_NULL, null=True, blank=True,
+        related_name='updated_assessment_items', editable=False,
+        help_text='User who last updated this record (auto-set).'
+    )
 
     history = _HR()
 
