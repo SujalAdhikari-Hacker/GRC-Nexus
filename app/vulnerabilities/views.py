@@ -79,7 +79,7 @@ class FindingListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListVi
         if not user.is_superuser and user.department_id:
             base = base.filter(owner_dept=user.department)
         ctx['total_count'] = base.count()
-        ctx['open_count'] = base.filter(status='open').count()
+        ctx['open_count'] = base.exclude(status__in=Finding.CLOSED_STATUSES).count()
         ctx['critical_count'] = base.filter(vulnerability__cvss_severity='critical').count()
         ctx['kev_count'] = base.filter(vulnerability__kev_status=True).count()
         return ctx
@@ -287,6 +287,8 @@ class ManualVulnerabilityCreateView(_LRM5, _FV5):
                 cvss_score=data['cvss_score'],
                 cvss_severity=data['cvss_severity'],
                 source='manual',
+                created_by=self.request.user,
+                updated_by=self.request.user,
             )
 
         # Compute SLA if not given
@@ -309,6 +311,8 @@ class ManualVulnerabilityCreateView(_LRM5, _FV5):
             assigned_team=data.get('assigned_team'),
             solution=data.get('solution', ''),
             remediation_notes=data.get('remediation_notes', ''),
+            created_by=self.request.user,
+            updated_by=self.request.user,
         )
         finding.save()
 
