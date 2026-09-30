@@ -169,23 +169,6 @@
             </div>
         </div>
     </div>
-    <strong>Treatment plans ({{ treatments|length }})</strong>
-    <a href="{% url 'risks:treatment_create' risk.pk %}" class="btn btn-sm btn-primary">+ New Treatment</a>
-</div>
-            <ul class="list-group list-group-flush">
-                {% for t in treatments %}
-                    <li class="list-group-item">
-                        {{ t.action_plan|truncatechars:120 }}
-                        <div class="small text-muted">
-                            {{ t.get_status_display }} · due {{ t.due_date|default:"—" }}
-                        </div>
-                    </li>
-                {% empty %}
-                    <li class="list-group-item text-muted text-center">No treatments yet.</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
 
     <div class="col-md-6">
         <div class="card">

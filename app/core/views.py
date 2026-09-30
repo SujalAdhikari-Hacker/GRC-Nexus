@@ -1,4 +1,5 @@
-﻿from collections import Counter
+﻿import json
+from collections import Counter
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
@@ -158,11 +159,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'is_super': is_super,
             'heatmap': heatmap,
             'severity_summary': severity_summary,
-            'category_labels': category_labels,
-            'category_values': category_values,
-            'control_status_data': control_status_data,
-            'month_labels': month_labels,
-            'month_values': month_values,
+            # Serialized for inline JS — prevents breakage on special characters
+            'category_labels_json': json.dumps(category_labels),
+            'category_values_json': json.dumps(category_values),
+            'control_status_data_json': json.dumps(control_status_data),
+            'month_labels_json': json.dumps(month_labels),
+            'month_values_json': json.dumps(month_values),
         })
 
         # Trend charts
@@ -174,6 +176,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 # GLOBAL SEARCH (command palette)
 # ============================================================
 
+@login_required
 def global_search(request):
     q = request.GET.get('q', '').strip()
     user = request.user

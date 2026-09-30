@@ -1236,3 +1236,15 @@ td:hover > .mx-add-btn {
 [data-bs-theme="dark"] .mx-add-btn:hover {
     background: #FBBF24;
 }
+/* ---------- Command palette: keyboard focus ---------- */
+.palette-item:focus {
+    outline: none;
+    background: var(--brand-100);
+    color: var(--text);
+}
+.palette-item:focus i {
+    color: var(--accent-600);
+}
+[data-bs-theme="dark"] .palette-item:focus {
+    background: rgba(255, 255, 255, 0.06);
+}

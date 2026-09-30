@@ -228,7 +228,7 @@
             </a>
 
             {# ==================== ADMINISTRATION ==================== #}
-            {% if user.is_superuser %}
+            {% if user.is_hod or user.is_superuser %}
             <div class="sidebar-section-head sidebar-head-toggle" data-target="admin" style="display: flex;">
                 <span>Administration</span>
                 <i class="bi bi-chevron-down section-caret"></i>
@@ -296,12 +296,16 @@
                             <div class="name">{{ user.get_full_name|default:user.username }}</div>
                             <div class="email">{{ user.email|default:"—" }}</div>
                         </div>
+                        {% if user.is_hod or user.is_superuser %}
                         <a href="{% url 'core:users_list' %}" class="user-menu-item"><i class="bi bi-people"></i><span>Users</span></a>
                         <a href="{% url 'core:departments_list' %}" class="user-menu-item"><i class="bi bi-building"></i><span>Departments</span></a>
                         <a href="{% url 'core:roles_permissions' %}" class="user-menu-item"><i class="bi bi-shield-lock"></i><span>Roles &amp; Permissions</span></a>
                         <div class="user-menu-divider"></div>
+                        {% endif %}
+                        {% if user.is_superuser %}
                         <a href="/admin/" class="user-menu-item"><i class="bi bi-gear"></i><span>Django Admin</span></a>
                         <div class="user-menu-divider"></div>
+                        {% endif %}
                         <form method="post" action="{% url 'logout' %}" style="margin:0;">
                             {% csrf_token %}
                             <button type="submit" class="user-menu-item danger"><i class="bi bi-box-arrow-right"></i><span>Sign out</span></button>
@@ -333,13 +337,13 @@
                    placeholder="Search assets, risks, controls, policies, vendors..."
                    autocomplete="off"
                    hx-get="{% url 'core:search' %}"
-                   hx-trigger="input changed delay:180ms, load"
+                   hx-trigger="input changed delay:180ms"
                    hx-target="#paletteResults"
                    hx-swap="innerHTML">
             <span class="palette-esc">ESC</span>
         </div>
         <div class="palette-results" id="paletteResults">
-            <div class="palette-empty">Loading...</div>
+            <div class="palette-empty">Start typing to search across assets, risks, controls, policies, and vendors.</div>
         </div>
         <div class="palette-footer">
             <span><span class="kbd">↑↓</span> Navigate</span>

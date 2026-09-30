@@ -21,7 +21,7 @@
 
 <div class="card mb-3">
     <div class="card-header bg-white"><strong>Description</strong></div>
-    <div class="card-body">{{ actor.description|default:"—"|linebreaks|truncatewords_html:250 }}</div>
+    <div class="card-body">{{ actor.description|default:"—"|truncatewords_html:250|linebreaks }}</div>
 </div>
 
 <div class="row g-3">
