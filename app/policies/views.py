@@ -84,6 +84,9 @@ class PolicyCreateView(DepartmentScopedMixin, CreateView):
 
     def form_valid(self, form):
         from django.contrib import messages
+        # Lock accountability to the logged-in user — not editable from the form
+        form.instance.created_by = self.request.user
+        form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         messages.success(self.request, f'Policy {self.object.code} created.')
         return response
@@ -99,6 +102,8 @@ class PolicyUpdateView(DepartmentScopedMixin, UpdateView):
 
     def form_valid(self, form):
         from django.contrib import messages
+        # updated_by tracks the last editor; created_by stays as the original creator
+        form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         messages.success(self.request, f'Policy {self.object.code} updated.')
         return response

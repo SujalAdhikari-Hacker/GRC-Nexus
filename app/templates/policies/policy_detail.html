@@ -39,6 +39,40 @@
         </div>
 
         <div class="card mt-3">
+            <div class="card-header bg-white"><strong><i class="bi bi-lock-fill"></i> Accountability</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Created by</span>
+                    <span>
+                        {% if policy.created_by %}
+                            <i class="bi bi-person-check" style="color:#059669;"></i> {{ policy.created_by.username }}
+                        {% else %}
+                            <em class="text-muted">—</em>
+                        {% endif %}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Created at</span>
+                    <span>{{ policy.created_at|date:"Y-m-d H:i" }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Last updated by</span>
+                    <span>
+                        {% if policy.updated_by %}
+                            <i class="bi bi-pencil-square" style="color:#0284C7;"></i> {{ policy.updated_by.username }}
+                        {% else %}
+                            <em class="text-muted">—</em>
+                        {% endif %}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Last updated at</span>
+                    <span>{{ policy.updated_at|date:"Y-m-d H:i" }}</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card mt-3">
             <div class="card-header bg-white"><strong>Applies to ({{ departments|length }} depts)</strong></div>
             <div class="card-body">
                 {% for d in departments %}

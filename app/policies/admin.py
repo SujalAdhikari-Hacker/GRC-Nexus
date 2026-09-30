@@ -12,10 +12,11 @@ class PolicyCategoryAdmin(SimpleHistoryAdmin):
 class PolicyAdmin(SimpleHistoryAdmin):
     list_display = (
         'code', 'title', 'category', 'version', 'status',
-        'owner_dept', 'approval_date', 'next_review_date'
+        'owner_dept', 'approval_date', 'next_review_date',
+        'created_by', 'updated_by'
     )
     list_filter = ('status', 'category', 'owner_dept')
     search_fields = ('code', 'title', 'description')
     filter_horizontal = ('applies_to_departments',)
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at', 'created_by', 'updated_by')
     date_hierarchy = 'approval_date'

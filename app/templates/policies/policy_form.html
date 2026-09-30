@@ -21,6 +21,67 @@
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
 
+            {# ─────────── Accountability (locked) ─────────── #}
+            <div class="card mb-3">
+                <div class="card-header bg-white">
+                    <strong><i class="bi bi-shield-lock"></i> Accountability</strong>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Created by</label>
+                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
+                                <i class="bi bi-person-check" style="color: #0284C7;"></i>
+                                <strong>
+                                    {% if form.instance.created_by %}
+                                        {{ form.instance.created_by.username }}
+                                    {% elif form.instance.pk %}
+                                        <em class="text-muted">Legacy — no creator recorded</em>
+                                    {% else %}
+                                        {{ request.user.username }}
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="form-text small">
+                                {% if form.instance.created_at %}
+                                    {{ form.instance.created_at|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    Will be recorded when you save.
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last updated</label>
+                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
+                                <i class="bi bi-clock-history" style="color: #6B7280;"></i>
+                                <strong>
+                                    {% if form.instance.updated_by %}
+                                        {{ form.instance.updated_by.username }}
+                                    {% else %}
+                                        <em class="text-muted">—</em>
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="form-text small">
+                                {% if form.instance.updated_at %}
+                                    {{ form.instance.updated_at|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    Will be set on save.
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+{# ─────────── Accountability (locked) ─────────── #}
+<div class="card mb-3">
+    <div class="card-header bg-white">
+        <strong><i class="bi bi-shield-lock"></i> Accountability</strong>
+    </div>
+    <div class="card-body">
+        ...
+    </div>
+</div>
             {# Identification #}
             <div class="card mb-3">
                 <div class="card-header bg-white"><strong><i class="bi bi-file-earmark-text"></i> Identification</strong></div>
