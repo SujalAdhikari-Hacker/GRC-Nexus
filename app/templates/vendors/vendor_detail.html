@@ -46,6 +46,28 @@
                 </li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ vendor.owner_dept.name }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ vendor.owner_user|default:"—" }}</span></li>
+                                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Created by</span>
+                    <span class="text-end">
+                        {% if vendor.created_by %}
+                            <i class="bi bi-person-check" style="color:#059669;"></i> <strong>{{ vendor.created_by.username }}</strong>
+                            <div class="small text-muted">{{ vendor.created_at|date:"Y-m-d H:i" }}</div>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Last updated</span>
+                    <span class="text-end">
+                        {% if vendor.updated_by %}
+                            <i class="bi bi-clock-history" style="color:#0284C7;"></i> <strong>{{ vendor.updated_by.username }}</strong>
+                            <div class="small text-muted">{{ vendor.updated_at|date:"Y-m-d H:i" }}</div>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </span>
+                </li>
             </ul>
         </div>
 

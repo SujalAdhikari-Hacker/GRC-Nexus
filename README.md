@@ -104,6 +104,17 @@ It answers the executive question: *"Where is our risk concentrated, and what ar
 | Audit | django-simple-history |
 | Infra | Docker · Docker Compose |
 
+<<<<<<< HEAD
+=======
+## Contributors
+
+**Sujal Adhikari** — Creator & Lead Developer
+- GitHub: [@SujalAdhikari-Hacker](https://github.com/SujalAdhikari-Hacker)
+- Role: Architecture, backend, business logic, security, UI/UX
+
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for full attribution and contribution guidelines.
+
+>>>>>>> a6d83f0d927a44fba3e03233f6a6825441f77769
 ---
 
 ## Quick start

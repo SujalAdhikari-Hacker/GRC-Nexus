@@ -36,6 +36,8 @@ class AssetCreateView(DepartmentScopedMixin, CreateView):
 
     def form_valid(self, form):
         from django.contrib import messages
+        form.instance.created_by = self.request.user
+        form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         messages.success(self.request, f'Asset {self.object.asset_id} created.')
         return response
@@ -51,6 +53,7 @@ class AssetUpdateView(DepartmentScopedMixin, UpdateView):
 
     def form_valid(self, form):
         from django.contrib import messages
+        form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         messages.success(self.request, f'Asset {self.object.asset_id} updated.')
         return response
@@ -314,3 +317,4 @@ class AssetExplorerView(DepartmentScopedMixin, DetailView):
         ctx['node_count'] = len(nodes)
         ctx['edge_count'] = len(edges)
         return ctx    
+

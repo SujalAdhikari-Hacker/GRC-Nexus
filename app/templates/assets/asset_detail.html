@@ -20,7 +20,7 @@
             <a href="{% url 'assets:explorer' asset.pk %}" class="btn btn-sm btn-primary">
             <i class="bi bi-diagram-2"></i> Explore connections
         </a>
-    <a href="{% url 'assets:update' asset.pk %}" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+<a href="{% url 'assets:update' asset.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
 </div>
 
 <div class="row g-3">
@@ -58,6 +58,28 @@
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ asset.owner_dept.name }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ asset.owner_user|default:"—" }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Active</span><span>{{ asset.is_active|yesno:"Yes,No" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Created by</span>
+                    <span class="text-end">
+                        {% if asset.created_by %}
+                            <i class="bi bi-person-check" style="color:#059669;"></i> <strong>{{ asset.created_by.username }}</strong>
+                            <div class="small text-muted">{{ asset.created_at|date:"Y-m-d H:i" }}</div>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Last updated</span>
+                    <span class="text-end">
+                        {% if asset.updated_by %}
+                            <i class="bi bi-clock-history" style="color:#0284C7;"></i> <strong>{{ asset.updated_by.username }}</strong>
+                            <div class="small text-muted">{{ asset.updated_at|date:"Y-m-d H:i" }}</div>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </span>
+                </li>
             </ul>
         </div>
 
@@ -158,4 +180,3 @@
     </div>
 </div>
 {% endblock %}
-
