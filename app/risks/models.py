@@ -170,6 +170,16 @@ class Risk(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='created_risks', editable=False,
+        help_text='User who created this record (auto-set).'
+    )
+    updated_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='updated_risks', editable=False,
+        help_text='User who last updated this record (auto-set).'
+    )
 
     history = HistoricalRecords()
 
@@ -242,6 +252,12 @@ class RiskTreatment(models.Model):
 
     def __str__(self):
         return f"Treatment for {self.risk.title}"
+
+
+# ==================================================================
+# RISK EXCEPTION
+# ==================================================================
+
 class RiskException(models.Model):
     """
     Formal acceptance of a risk, with expiry and approver.
