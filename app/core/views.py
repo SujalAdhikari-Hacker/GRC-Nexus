@@ -346,25 +346,6 @@ class RolesPermissionsView(HODOrSuperuserMixin, TemplateView):
         return ctx
 
 
-# ============================================================
-# EXECUTIVE PDF REPORT
-# ============================================================
-
-from django.shortcuts import render as _rn7
-from django.http import HttpResponse as _HR7
-from core.reports import render_pdf as _render_pdf7
-from core.executive_report import build_executive_report as _build_exec7
-
-
-class ExecutiveReportView(LoginRequiredMixin, TemplateView):
-    """Full narrative PDF report."""
-    template_name = 'reports/executive_report.html'
-
-    def get(self, request, *args, **kwargs):
-        ctx = _build_exec7(request.user)
-        from django.utils import timezone
-        filename = f'aegis_executive_report_{timezone.now().strftime("%Y%m%d_%H%M")}.pdf'
-        return _render_pdf7(request, self.template_name, ctx, filename)
 
 
 # ============================================================
