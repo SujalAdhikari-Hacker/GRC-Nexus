@@ -389,7 +389,16 @@ class ActionItem(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    created_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='created_action_items', editable=False,
+        help_text='User who created this record (auto-set).'
+    )
+    updated_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='updated_action_items', editable=False,
+        help_text='User who last updated this record (auto-set).'
+    )
     history = HistoricalRecords()
 
     class Meta:
