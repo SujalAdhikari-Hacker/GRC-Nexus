@@ -92,6 +92,18 @@ class Vendor(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'core.User', null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='vendors_created',
+        help_text='Who created this vendor record'
+    )
+    updated_by = models.ForeignKey(
+        'core.User', null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='vendors_updated',
+        help_text='Who last modified this vendor record'
+    )
 
     history = HistoricalRecords()
 

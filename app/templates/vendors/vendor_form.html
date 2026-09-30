@@ -25,6 +25,58 @@
                             {{ form.name }}
                             {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
                         </div>
+                                    {# Accountability panel #}
+            <div class="card mb-3" style="border-left: 4px solid #F59E0B;">
+                <div class="card-header bg-white"><strong><i class="bi bi-fingerprint"></i> Accountability</strong></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Vendor ID</label>
+                            <div class="form-control" style="background: var(--surface-2); font-family: monospace; display: flex; align-items: center; gap: 8px;">
+                                <i class="bi bi-hash" style="color: #0284C7;"></i>
+                                <strong>{{ form.instance.vendor_id|default:"Auto-generated" }}</strong>
+                            </div>
+                            <div class="form-text small">Auto-assigned on save.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Created by</label>
+                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
+                                <i class="bi bi-person-check" style="color: #059669;"></i>
+                                <strong>{{ form.instance.created_by.username|default:request.user.username }}</strong>
+                            </div>
+                            <div class="form-text small">
+                                {% if form.instance.pk %}
+                                    On {{ form.instance.created_at|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    Will be recorded when you save.
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Last updated</label>
+                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
+                                <i class="bi bi-clock-history" style="color: #0284C7;"></i>
+                                <strong>
+                                    {% if form.instance.pk and form.instance.updated_by %}
+                                        {{ form.instance.updated_by.username }}
+                                    {% elif form.instance.pk %}
+                                        {{ request.user.username }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="form-text small">
+                                {% if form.instance.pk %}
+                                    On {{ form.instance.updated_at|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    Will be set on save.
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
                         <div class="col-md-4">
                             <label class="form-label">Status</label>
                             {{ form.status }}

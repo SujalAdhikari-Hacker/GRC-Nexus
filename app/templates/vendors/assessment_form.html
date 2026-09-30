@@ -18,7 +18,45 @@
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-
+                    {# Accountability panel #}
+                    <div class="card mb-3" style="border-left: 4px solid #F59E0B;">
+                        <div class="card-header bg-white"><strong><i class="bi bi-fingerprint"></i> Accountability</strong></div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Assessment ID</label>
+                                    <div class="form-control" style="background: var(--surface-2); font-family: monospace; display: flex; align-items: center; gap: 8px;">
+                                        <i class="bi bi-hash" style="color: #0284C7;"></i>
+                                        <strong>{{ form.instance.assessment_id|default:"Auto-generated" }}</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Assessor</label>
+                                    <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
+                                        <i class="bi bi-person-check" style="color: #059669;"></i>
+                                        <strong>{{ form.instance.assessor.username|default:request.user.username }}</strong>
+                                    </div>
+                                    <div class="form-text small">Recorded automatically.</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Last updated</label>
+                                    <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
+                                        <i class="bi bi-clock-history" style="color: #0284C7;"></i>
+                                        <strong>
+                                            {% if form.instance.pk %}
+                                                {{ form.instance.updated_by.username|default:request.user.username }}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                    <div class="form-text small">
+                                        {% if form.instance.pk %}{{ form.instance.updated_at|date:"Y-m-d H:i" }}{% else %}Will be set on save.{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row g-3">
                         <div class="col-md-8">
                             <label class="form-label">Vendor <span class="text-danger">*</span></label>

@@ -92,7 +92,6 @@ class VendorCreateView(DepartmentScopedMixin, CreateView):
     model = Vendor
     form_class = VendorForm
     template_name = 'vendors/vendor_form.html'
-    success_url = reverse_lazy('vendors:list')
 
     def get_initial(self):
         initial = super().get_initial()
@@ -101,12 +100,32 @@ class VendorCreateView(DepartmentScopedMixin, CreateView):
             initial['owner_dept'] = user.department
         return initial
 
+    def get_success_url(self):
+        return reverse_lazy('vendors:detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        from django.contrib import messages
+        form.instance.created_by = self.request.user
+        form.instance.updated_by = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, f'Vendor {self.object.vendor_id} created.')
+        return response
+
 
 class VendorUpdateView(DepartmentScopedMixin, UpdateView):
     model = Vendor
     form_class = VendorForm
     template_name = 'vendors/vendor_form.html'
-    success_url = reverse_lazy('vendors:list')
+
+    def get_success_url(self):
+        return reverse_lazy('vendors:detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        from django.contrib import messages
+        form.instance.updated_by = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, f'Vendor {self.object.vendor_id} updated.')
+        return response
 
 
 # ============================================================
@@ -189,6 +208,8 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
         if self.vendor:
             form.instance.vendor = self.vendor
         form.instance.assessor = self.request.user
+        form.instance.created_by = self.request.user
+        form.instance.updated_by = self.request.user
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -204,6 +225,10 @@ class VendorAssessmentUpdateView(LoginRequiredMixin, UpdateView):
     model = VendorAssessment
     form_class = VendorAssessmentForm
     template_name = 'vendors/assessment_form.html'
+
+    def form_valid(self, form):
+        form.instance.updated_by = self.request.user
+        return super().form_valid(form)
 
     def get_success_url(self):
         return reverse_lazy('vendors:assessment_detail', kwargs={'pk': self.object.pk})
