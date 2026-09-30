@@ -493,198 +493,10 @@ hr { border-color: var(--border-soft); opacity: 1; }
 [data-bs-theme="dark"] .nav-link:hover,
 [data-bs-theme="dark"] .nav-link.active { background: rgba(255,255,255,0.05); }
 
-.topbar-search {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--r-sm);
-    padding: 6px 10px;
-    font-size: 12.5px;
-    color: var(--text-muted);
-    width: 320px;
-    cursor: pointer;
-}
-.topbar-search:hover { background: var(--brand-100); color: var(--text); }
-.topbar-search i { font-size: 13px; opacity: 0.7; }
-.topbar-search .search-placeholder { flex: 1; text-align: left; }
-.topbar-search .kbd {
-    font-size: 10px;
-    font-family: ui-monospace, monospace;
-    padding: 1px 5px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text-faint);
-}
 
-.topbar-actions { display: flex; align-items: center; gap: 6px; }
-.topbar-btn {
-    width: 32px;
-    height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: 1px solid transparent;
-    color: var(--text-muted);
-    border-radius: var(--r-sm);
-    cursor: pointer;
-    position: relative;
-}
-.topbar-btn:hover { background: var(--brand-100); color: var(--text); }
-.topbar-btn i { font-size: 15px; }
-
-.user-menu-trigger {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: transparent;
-    border: 1px solid transparent;
-    padding: 3px 8px 3px 3px;
-    border-radius: 999px;
-    cursor: pointer;
-}
-.user-menu-trigger:hover { background: var(--brand-100); border-color: var(--border); }
-.user-menu-trigger .avatar {
-    width: 26px; height: 26px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
-    color: var(--brand-900);
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 600; font-size: 11px;
-}
-.user-menu-trigger .username { font-size: 12.5px; font-weight: 500; color: var(--text); }
-.user-menu-trigger .caret { font-size: 10px; color: var(--text-faint); }
-
-.user-menu-wrap { position: relative; }
-.user-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    width: 240px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    box-shadow: var(--sh-md);
-    padding: 6px;
-    display: none;
-    z-index: 100;
-}
-.user-menu.open { display: block; }
-.user-menu-header { padding: 10px 10px 8px; border-bottom: 1px solid var(--border-soft); margin-bottom: 4px; }
-.user-menu-header .name { font-weight: 600; font-size: 13px; }
-.user-menu-header .email { font-size: 11.5px; color: var(--text-muted); }
-.user-menu-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 7px 10px;
-    border-radius: var(--r-sm);
-    font-size: 13px;
-    color: var(--text);
-    cursor: pointer;
-    background: transparent;
-    border: none;
-    width: 100%;
-    text-align: left;
-}
-.user-menu-item:hover { background: var(--brand-100); color: var(--text); }
-.user-menu-item i { font-size: 14px; color: var(--text-muted); width: 16px; }
-.user-menu-item.danger { color: var(--danger); }
-.user-menu-item.danger i { color: var(--danger); }
-.user-menu-divider { height: 1px; background: var(--border-soft); margin: 4px 0; }
-
-.topbar .page-title { font-size: 14px; font-weight: 600; color: var(--text); margin: 0; }
-
-.palette-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(6, 11, 20, 0.6);
-    backdrop-filter: blur(3px);
-    z-index: 9999;
-    align-items: flex-start;
-    justify-content: center;
-    padding-top: 12vh;
-}
-.palette-overlay.open { display: flex; }
-.palette-modal {
-    width: 100%;
-    max-width: 620px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-lg);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-    overflow: hidden;
-}
-.palette-input-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border-soft);
-}
-.palette-input-row i { color: var(--text-muted); font-size: 16px; }
-.palette-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 14px;
-    color: var(--text);
-}
-.palette-esc {
-    font-size: 10px;
-    padding: 2px 6px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text-faint);
-    font-family: ui-monospace, monospace;
-}
-.palette-results { max-height: 420px; overflow-y: auto; padding: 8px; }
-.palette-section-title {
-    font-size: 10.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-faint);
-    padding: 10px 10px 4px;
-    font-weight: 600;
-}
-.palette-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: var(--r-sm);
-    font-size: 13px;
-    color: var(--text);
-    cursor: pointer;
-}
-.palette-item:hover { background: var(--brand-100); }
-.palette-item i { color: var(--text-muted); font-size: 14px; width: 16px; }
-.palette-item .item-meta { margin-left: auto; font-size: 11.5px; color: var(--text-faint); }
-.palette-empty { padding: 32px 16px; text-align: center; color: var(--text-faint); font-size: 13px; }
-.palette-footer {
-    padding: 8px 14px;
-    background: var(--surface-2);
-    border-top: 1px solid var(--border-soft);
-    font-size: 11.5px;
-    color: var(--text-muted);
-    display: flex;
-    gap: 16px;
-}
-.palette-footer .kbd {
-    font-family: ui-monospace, monospace;
-    font-size: 10px;
-    padding: 1px 5px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    margin-right: 4px;
-}
+/* ============================================================
+   TOPBAR COMPONENTS — search, buttons, user menu, palette
+   ============================================================ */
 
 .topbar-search {
     display: flex;
@@ -877,4 +689,550 @@ hr { border-color: var(--border-soft); opacity: 1; }
     border: 1px solid var(--border);
     border-radius: 3px;
     margin-right: 4px;
+}
+
+/* ---------- Date input styling (native calendar) ---------- */
+input[type="date"] {
+    width: 100%;
+    padding: .375rem .75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+}
+input[type="date"]:focus {
+    border-color: var(--accent-500);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    outline: none;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    filter: invert(0);
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+[data-bs-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+
+/* ---------- Sidebar collapsible sections ---------- */
+.nav-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--brand-500);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 12px 12px 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+.nav-section-title:hover {
+    color: var(--brand-300);
+}
+.nav-section-title .section-caret {
+    font-size: 10px;
+    transition: transform 0.15s ease;
+    opacity: 0.6;
+}
+.nav-section-title[aria-expanded="false"] .section-caret {
+    transform: rotate(-90deg);
+}
+[data-bs-theme="dark"] .nav-section-title {
+    color: #4B5563;
+}
+[data-bs-theme="dark"] .nav-section-title:hover {
+    color: var(--brand-300);
+}
+
+/* ---------- Sidebar section headers — brighter + tight collapse ---------- */
+.nav-section {
+    margin-bottom: 0 !important;
+}
+
+.nav-section-title {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    color: #E5E7EB !important;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 14px 12px 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    line-height: 1;
+}
+.nav-section-title:hover {
+    color: #FFFFFF !important;
+}
+.nav-section-title .section-caret {
+    font-size: 10px;
+    transition: transform 0.15s ease;
+    opacity: 0.9;
+    color: inherit;
+}
+
+/* Custom collapse body — hidden unless parent has .is-open */
+.nav-section-body {
+    display: none;
+    padding: 0;
+    margin: 0;
+}
+.nav-section.is-open .nav-section-body {
+    display: block;
+}
+.nav-section.is-open .nav-section-title .section-caret {
+    transform: rotate(0deg);
+}
+.nav-section:not(.is-open) .nav-section-title .section-caret {
+    transform: rotate(-90deg);
+}
+
+[data-bs-theme="dark"] .nav-section-title {
+    color: #E5E7EB !important;
+}
+[data-bs-theme="dark"] .nav-section-title:hover {
+    color: #FFFFFF !important;
+}
+
+/* ============================================================
+   SIDEBAR FIX — HIGH PRIORITY OVERRIDES
+   Kills collapse gaps, brightens text
+   ============================================================ */
+
+/* --- Kill all spacing on section wrappers --- */
+.nav-section {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+}
+
+/* --- Section headers: tight, white, no leftover button styling --- */
+.nav-section-title,
+button.nav-section-title,
+.sidebar .nav-section-title {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 12px 14px 4px !important;
+    background: transparent !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    color: #F9FAFB !important;
+    font-family: inherit !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1.2 !important;
+    cursor: pointer !important;
+    text-align: left !important;
+}
+.nav-section-title:hover {
+    color: #FFFFFF !important;
+}
+.nav-section-title .section-caret {
+    font-size: 10px !important;
+    opacity: 0.85 !important;
+    transition: transform 0.15s ease !important;
+    margin-left: 8px !important;
+}
+
+/* --- Collapsed body hides completely, no whitespace --- */
+.nav-section-body {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+.nav-section.is-open .nav-section-body {
+    display: block !important;
+}
+
+/* --- Nav links: BRIGHT text, tight spacing --- */
+.sidebar .nav-link,
+aside .nav-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 6px 12px !important;
+    margin: 1px 8px !important;
+    border-radius: 4px !important;
+    color: #D1D5DB !important;
+    background: transparent !important;
+    font-size: 13px !important;
+    font-weight: 450 !important;
+    line-height: 1.4 !important;
+    text-decoration: none !important;
+    border: 0 !important;
+    position: relative !important;
+}
+.sidebar .nav-link i,
+aside .nav-link i {
+    color: #9CA3AF !important;
+    font-size: 14px !important;
+    width: 16px !important;
+    text-align: center !important;
+    opacity: 1 !important;
+    flex-shrink: 0 !important;
+}
+.sidebar .nav-link span,
+aside .nav-link span {
+    color: inherit !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* --- Hover --- */
+.sidebar .nav-link:hover,
+aside .nav-link:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #FFFFFF !important;
+}
+.sidebar .nav-link:hover i,
+aside .nav-link:hover i {
+    color: #FFFFFF !important;
+}
+
+/* --- Active --- */
+.sidebar .nav-link.active,
+aside .nav-link.active {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #FFFFFF !important;
+    font-weight: 500 !important;
+}
+.sidebar .nav-link.active i,
+aside .nav-link.active i {
+    color: #F59E0B !important;
+}
+.sidebar .nav-link.active::before,
+aside .nav-link.active::before {
+    content: '' !important;
+    position: absolute !important;
+    left: -8px !important;
+    top: 8px !important;
+    bottom: 8px !important;
+    width: 3px !important;
+    background: #F59E0B !important;
+    border-radius: 0 2px 2px 0 !important;
+}
+
+/* --- Top of nav list: tighter first section --- */
+.nav {
+    padding: 8px 0 !important;
+}
+.nav > .nav-section:first-child .nav-section-title {
+    padding-top: 4px !important;
+}
+
+/* --- User block at bottom: tight --- */
+.user-block {
+    margin: 0 !important;
+    padding: 12px 14px !important;
+}
+
+/* ============================================================
+   SIDEBAR — NATIVE details/summary implementation
+   ============================================================ */
+
+/* Kill all spacing on section wrappers */
+.nav-section {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    display: block;
+}
+
+/* Remove default details marker triangle */
+details.nav-section > summary {
+    list-style: none;
+    cursor: pointer;
+}
+details.nav-section > summary::-webkit-details-marker,
+details.nav-section > summary::marker {
+    display: none;
+    content: '';
+}
+
+/* Section title styling (applies to both button.summary and div.static) */
+.nav-section-title {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 14px 14px 6px !important;
+    background: transparent !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    color: #F9FAFB !important;
+    font-family: inherit !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1.2 !important;
+    text-align: left !important;
+}
+
+.nav-section-title.static {
+    cursor: default !important;
+}
+
+.nav-section-title:hover {
+    color: #FFFFFF !important;
+}
+
+.nav-section-title .section-caret {
+    font-size: 10px !important;
+    opacity: 0.85 !important;
+    transition: transform 0.15s ease !important;
+    margin-left: 8px !important;
+    color: inherit !important;
+}
+
+/* Rotate caret: open = 0deg, closed = -90deg */
+details.nav-section[open] > summary .section-caret {
+    transform: rotate(0deg) !important;
+}
+details.nav-section:not([open]) > summary .section-caret {
+    transform: rotate(-90deg) !important;
+}
+
+/* Nav links — bright, tight */
+.sidebar .nav-link,
+aside .nav-link,
+details.nav-section > a.nav-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 6px 12px !important;
+    margin: 1px 8px !important;
+    border-radius: 4px !important;
+    color: #D1D5DB !important;
+    background: transparent !important;
+    font-size: 13px !important;
+    font-weight: 450 !important;
+    line-height: 1.4 !important;
+    text-decoration: none !important;
+    border: 0 !important;
+    position: relative !important;
+}
+
+.sidebar .nav-link i,
+aside .nav-link i,
+details.nav-section > a.nav-link i {
+    color: #9CA3AF !important;
+    font-size: 14px !important;
+    width: 16px !important;
+    text-align: center !important;
+    opacity: 1 !important;
+    flex-shrink: 0 !important;
+}
+
+.sidebar .nav-link span {
+    color: inherit !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.sidebar .nav-link:hover,
+details.nav-section > a.nav-link:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #FFFFFF !important;
+}
+.sidebar .nav-link:hover i,
+details.nav-section > a.nav-link:hover i {
+    color: #FFFFFF !important;
+}
+
+.sidebar .nav-link.active,
+details.nav-section > a.nav-link.active {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #FFFFFF !important;
+    font-weight: 500 !important;
+}
+.sidebar .nav-link.active i,
+details.nav-section > a.nav-link.active i {
+    color: #F59E0B !important;
+}
+.sidebar .nav-link.active::before,
+details.nav-section > a.nav-link.active::before {
+    content: '' !important;
+    position: absolute !important;
+    left: -8px !important;
+    top: 8px !important;
+    bottom: 8px !important;
+    width: 3px !important;
+    background: #F59E0B !important;
+    border-radius: 0 2px 2px 0 !important;
+}
+
+/* Nav list spacing */
+.nav {
+    padding: 6px 0 !important;
+}
+
+/* ---------- FORCE-HIDE children of closed <details> sections ---------- */
+details.nav-section:not([open]) > a,
+details.nav-section:not([open]) > div {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+}
+
+/* ============================================================
+   SIDEBAR v3 — flat structure, no wrappers, inline-layout
+   ============================================================ */
+
+.sidebar .nav {
+    padding: 6px 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    flex: 1 !important;
+    overflow-y: auto !important;
+}
+
+.sidebar-section-head {
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 4px;
+    margin: 0;
+    color: #F9FAFB;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: inherit;
+    line-height: 1.2;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+}
+.sidebar-section-head:hover { color: #FFFFFF; }
+.sidebar-section-head .section-caret {
+    font-size: 10px;
+    opacity: 0.9;
+    transition: transform 0.15s ease;
+    margin-left: 8px;
+}
+
+.sidebar-link {
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    margin: 1px 8px;
+    border-radius: 4px;
+    color: #D1D5DB;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 450;
+    line-height: 1.4;
+    position: relative;
+}
+.sidebar-link i {
+    color: #9CA3AF;
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.sidebar-link span {
+    color: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #FFFFFF !important;
+}
+.sidebar-link:hover i { color: #FFFFFF !important; }
+.sidebar-link.active {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #FFFFFF !important;
+    font-weight: 500;
+}
+.sidebar-link.active i { color: #F59E0B !important; }
+.sidebar-link.active::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    background: #F59E0B;
+    border-radius: 0 2px 2px 0;
+}
+
+/* ---------- Risk Matrix + Add button ---------- */
+.mx-add-btn {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.9);
+    color: #0B1220;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    z-index: 3;
+}
+.mx-cell-link:hover .mx-add-btn,
+td:hover > .mx-add-btn {
+    opacity: 1;
+}
+.mx-add-btn:hover {
+    background: #F59E0B;
+    color: #0B1220;
+    transform: scale(1.15);
+}
+[data-bs-theme="dark"] .mx-add-btn {
+    background: rgba(245, 158, 11, 0.9);
+    color: #0B1220;
+}
+[data-bs-theme="dark"] .mx-add-btn:hover {
+    background: #FBBF24;
 }

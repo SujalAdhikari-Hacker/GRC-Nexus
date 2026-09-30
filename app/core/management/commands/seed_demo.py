@@ -56,6 +56,15 @@ class Command(BaseCommand):
             cat, created = AssetCategory.objects.get_or_create(name=name)
             categories[name] = cat
 
+        # Map AssetCategory.name -> Asset.asset_type
+        CATEGORY_TO_TYPE = {
+            'Hardware': 'hardware',
+            'Software': 'software',
+            'Data':     'data',
+            'People':   'people',
+            'Facility': 'facility',
+        }
+
         # ---------- Assets ----------
         assets_data = [
             # (name, category, dept, criticality, C, I, A, value)
@@ -80,6 +89,7 @@ class Command(BaseCommand):
                 name=name,
                 defaults={
                     'category': categories[cat_name],
+                    'asset_type': CATEGORY_TO_TYPE.get(cat_name, 'hardware'),
                     'owner_dept': departments[dept_name],
                     'criticality': crit,
                     'confidentiality': c,
@@ -167,7 +177,7 @@ class Command(BaseCommand):
                     'owner_dept': departments[dept_name],
                     'contact_email': f'contact@{vname.lower().replace(" ", "")}.example',
                     'contract_start': timezone.now().date() - timedelta(days=365),
-                    'contract_end': timezone.now().date() + timedelta(days=365),
+                    'contract_renewal_date': timezone.now().date() + timedelta(days=365),
                 }
             )
             if created:
@@ -175,13 +185,27 @@ class Command(BaseCommand):
                 assets_qs = Asset.objects.filter(name__in=asset_names)
                 vendor.provides_assets.set(assets_qs)
 
+                # Map old 0-100 aggregate score to 5 dimensions of 0-25 each
+                per_dim = max(0, min(25, score // 5))
+
                 # Create an assessment
                 VendorAssessment.objects.create(
                     vendor=vendor,
                     assessment_date=timezone.now().date() - timedelta(days=30),
-                    score=score,
+                    security_score=per_dim,
+                    compliance_score=per_dim,
+                    financial_score=per_dim,
+                    reputation_score=per_dim,
+                    operational_score=per_dim,
                     status='completed',
-                    findings=f'Initial assessment for {vname}. Score {score}/100.',
+                    key_findings=(
+                        f'Initial assessment for {vname}. '
+                        f'Baseline risk profile established across all five dimensions.'
+                    ),
+                    recommended_mitigation=(
+                        f'Maintain annual assessment cadence for {vname} '
+                        f'and monitor for material changes in scope or security posture.'
+                    ),
                 )
                 self.stdout.write(f"  Vendor: {vname}")
 
@@ -235,6 +259,16 @@ class Command(BaseCommand):
             ('CTL-IRP-001', 'Incident Response Plan',         'corrective', 'administrative', 'implemented', 4, 'IT',         ['RS.MA-01']),
             ('CTL-AUD-001', 'Audit Logging',                  'detective',  'technical',      'implemented', 4, 'IT',         ['8.2']),
         ]
+        # Map numeric effectiveness (0-5) to the rating string Control.save() expects
+        EFF_RATING_MAP = {
+            0: 'not_tested',
+            1: 'ineffective',
+            2: 'ineffective',
+            3: 'partially_effective',
+            4: 'effective',
+            5: 'effective',
+        }
+
         controls_by_code = {}
         for code, name, ctype, cat, status, eff, dept_name, fw_codes in controls_data:
             ctl, created = Control.objects.get_or_create(
@@ -244,7 +278,7 @@ class Command(BaseCommand):
                     'control_type': ctype,
                     'category': cat,
                     'status': status,
-                    'effectiveness': eff,
+                    'effectiveness_rating': EFF_RATING_MAP.get(eff, 'not_tested'),
                     'owner_dept': departments[dept_name],
                 }
             )
@@ -263,14 +297,22 @@ class Command(BaseCommand):
             risk_cats[name] = cat
 
         # ---------- Risk Appetite (org-wide baseline) ----------
-        RiskAppetite.objects.get_or_create(
-            department=None, category=None,
-            defaults={
-                'max_inherent_score': 15,
-                'max_residual_score': 8,
-                'description': 'Org-wide baseline appetite',
-            }
-        )
+        # NOT using get_or_create: (department=NULL, category=NULL) isn't unique,
+        # so if there's already more than one row, .get() inside get_or_create raises.
+        appetite = RiskAppetite.objects.filter(
+            department__isnull=True, category__isnull=True,
+        ).order_by('pk').first()
+        if not appetite:
+            RiskAppetite.objects.create(
+                department=None,
+                category=None,
+                max_inherent_score=15,
+                max_residual_score=8,
+                description='Org-wide baseline appetite',
+            )
+            self.stdout.write('  Risk appetite: org-wide baseline created')
+        else:
+            self.stdout.write('  Risk appetite: org-wide baseline exists')
 
         # ---------- Risks ----------
         risks_data = [

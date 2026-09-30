@@ -71,7 +71,7 @@
                         {% else %}—{% endif %}
                     </span>
                 </li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Latest risk score</span><span>{% if vendor.latest_score %}<strong>{{ vendor.latest_score }}/5</strong>{% else %}—{% endif %}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Latest risk score</span><span>{% if vendor.latest_score %}<strong>{{ vendor.latest_score }}/100</strong>{% else %}—{% endif %}</span></li>
             </ul>
         </div>
 
@@ -147,7 +147,7 @@
                     {% for a in assessments %}
                         <tr>
                             <td><a href="{% url 'vendors:assessment_detail' a.pk %}"><code>{{ a.assessment_id }}</code></a></td>
-                            <td class="text-center"><strong>{{ a.overall_score }}</strong>/5</td>
+                            <td class="text-center"><strong>{{ a.overall_score|floatformat:0 }}</strong>/100</td>
                             <td class="text-center"><span class="badge" style="background:{{ a.risk_rating_color }}; color:#fff;">{{ a.get_overall_risk_rating_display }}</span></td>
                             <td class="text-center"><small>{{ a.get_status_display }}</small></td>
                             <td><small>{{ a.assessment_date }}</small></td>

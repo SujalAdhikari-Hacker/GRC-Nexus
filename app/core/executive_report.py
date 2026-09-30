@@ -292,6 +292,7 @@ def build_executive_report(user):
         'open_findings': open_findings,
         'overdue_findings': overdue_findings,
         'critical_findings': critical_findings,
+        'sla_closed': sla_closed,
         'total_assets': total_assets,
         'critical_assets': critical_assets,
         'total_vendors': total_vendors,

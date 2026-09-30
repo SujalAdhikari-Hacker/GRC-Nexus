@@ -1,6 +1,7 @@
 ﻿from collections import Counter
 from datetime import timedelta
 
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group, Permission
 from django.contrib.auth.mixins import UserPassesTestMixin
