@@ -162,6 +162,8 @@ class RiskCreateView(DepartmentScopedMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         recalculate_risk(self.object)
         return response
@@ -174,6 +176,7 @@ class RiskUpdateView(DepartmentScopedMixin, UpdateView):
     success_url = reverse_lazy('risks:list')
 
     def form_valid(self, form):
+        form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         recalculate_risk(self.object)
         return response
@@ -354,6 +357,8 @@ class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.risk = self.risk
+        form.instance.created_by = self.request.user
+        form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         recalculate_risk(self.risk)
         return response
@@ -373,6 +378,7 @@ class RiskTreatmentUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'risks/treatment_form.html'
 
     def form_valid(self, form):
+        form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         recalculate_risk(self.object.risk)
         return response
@@ -417,6 +423,8 @@ class RiskAppetiteCreateView(HODOrSuperuserMixin, CreateView):
         return initial
 
     def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        form.instance.updated_by = self.request.user
         if form.cleaned_data.get('board_approved') and not form.instance.approved_by_id:
             form.instance.approved_by = self.request.user
         return super().form_valid(form)
@@ -427,6 +435,11 @@ class RiskAppetiteUpdateView(HODOrSuperuserMixin, UpdateView):
     form_class = RiskAppetiteForm
     template_name = 'risks/appetite_form.html'
     success_url = reverse_lazy('risks:appetite_list')
+
+    def form_valid(self, form):
+        # updated_by tracks the editor; created_by stays as-is
+        form.instance.updated_by = self.request.user
+        return super().form_valid(form)
 
 
 # ==================================================================

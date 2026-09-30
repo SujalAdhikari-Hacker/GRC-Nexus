@@ -82,6 +82,16 @@ class RiskAppetite(models.Model):
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='created_appetites', editable=False,
+        help_text='User who created this record (auto-set).'
+    )
+    updated_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='updated_appetites', editable=False,
+        help_text='User who last updated this record (auto-set).'
+    )
 
     history = HistoricalRecords()
 
@@ -119,7 +129,6 @@ class Risk(models.Model):
     title = models.CharField(max_length=300)
     description = models.TextField(blank=True)
 
-    # Risk statement format: [Threat] exploits [Vulnerability], causing [Impact] to [Asset]
     threat = models.CharField(
         max_length=300, blank=True,
         help_text='e.g. Ransomware actor'
@@ -195,7 +204,6 @@ class Risk(models.Model):
 
     @property
     def risk_statement(self):
-        """Full risk statement in [Threat] exploits [Vulnerability], causing [Impact] to [Asset] format."""
         if not (self.threat and self.vulnerability and self.impact_description):
             return ''
         asset = self.assets.first()
@@ -244,6 +252,16 @@ class RiskTreatment(models.Model):
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='created_treatments', editable=False,
+        help_text='User who created this record (auto-set).'
+    )
+    updated_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='updated_treatments', editable=False,
+        help_text='User who last updated this record (auto-set).'
+    )
 
     history = HistoricalRecords()
 
@@ -346,7 +364,6 @@ class RiskException(models.Model):
                 next_num += 1
             self.exception_id = f'EXC-{next_num:04d}'
 
-        # Auto-status transitions based on dates
         from django.utils import timezone
         today = timezone.now().date()
         if self.status == 'active' and self.expiry_date and self.expiry_date < today:
