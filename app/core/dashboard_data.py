@@ -1,6 +1,7 @@
 ﻿"""
 Trend computation for the dashboard.
 """
+import json
 from datetime import timedelta
 from django.db.models import Avg
 from django.utils import timezone
@@ -31,13 +32,11 @@ def compute_trends(risks, findings, actions, months=6):
         start, end = _month_bounds(today, i)
         labels.append(start.strftime('%b %Y'))
 
-        # Risk snapshot at end of month
         snapshot = risks.filter(created_at__date__lt=end).exclude(status='closed')
         agg = snapshot.aggregate(i=Avg('inherent_score'), r=Avg('residual_score'))
         inherent_trend.append(round(agg['i'] or 0, 1))
         residual_trend.append(round(agg['r'] or 0, 1))
 
-        # Risk flow
         risks_created.append(
             risks.filter(created_at__date__gte=start, created_at__date__lt=end).count()
         )
@@ -45,7 +44,6 @@ def compute_trends(risks, findings, actions, months=6):
             risks.filter(closed_date__gte=start, closed_date__lt=end).count()
         )
 
-        # Remediation flow
         findings_remediated.append(
             findings.filter(remediated_date__gte=start, remediated_date__lt=end).count()
         )
@@ -53,7 +51,6 @@ def compute_trends(risks, findings, actions, months=6):
             actions.filter(completed_date__gte=start, completed_date__lt=end).count()
         )
 
-        # Cumulative open backlog
         open_findings_cumulative.append(
             findings.filter(created_at__date__lt=end)
             .exclude(status__in=['remediated', 'false_positive'])
@@ -66,13 +63,13 @@ def compute_trends(risks, findings, actions, months=6):
         )
 
     return {
-        'trend_labels': labels,
-        'risk_inherent_trend': inherent_trend,
-        'risk_residual_trend': residual_trend,
-        'risks_created_trend': risks_created,
-        'risks_closed_trend': risks_closed,
-        'findings_remediated_trend': findings_remediated,
-        'actions_completed_trend': actions_completed,
-        'open_findings_trend': open_findings_cumulative,
-        'open_actions_trend': open_actions_cumulative,
+        'trend_labels_json': json.dumps(labels),
+        'risk_inherent_trend_json': json.dumps(inherent_trend),
+        'risk_residual_trend_json': json.dumps(residual_trend),
+        'risks_created_trend_json': json.dumps(risks_created),
+        'risks_closed_trend_json': json.dumps(risks_closed),
+        'findings_remediated_trend_json': json.dumps(findings_remediated),
+        'actions_completed_trend_json': json.dumps(actions_completed),
+        'open_findings_trend_json': json.dumps(open_findings_cumulative),
+        'open_actions_trend_json': json.dumps(open_actions_cumulative),
     }

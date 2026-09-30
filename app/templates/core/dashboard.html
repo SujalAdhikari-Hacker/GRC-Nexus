@@ -173,6 +173,7 @@
         </div>
     </div>
 </div>
+
 {# ─────────────── TOP RISKY ASSETS ─────────────── #}
 <div class="row g-3 mb-3">
     <div class="col-12">
@@ -238,6 +239,7 @@
         </div>
     </div>
 </div>
+
 {# ─────────────── TOP RISKS + RECENT ASSETS ─────────────── #}
 <div class="row g-3">
     <div class="col-md-7">
@@ -283,7 +285,7 @@
                 {% for a in recent_assets %}
                     <li class="list-group-item d-flex justify-content-between">
                         <a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>
-                        <small class="text-muted">{{ a.category.name }}</small>
+                        <small class="text-muted">{{ a.category.name|default:"—" }}</small>
                     </li>
                 {% empty %}
                     <li class="list-group-item text-muted text-center">No assets yet.</li>
@@ -292,6 +294,7 @@
         </div>
     </div>
 </div>
+
 {# ─────────────── TREND CHARTS ─────────────── #}
 <div class="row g-3 mb-3">
     <div class="col-md-6">
@@ -332,6 +335,7 @@
         </div>
     </div>
 </div>
+
 {# ─────────────── FRAMEWORK COVERAGE ─────────────── #}
 <div class="row g-3 mt-1">
     <div class="col-12">
@@ -374,12 +378,21 @@
 
 {% block extra_js %}
 <script>
-    // ─────────────── Category doughnut ───────────────
-    const categoryLabels = {{ category_labels|safe }};
-    const categoryValues = {{ category_values|safe }};
+(function () {
+    'use strict';
 
-    if (categoryLabels.length) {
-        new Chart(document.getElementById('categoryChart'), {
+    if (typeof Chart === 'undefined') {
+        console.error('[dashboard] Chart.js failed to load from CDN');
+        return;
+    }
+
+    // ---------- Risks by category ----------
+    var categoryLabels = {{ category_labels_json|default:"[]"|safe }};
+    var categoryValues = {{ category_values_json|default:"[]"|safe }};
+
+    var categoryCanvas = document.getElementById('categoryChart');
+    if (categoryCanvas && categoryLabels.length) {
+        new Chart(categoryCanvas, {
             type: 'doughnut',
             data: {
                 labels: categoryLabels,
@@ -394,178 +407,160 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right', labels: { boxWidth: 12, padding: 10 } },
-                }
+                plugins: { legend: { position: 'right', labels: { boxWidth: 12, padding: 10 } } }
             }
         });
-    } else {
-        document.getElementById('categoryChart').parentElement.innerHTML =
-            '<div class="text-muted text-center pt-5">No risk data yet.</div>';
+    } else if (categoryCanvas) {
+        categoryCanvas.parentElement.innerHTML = '<div class="text-muted text-center pt-5">No risk data yet.</div>';
     }
 
-    // ─────────────── Control status bar ───────────────
-    const controlData = {{ control_status_data|safe }};
-
-    new Chart(document.getElementById('controlChart'), {
-        type: 'bar',
-        data: {
-            labels: ['Planned', 'Implemented', 'Not implemented', 'N/A'],
-            datasets: [{
-                label: 'Controls',
-                data: [
-                    controlData.planned,
-                    controlData.implemented,
-                    controlData.not_implemented,
-                    controlData.not_applicable
-                ],
-                backgroundColor: ['#ffc107', '#198754', '#dc3545', '#6c757d'],
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks: { precision: 0 } }
+    // ---------- Control implementation status ----------
+    var controlData = {{ control_status_data_json|default:"{}"|safe }};
+    var controlCanvas = document.getElementById('controlChart');
+    if (controlCanvas) {
+        new Chart(controlCanvas, {
+            type: 'bar',
+            data: {
+                labels: ['Planned', 'Implemented', 'Not implemented', 'N/A'],
+                datasets: [{
+                    label: 'Controls',
+                    data: [
+                        controlData.planned || 0,
+                        controlData.implemented || 0,
+                        controlData.not_implemented || 0,
+                        controlData.not_applicable || 0
+                    ],
+                    backgroundColor: ['#ffc107', '#198754', '#dc3545', '#6c757d'],
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
             }
-        }
-    });
+        });
+    }
 
-    // ─────────────── Risk trend line ───────────────
-    const monthLabels = {{ month_labels|safe }};
-    const monthValues = {{ month_values|safe }};
-
-    new Chart(document.getElementById('trendChart'), {
-        type: 'line',
-        data: {
-            labels: monthLabels,
-            datasets: [{
-                label: 'Risks added',
-                data: monthValues,
-                borderColor: '#0d6efd',
-                backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                fill: true,
-                tension: 0.3,
-                pointRadius: 5,
-                pointBackgroundColor: '#0d6efd',
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks: { precision: 0 } }
-            }
-        }
-    });
-    
-// ─────────────── Risk posture trend ───────────────
-const trendLabels = {{ trend_labels|safe }};
-const inherentTrend = {{ risk_inherent_trend|safe }};
-const residualTrend = {{ risk_residual_trend|safe }};
-
-if (document.getElementById('riskPostureChart')) {
-    new Chart(document.getElementById('riskPostureChart'), {
-        type: 'line',
-        data: {
-            labels: trendLabels,
-            datasets: [
-                {
-                    label: 'Avg inherent score',
-                    data: inherentTrend,
-                    borderColor: '#DC2626',
-                    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+    // ---------- Risks added (last 6 months) ----------
+    var monthLabels = {{ month_labels_json|default:"[]"|safe }};
+    var monthValues = {{ month_values_json|default:"[]"|safe }};
+    var trendCanvas = document.getElementById('trendChart');
+    if (trendCanvas) {
+        new Chart(trendCanvas, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    label: 'Risks added',
+                    data: monthValues,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
                     fill: true,
                     tension: 0.3,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#DC2626',
-                },
-                {
-                    label: 'Avg residual score',
-                    data: residualTrend,
-                    borderColor: '#059669',
-                    backgroundColor: 'rgba(5, 150, 105, 0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#059669',
-                },
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
-            scales: { y: { beginAtZero: true, suggestedMax: 25, ticks: { precision: 0 } } }
-        }
-    });
-}
-
-// ─────────────── Remediation velocity ───────────────
-const findingsRemediated = {{ findings_remediated_trend|safe }};
-const actionsCompleted = {{ actions_completed_trend|safe }};
-
-if (document.getElementById('remediationChart')) {
-    new Chart(document.getElementById('remediationChart'), {
-        type: 'bar',
-        data: {
-            labels: trendLabels,
-            datasets: [
-                {
-                    label: 'Findings remediated',
-                    data: findingsRemediated,
-                    backgroundColor: '#0284C7',
-                },
-                {
-                    label: 'Actions completed',
-                    data: actionsCompleted,
-                    backgroundColor: '#059669',
-                },
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
-            scales: {
-                y: { beginAtZero: true, ticks: { precision: 0 } },
-                x: { stacked: false }
+                    pointRadius: 5,
+                    pointBackgroundColor: '#0d6efd',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
             }
-        }
-    });
-}
+        });
+    }
 
-// ─────────────── Risk register movement ───────────────
-const risksCreated = {{ risks_created_trend|safe }};
-const risksClosed = {{ risks_closed_trend|safe }};
+    // ---------- Shared trend arrays ----------
+    var trendLabels = {{ trend_labels_json|default:"[]"|safe }};
+    var inherentTrend = {{ risk_inherent_trend_json|default:"[]"|safe }};
+    var residualTrend = {{ risk_residual_trend_json|default:"[]"|safe }};
+    var findingsRemediated = {{ findings_remediated_trend_json|default:"[]"|safe }};
+    var actionsCompleted = {{ actions_completed_trend_json|default:"[]"|safe }};
+    var risksCreated = {{ risks_created_trend_json|default:"[]"|safe }};
+    var risksClosed = {{ risks_closed_trend_json|default:"[]"|safe }};
 
-if (document.getElementById('registerMovementChart')) {
-    new Chart(document.getElementById('registerMovementChart'), {
-        type: 'bar',
-        data: {
-            labels: trendLabels,
-            datasets: [
-                {
-                    label: 'Risks opened',
-                    data: risksCreated,
-                    backgroundColor: '#D97706',
-                },
-                {
-                    label: 'Risks closed',
-                    data: risksClosed,
-                    backgroundColor: '#059669',
-                },
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
-            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-        }
-    });
-}
+    // ---------- Risk posture trend ----------
+    var postureCanvas = document.getElementById('riskPostureChart');
+    if (postureCanvas) {
+        new Chart(postureCanvas, {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [
+                    {
+                        label: 'Avg inherent score',
+                        data: inherentTrend,
+                        borderColor: '#DC2626',
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#DC2626',
+                    },
+                    {
+                        label: 'Avg residual score',
+                        data: residualTrend,
+                        borderColor: '#059669',
+                        backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#059669',
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+                scales: { y: { beginAtZero: true, suggestedMax: 25, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+    // ---------- Remediation velocity ----------
+    var remediationCanvas = document.getElementById('remediationChart');
+    if (remediationCanvas) {
+        new Chart(remediationCanvas, {
+            type: 'bar',
+            data: {
+                labels: trendLabels,
+                datasets: [
+                    { label: 'Findings remediated', data: findingsRemediated, backgroundColor: '#0284C7' },
+                    { label: 'Actions completed', data: actionsCompleted, backgroundColor: '#059669' },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+    // ---------- Risk register movement ----------
+    var movementCanvas = document.getElementById('registerMovementChart');
+    if (movementCanvas) {
+        new Chart(movementCanvas, {
+            type: 'bar',
+            data: {
+                labels: trendLabels,
+                datasets: [
+                    { label: 'Risks opened', data: risksCreated, backgroundColor: '#D97706' },
+                    { label: 'Risks closed', data: risksClosed, backgroundColor: '#059669' },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+})();
 </script>
 {% endblock %}
