@@ -11,13 +11,19 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">{{ risk.title }}</h4>
     <div>
+        <h4 class="mb-0">
+            <code style="font-size:0.85em; color:#0284C7;">RSK-{{ risk.pk|stringformat:"04d" }}</code>
+            {{ risk.title }}
+        </h4>
+        <small class="text-muted">{{ risk.category.name }} · {{ risk.owner_dept.name }}</small>
+    </div>
+    <div class="d-flex gap-2">
         <a href="{% url 'risks:update' risk.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
-        <a href="/admin/risks/risk/{{ risk.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
-                <a href="{% url 'risks:exception_create' %}?risk={{ risk.pk }}" class="btn btn-sm btn-outline-dark">
+        <a href="{% url 'risks:exception_create' %}?risk={{ risk.pk }}" class="btn btn-sm btn-outline-dark">
             <i class="bi bi-shield-check"></i> Request exception
         </a>
+        <a href="/admin/risks/risk/{{ risk.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
     </div>
 </div>
 

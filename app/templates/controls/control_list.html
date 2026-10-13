@@ -58,7 +58,7 @@
             <tbody>
             {% for c in controls %}
                 <tr>
-                    <td><code>{{ c.code }}</code></td>
+                    <td><a href="{% url 'controls:detail' c.pk %}"><code>{{ c.code }}</code></a></td>
                     <td><a href="{% url 'controls:detail' c.pk %}"><strong>{{ c.name|truncatechars:60 }}</strong></a></td>
                     <td><small>{{ c.get_category_display }}</small></td>
                     <td><small>{{ c.primary_framework.name|default:"—" }}</small></td>

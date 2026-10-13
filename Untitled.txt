@@ -1,3 +1,0 @@
-
-http://localhost:8000/audits/findings/new/
-http://localhost:8000/audits/actions/new/

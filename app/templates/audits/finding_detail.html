@@ -28,7 +28,9 @@
     </div>
     <div class="d-flex gap-2">
         <a href="{% url 'audits:finding_update' finding.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
-        <a href="/admin/audits/auditfinding/{{ finding.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+        {% if user.is_superuser %}
+        <a href="/admin/audits/auditfinding/{{ finding.pk }}/change/" class="btn btn-sm btn-outline-dark" title="Open in Django admin">Admin</a>
+        {% endif %}
     </div>
 </div>
 
@@ -38,26 +40,33 @@
             <div class="card-header bg-white"><strong>Details</strong></div>
             <ul class="list-group list-group-flush">
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Source</span><span>{{ finding.get_source_display }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Audit</span><span>{% if finding.audit %}<a href="{% url 'audits:detail' finding.audit.pk %}">{{ finding.audit.name|truncatechars:30 }}</a>{% else %}&mdash;{% endif %}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Control</span><span>{% if finding.related_control %}<a href="{% url 'controls:detail' finding.related_control.pk %}"><code>{{ finding.related_control.code }}</code></a>{% else %}&mdash;{% endif %}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ finding.owner_user|default:"&mdash;" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Audit</span>
+                    <span>{% if finding.audit %}<a href="{% url 'audits:detail' finding.audit.pk %}">{{ finding.audit.name|truncatechars:30 }}</a>{% else %}—{% endif %}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Control</span>
+                    <span>{% if finding.related_control %}<a href="{% url 'controls:detail' finding.related_control.pk %}"><code>{{ finding.related_control.code }}</code></a>{% else %}—{% endif %}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ finding.owner_user|default:"—" }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Department</span><span>{{ finding.owner_dept.name }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Due date</span><span>{{ finding.due_date|default:"&mdash;" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Closed date</span><span>{{ finding.closed_date|default:"&mdash;" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Due date</span><span>{{ finding.due_date|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Closed date</span><span>{{ finding.closed_date|default:"—" }}</span></li>
             </ul>
         </div>
     </div>
     <div class="col-md-8">
         <div class="card">
             <div class="card-header bg-white"><strong>Description</strong></div>
-            <div class="card-body">{{ finding.description|default:"&mdash;"|linebreaks }}</div>
+            <div class="card-body">{{ finding.description|default:"—"|linebreaks }}</div>
         </div>
         <div class="card mt-3">
             <div class="card-header bg-white"><strong>Recommendation</strong></div>
-            <div class="card-body">{{ finding.recommendation|default:"&mdash;"|linebreaks }}</div>
+            <div class="card-body">{{ finding.recommendation|default:"—"|linebreaks }}</div>
         </div>
     </div>
 </div>
+
 <div class="row g-3 mt-1">
     <div class="col-12">
         <div class="card">

@@ -13,11 +13,61 @@
 {% block content %}
 <div class="row g-3">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header bg-white"><strong>Risk exception details</strong></div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+            {# ─────────── Accountability (locked) — top of form ─────────── #}
+            <div class="card mb-3" style="border-left: 4px solid #F59E0B;">
+                <div class="card-header bg-white">
+                    <strong><i class="bi bi-shield-lock"></i> Accountability</strong>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Requested by</label>
+                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
+                                <i class="bi bi-person-check" style="color: #059669;"></i>
+                                <strong>
+                                    {% if form.instance.requested_by %}
+                                        {{ form.instance.requested_by.username }}
+                                    {% else %}
+                                        {{ request.user.username }}
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="form-text small">
+                                {% if form.instance.pk %}
+                                    On {{ form.instance.created_at|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    Auto-set to your logged-in account.
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last updated</label>
+                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
+                                <i class="bi bi-clock-history" style="color: #6B7280;"></i>
+                                <strong>
+                                    {% if form.instance.pk %}{{ request.user.username }}{% else %}<em class="text-muted">—</em>{% endif %}
+                                </strong>
+                            </div>
+                            <div class="form-text small">
+                                {% if form.instance.pk and form.instance.updated_at %}
+                                    On {{ form.instance.updated_at|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    Will be set on save.
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ─────────── Main card ─────────── #}
+            <div class="card">
+                <div class="card-header bg-white"><strong>Risk exception details</strong></div>
+                <div class="card-body">
 
                     <div class="mb-3">
                         <label class="form-label">Title <span class="text-danger">*</span></label>
@@ -43,25 +93,21 @@
 
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Requested by</label>
-                            {{ form.requested_by }}
-                        </div>
-                        <div class="col-md-6">
                             <label class="form-label">Approver</label>
                             {{ form.approver }}
                             <div class="form-text small">{{ form.approver.help_text }}</div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Approval date</label>
                             {{ form.approval_date }}
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Expiry date <span class="text-danger">*</span></label>
                             {{ form.expiry_date }}
                             <div class="form-text small">{{ form.expiry_date.help_text }}</div>
                             {% if form.expiry_date.errors %}<div class="text-danger small">{{ form.expiry_date.errors }}</div>{% endif %}
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Review date</label>
                             {{ form.review_date }}
                         </div>
@@ -94,9 +140,9 @@
                     <hr>
                     <button type="submit" class="btn btn-dark">Save Exception</button>
                     <a href="{% url 'risks:exception_list' %}" class="btn btn-outline-secondary">Cancel</a>
-                </form>
+                </div>
             </div>
-        </div>
+        </form>
     </div>
 
     <div class="col-md-4">

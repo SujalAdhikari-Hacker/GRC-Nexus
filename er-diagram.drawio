@@ -1,0 +1,201 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0">
+  <diagram id="er-diagram" name="ER Diagram">
+    <mxGraphModel dx="2129" dy="1104" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="DEPARTMENT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" value="DEPARTMENT" vertex="1">
+          <mxGeometry height="50" width="170" x="560" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="USER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" value="USER" vertex="1">
+          <mxGeometry height="50" width="170" x="40" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="ASSET" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" value="ASSET" vertex="1">
+          <mxGeometry height="50" width="170" x="260" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="RISK" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" value="RISK" vertex="1">
+          <mxGeometry height="50" width="170" x="480" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="CONTROL" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" value="CONTROL" vertex="1">
+          <mxGeometry height="50" width="170" x="700" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="POLICY" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" value="POLICY" vertex="1">
+          <mxGeometry height="50" width="170" x="920" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="VENDOR" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" value="VENDOR" vertex="1">
+          <mxGeometry height="50" width="170" x="1140" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="AUDIT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" value="AUDIT" vertex="1">
+          <mxGeometry height="50" width="170" x="1360" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="VULNERABILITY" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" value="VULNERABILITY" vertex="1">
+          <mxGeometry height="50" width="170" x="20" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="FINDING" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" value="FINDING" vertex="1">
+          <mxGeometry height="50" width="170" x="200" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="RISK_TREATMENT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" value="RISK_TREATMENT" vertex="1">
+          <mxGeometry height="50" width="170" x="400" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="RISK_EXCEPTION" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" value="RISK_EXCEPTION" vertex="1">
+          <mxGeometry height="50" width="170" x="590" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="KRI" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" value="KRI" vertex="1">
+          <mxGeometry height="50" width="170" x="780" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="FRAMEWORK_CONTROL" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" value="FRAMEWORK_CONTROL" vertex="1">
+          <mxGeometry height="50" width="170" x="970" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="CONTROL_TEST" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" value="CONTROL_TEST" vertex="1">
+          <mxGeometry height="50" width="170" x="1160" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="EVIDENCE_ITEM" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" value="EVIDENCE_ITEM" vertex="1">
+          <mxGeometry height="50" width="170" x="1350" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="AUDIT_FINDING" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" value="AUDIT_FINDING" vertex="1">
+          <mxGeometry height="50" width="170" x="1540" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="FRAMEWORK" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" value="FRAMEWORK" vertex="1">
+          <mxGeometry height="50" width="170" x="970" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="COMPLIANCE_ASSESSMENT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" value="COMPLIANCE_ASSESSMENT" vertex="1">
+          <mxGeometry height="50" width="170" x="1160" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="ACTION_ITEM" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" value="ACTION_ITEM" vertex="1">
+          <mxGeometry height="50" width="170" x="1540" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="DEPARTMENT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="USER" value="has members">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="DEPARTMENT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="ASSET" value="owns">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="DEPARTMENT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="RISK" value="owns">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="DEPARTMENT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="CONTROL" value="owns">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="DEPARTMENT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="POLICY" value="owns">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="DEPARTMENT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="VENDOR" value="owns">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="DEPARTMENT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="AUDIT" value="owns">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="USER" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="ASSET" value="created_by">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="USER" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="RISK" value="created_by">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="125" y="150" />
+              <mxPoint x="565" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="USER" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="CONTROL" value="created_by">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="125" y="170" />
+              <mxPoint x="785" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="USER" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="POLICY" value="created_by">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="125" y="290" />
+              <mxPoint x="1005" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="ASSET" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERzeroToMany;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="RISK" value="affected by">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" edge="1" parent="1" source="ASSET" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="FINDING" value="has">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" edge="1" parent="1" source="ASSET" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERzeroToMany;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="VENDOR" value="supplied by">
+          <mxGeometry relative="1" x="0.1744" as="geometry">
+            <Array as="points">
+              <mxPoint x="345" y="270" />
+              <mxPoint x="785" y="270" />
+              <mxPoint x="785" y="310" />
+              <mxPoint x="1225" y="310" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" edge="1" parent="1" source="ASSET" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERzeroToMany;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="POLICY" value="governed by">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="345" y="120" />
+              <mxPoint x="1005" y="120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e16" edge="1" parent="1" source="RISK" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERzeroToMany;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="CONTROL" value="mitigated by">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" edge="1" parent="1" source="RISK" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="RISK_TREATMENT" value="treated by">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" edge="1" parent="1" source="RISK" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="RISK_EXCEPTION" value="excepted by">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" edge="1" parent="1" source="RISK" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="KRI" value="monitored by">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="565" y="280" />
+              <mxPoint x="865" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e20" edge="1" parent="1" source="CONTROL" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERzeroToMany;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="FRAMEWORK_CONTROL" value="satisfies">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="785" y="340" />
+              <mxPoint x="1055" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e21" edge="1" parent="1" source="CONTROL" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="CONTROL_TEST" value="tested by">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="785" y="160" />
+              <mxPoint x="1245" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e22" edge="1" parent="1" source="FRAMEWORK" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="FRAMEWORK_CONTROL" value="contains">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" edge="1" parent="1" source="FRAMEWORK" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="COMPLIANCE_ASSESSMENT" value="assessed via">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e24" edge="1" parent="1" source="VULNERABILITY" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="FINDING" value="manifests as">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e25" edge="1" parent="1" source="AUDIT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="AUDIT_FINDING" value="produces">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e26" edge="1" parent="1" source="AUDIT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="EVIDENCE_ITEM" value="collects">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e27" edge="1" parent="1" source="AUDIT_FINDING" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=ERone;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="ACTION_ITEM" value="remediated via">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e28" edge="1" parent="1" source="POLICY" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;startArrow=ERzeroToMany;startFill=0;endArrow=ERzeroToMany;endFill=0;labelBackgroundColor=#ffffff;" target="DEPARTMENT" value="applies to">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1005" y="180" />
+              <mxPoint x="645" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -78,7 +78,7 @@ def build_executive_report(user):
     overdue_actions   = sum(1 for a in actions if a.is_overdue)
 
     # ---------- Averages ----------
-    avg_inherent = risks.aggregate_avg = (
+    avg_inherent = (
         round(sum(r.inherent_score for r in risks) / total_risks, 1) if total_risks else 0
     )
     avg_residual = (
@@ -137,6 +137,69 @@ def build_executive_report(user):
         })
     asset_rows.sort(key=lambda x: -x['exposure'])
     top_assets = asset_rows[:8]
+
+    # ---------- Business Position metrics ----------
+    from core.models import OrganisationProfile
+    from decimal import Decimal
+
+    org = OrganisationProfile.get()
+
+    # Total asset base
+    total_asset_value = sum((a.value or Decimal('0')) for a in assets)
+
+    # Assets by criticality
+    asset_by_crit = {
+        'critical': sum(1 for a in assets if a.criticality == 4),
+        'high':     sum(1 for a in assets if a.criticality == 3),
+        'medium':   sum(1 for a in assets if a.criticality == 2),
+        'low':      sum(1 for a in assets if a.criticality == 1),
+    }
+
+    # Assets by classification
+    asset_by_class = {
+        'restricted':   sum(1 for a in assets if a.classification == 'restricted'),
+        'confidential': sum(1 for a in assets if a.classification == 'confidential'),
+        'internal':     sum(1 for a in assets if a.classification == 'internal'),
+        'public':       sum(1 for a in assets if a.classification == 'public'),
+    }
+
+    # Financial exposure: for each risk, take the max asset value it touches
+    # weighted by the residual score as a fraction of the max (25)
+    def _risk_exposure(r, residual=True):
+        linked_assets = list(r.assets.all())
+        if not linked_assets:
+            return Decimal('0')
+        max_val = max((a.value or Decimal('0')) for a in linked_assets)
+        score = r.residual_score if residual else r.inherent_score
+        return max_val * Decimal(score) / Decimal('25')
+
+    total_inherent_exposure = sum(_risk_exposure(r, residual=False) for r in risks)
+    total_residual_exposure = sum(_risk_exposure(r, residual=True) for r in risks)
+    risk_reduction = total_inherent_exposure - total_residual_exposure
+    risk_reduction_pct = (
+        round(float(risk_reduction / total_inherent_exposure) * 100)
+        if total_inherent_exposure > 0 else 0
+    )
+
+    # Top 3 risks in plain English
+    top_business_risks = []
+    for r in risks.order_by('-residual_score')[:3]:
+        top_business_risks.append({
+            'title': r.title,
+            'exposure': _risk_exposure(r, residual=True),
+            'status': r.get_status_display(),
+            'breached': r.appetite_breached,
+        })
+
+    # Ratios
+    budget_pct_revenue = (
+        round(float(org.annual_security_budget / org.annual_revenue) * 100, 1)
+        if org.annual_revenue > 0 else 0
+    )
+    exposure_pct_revenue = (
+        round(float(total_residual_exposure / org.annual_revenue) * 100, 2)
+        if org.annual_revenue > 0 else 0
+    )
 
     # ---------- Framework coverage ----------
     frameworks = list(Framework.objects.all().order_by('name'))
@@ -328,4 +391,17 @@ def build_executive_report(user):
         'vuln_line': vuln_line,
         'coverage_line': coverage_line,
         'recommendations': recommendations,
+
+                # Business Position
+        'org_profile': org,
+        'total_asset_value': total_asset_value,
+        'asset_by_crit': asset_by_crit,
+        'asset_by_class': asset_by_class,
+        'total_inherent_exposure': total_inherent_exposure,
+        'total_residual_exposure': total_residual_exposure,
+        'risk_reduction': risk_reduction,
+        'risk_reduction_pct': risk_reduction_pct,
+        'top_business_risks': top_business_risks,
+        'budget_pct_revenue': budget_pct_revenue,
+        'exposure_pct_revenue': exposure_pct_revenue,
     }

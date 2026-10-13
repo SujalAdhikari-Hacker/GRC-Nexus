@@ -1248,3 +1248,48 @@ td:hover > .mx-add-btn {
 [data-bs-theme="dark"] .palette-item:focus {
     background: rgba(255, 255, 255, 0.06);
 }
+
+/* ============================================================
+   DASHBOARD — CLICKABLE STAT CARDS
+   ============================================================ */
+
+.stat-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+}
+.stat-card-link:hover {
+    color: inherit;
+}
+.stat-card-link .stat-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    position: relative;
+    overflow: hidden;
+}
+.stat-card-link:hover .stat-card {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.10);
+    border-color: #F59E0B;
+}
+.stat-card-link .stat-card-cta {
+    font-size: 11px;
+    color: #0284C7;
+    margin-top: 8px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.stat-card-link:hover .stat-card-cta {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+[data-bs-theme="dark"] .stat-card-link:hover .stat-card {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    border-color: #F59E0B;
+}
+[data-bs-theme="dark"] .stat-card-link .stat-card-cta {
+    color: #38BDF8;
+}

@@ -381,13 +381,14 @@
 
     <ul class="toc-list">
         <li class="toc-item"><span class="num">1</span><span class="name">Executive Summary</span></li>
-        <li class="toc-item"><span class="num">2</span><span class="name">Risk Posture</span></li>
-        <li class="toc-item"><span class="num">3</span><span class="name">Top Risks</span></li>
-        <li class="toc-item"><span class="num">4</span><span class="name">Control Coverage &amp; Effectiveness</span></li>
-        <li class="toc-item"><span class="num">5</span><span class="name">Vulnerability Landscape</span></li>
-        <li class="toc-item"><span class="num">6</span><span class="name">Compliance Status</span></li>
-        <li class="toc-item"><span class="num">7</span><span class="name">Top Risky Assets</span></li>
-        <li class="toc-item"><span class="num">8</span><span class="name">Findings &amp; Recommendations</span></li>
+        <li class="toc-item"><span class="num">2</span><span class="name">Business Position Summary</span></li>
+        <li class="toc-item"><span class="num">3</span><span class="name">Risk Posture</span></li>
+        <li class="toc-item"><span class="num">4</span><span class="name">Top Risks</span></li>
+        <li class="toc-item"><span class="num">5</span><span class="name">Control Coverage &amp; Effectiveness</span></li>
+        <li class="toc-item"><span class="num">6</span><span class="name">Vulnerability Landscape</span></li>
+        <li class="toc-item"><span class="num">7</span><span class="name">Compliance Status</span></li>
+        <li class="toc-item"><span class="num">8</span><span class="name">Top Risky Assets</span></li>
+        <li class="toc-item"><span class="num">9</span><span class="name">Findings &amp; Recommendations</span></li>
     </ul>
 
     <div class="page-footer-note">
@@ -466,6 +467,190 @@
             <tr><td>Critical vulnerability findings</td><td class="text-right">{{ critical_findings }}</td></tr>
         </tbody>
     </table>
+</div>
+
+<!-- =========================================================
+     2. BUSINESS POSITION SUMMARY
+     ========================================================= -->
+<div class="section">
+    <div class="section-number">Section 2</div>
+    <h2 class="section-title">Business Position Summary</h2>
+    <div class="section-divider"></div>
+
+    <p class="lead">
+        This section presents the organisation's security posture in plain business terms — the
+        financial value at risk, the effectiveness of the current mitigation strategy, and the
+        resources allocated to defending it. No technical knowledge is assumed.
+    </p>
+
+    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Asset Base at Risk</h3>
+    <div class="stat-grid">
+        <div class="stat-card blue">
+            <div class="value">£{{ total_asset_value|floatformat:0 }}</div>
+            <div class="label">Total Asset Value</div>
+            <div class="sub">{{ total_assets }} active assets</div>
+        </div>
+        <div class="stat-card red">
+            <div class="value">{{ asset_by_crit.critical }}</div>
+            <div class="label">Critical Assets</div>
+            <div class="sub">business-halting systems</div>
+        </div>
+        <div class="stat-card amber">
+            <div class="value">{{ asset_by_class.restricted|add:asset_by_class.confidential }}</div>
+            <div class="label">Restricted / Confidential</div>
+            <div class="sub">of {{ total_assets }} total assets</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ asset_by_crit.high }}</div>
+            <div class="label">High-Criticality Assets</div>
+            <div class="sub">significant business impact</div>
+        </div>
+    </div>
+
+    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Financial Exposure from Risk</h3>
+    <table class="data">
+        <thead>
+            <tr>
+                <th>Exposure Category</th>
+                <th class="text-right" style="width:150px;">Amount (£)</th>
+                <th class="text-right" style="width:120px;">% of Asset Base</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Inherent exposure</strong> — value at risk before controls</td>
+                <td class="text-right">{{ total_inherent_exposure|floatformat:0 }}</td>
+                <td class="text-right">
+                    {% if total_asset_value %}
+                        {% widthratio total_inherent_exposure total_asset_value 100 %}%
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Residual exposure</strong> — value at risk after current controls</td>
+                <td class="text-right">{{ total_residual_exposure|floatformat:0 }}</td>
+                <td class="text-right">
+                    {% if total_asset_value %}
+                        {% widthratio total_residual_exposure total_asset_value 100 %}%
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+            <tr style="background:#ECFDF5;">
+                <td><strong>Risk reduction achieved</strong> — value protected by controls</td>
+                <td class="text-right" style="color:#059669;"><strong>{{ risk_reduction|floatformat:0 }}</strong></td>
+                <td class="text-right" style="color:#059669;"><strong>{{ risk_reduction_pct }}%</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p style="margin-top:16px; padding:12px 14px; background:#F0F9FF; border-left:4px solid #0284C7; border-radius:4px; font-size:10pt;">
+        <strong>In plain terms:</strong> The organisation's existing controls reduce financial
+        exposure from risk by <strong>{{ risk_reduction_pct }}%</strong> — from
+        <strong>£{{ total_inherent_exposure|floatformat:0 }}</strong> down to
+        <strong>£{{ total_residual_exposure|floatformat:0 }}</strong>.
+        {% if exposure_pct_revenue %}
+            Residual exposure represents <strong>{{ exposure_pct_revenue }}%</strong> of annual revenue.
+        {% endif %}
+    </p>
+
+    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Top Business Risks — Board View</h3>
+    <p style="font-size:9.5pt; color:#6B7280; margin-bottom:12px;">
+        The three risks with the greatest potential financial impact, described in plain language.
+    </p>
+
+    <table class="data">
+        <thead>
+            <tr>
+                <th style="width:35px;">#</th>
+                <th>Business Risk</th>
+                <th class="text-right" style="width:120px;">Exposure (£)</th>
+                <th class="text-center" style="width:100px;">Status</th>
+                <th class="text-center" style="width:110px;">Within Tolerance</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in top_business_risks %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td><strong>{{ r.title|truncatechars:90 }}</strong></td>
+                <td class="text-right">{{ r.exposure|floatformat:0 }}</td>
+                <td class="text-center">{{ r.status }}</td>
+                <td class="text-center">
+                    {% if r.breached %}
+                        <span class="badge badge-high">Above tolerance</span>
+                    {% else %}
+                        <span class="badge badge-low">Within tolerance</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="5" class="text-center" style="color:#9CA3AF; padding:20px;">No risks recorded.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% if org_profile.annual_security_budget or org_profile.security_headcount %}
+    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Security Investment Position</h3>
+    <div class="stat-grid">
+        {% if org_profile.annual_security_budget %}
+        <div class="stat-card green">
+            <div class="value">£{{ org_profile.annual_security_budget|floatformat:0 }}</div>
+            <div class="label">Annual Security Budget</div>
+            {% if budget_pct_revenue %}
+                <div class="sub">{{ budget_pct_revenue }}% of annual revenue</div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if org_profile.security_headcount %}
+        <div class="stat-card blue">
+            <div class="value">{{ org_profile.security_headcount }}</div>
+            <div class="label">Security Staff (FTE)</div>
+            {% if org_profile.grc_headcount %}
+                <div class="sub">+ {{ org_profile.grc_headcount }} GRC</div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if org_profile.total_employees %}
+        <div class="stat-card">
+            <div class="value">{{ org_profile.total_employees }}</div>
+            <div class="label">Total Employees</div>
+            <div class="sub">{{ org_profile.security_headcount|add:org_profile.grc_headcount }} in security functions</div>
+        </div>
+        {% endif %}
+        {% if total_residual_exposure and org_profile.annual_security_budget %}
+        <div class="stat-card amber">
+            <div class="value">
+                {% widthratio total_residual_exposure org_profile.annual_security_budget 100 %}%
+            </div>
+            <div class="label">Exposure / Budget Ratio</div>
+            <div class="sub">residual risk vs. annual spend</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if org_profile.executive_sponsor or org_profile.security_committee_chair or org_profile.last_board_report_date %}
+    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Governance Snapshot</h3>
+    <table class="data">
+        <tbody>
+            {% if org_profile.executive_sponsor %}
+            <tr><td style="width:40%;">Executive Sponsor</td><td><strong>{{ org_profile.executive_sponsor.get_full_name|default:org_profile.executive_sponsor.username }}</strong></td></tr>
+            {% endif %}
+            {% if org_profile.security_committee_chair %}
+            <tr><td>Security Committee Chair</td><td><strong>{{ org_profile.security_committee_chair.get_full_name|default:org_profile.security_committee_chair.username }}</strong></td></tr>
+            {% endif %}
+            {% if org_profile.last_board_report_date %}
+            <tr><td>Last Board Security Briefing</td><td>{{ org_profile.last_board_report_date|date:"F j, Y" }}</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if org_profile.posture_statement %}
+    <p style="margin-top:20px; padding:14px 16px; background:#FFFBEB; border-left:4px solid #F59E0B; border-radius:4px; font-size:10pt;">
+        <strong>Board statement:</strong> {{ org_profile.posture_statement }}
+    </p>
+    {% endif %}
 </div>
 
 <!-- =========================================================
@@ -626,7 +811,7 @@
             <div class="label">Past SLA</div>
         </div>
         <div class="stat-card green">
-            <div class="value">{{ total_findings|add:"-"|add:open_findings }}</div>
+            <div class="value">{{ sla_closed }}</div>
             <div class="label">Closed</div>
         </div>
     </div>

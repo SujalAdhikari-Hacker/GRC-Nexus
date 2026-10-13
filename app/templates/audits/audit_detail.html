@@ -12,24 +12,23 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h4 class="mb-0">{{ audit.name }}</h4>
+        <h4 class="mb-0">
+            <code style="color:#0284C7;">AUD-{{ audit.pk|stringformat:"04d" }}</code>
+            {{ audit.name }}
+        </h4>
         <small class="text-muted">
             {{ audit.get_audit_type_display }} · {{ audit.get_status_display }}
             {% if audit.auditor_lead %} · Lead: {{ audit.auditor_lead.username }}{% endif %}
         </small>
     </div>
     <div class="d-flex gap-2">
-        <a href="{% url 'audits:audit_report' audit.pk %}" class="btn btn-sm btn-dark">
-            <i class="bi bi-file-pdf"></i> PDF Report
-        </a>
-    <div class="d-flex gap-2">
         <a href="{% url 'audits:audit_report' audit.pk %}" class="btn btn-sm btn-dark" target="_blank">
             <i class="bi bi-file-pdf"></i> PDF Report
         </a>
         <a href="{% url 'audits:update' audit.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
-        <a href="/admin/audits/audit/{{ audit.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
-    </div>
-        <a href="/admin/audits/audit/{{ audit.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+        {% if user.is_superuser %}
+        <a href="/admin/audits/audit/{{ audit.pk }}/change/" class="btn btn-sm btn-outline-dark" title="Open in Django admin">Admin</a>
+        {% endif %}
     </div>
 </div>
 
@@ -80,7 +79,8 @@
         <div class="card">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <strong>Findings ({{ findings|length }})</strong>
-                <a href="{% url 'audits:finding_create' %}?audit={{ audit.pk }}" class="btn btn-sm btn-primary">+ Add finding</a>            </div>
+                <a href="{% url 'audits:finding_create' %}?audit={{ audit.pk }}" class="btn btn-sm btn-primary">+ Add finding</a>
+            </div>
             <div class="table-responsive">
                 <table class="table mb-0 align-middle">
                     <thead class="table-light">
@@ -89,7 +89,7 @@
                     <tbody>
                     {% for f in findings %}
                         <tr>
-                            <td><a href="/admin/audits/auditfinding/{{ f.pk }}/change/">{{ f.title|truncatechars:60 }}</a></td>
+                            <td><a href="{% url 'audits:finding_detail' f.pk %}">{{ f.title|truncatechars:60 }}</a></td>
                             <td>
                                 {% if f.severity == 'critical' %}<span class="badge bg-danger">Critical</span>
                                 {% elif f.severity == 'high' %}<span class="badge bg-warning text-dark">High</span>
@@ -151,5 +151,3 @@
     </div>
 </div>
 {% endblock %}
-
-

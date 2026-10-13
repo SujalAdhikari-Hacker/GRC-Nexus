@@ -16,18 +16,11 @@
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
 
-            <div class="card mb-3">
-                <div class="card-header bg-white"><strong><i class="bi bi-truck"></i> Vendor identification</strong></div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-8">
-                            <label class="form-label">Vendor name <span class="text-danger">*</span></label>
-                            {{ form.name }}
-                            {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
-                        </div>
-                                    {# Accountability panel #}
+            {# ─────────── Accountability (locked) — top of form ─────────── #}
             <div class="card mb-3" style="border-left: 4px solid #F59E0B;">
-                <div class="card-header bg-white"><strong><i class="bi bi-fingerprint"></i> Accountability</strong></div>
+                <div class="card-header bg-white">
+                    <strong><i class="bi bi-shield-lock"></i> Accountability</strong>
+                </div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -42,7 +35,15 @@
                             <label class="form-label">Created by</label>
                             <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
                                 <i class="bi bi-person-check" style="color: #059669;"></i>
-                                <strong>{{ form.instance.created_by.username|default:request.user.username }}</strong>
+                                <strong>
+                                    {% if form.instance.created_by %}
+                                        {{ form.instance.created_by.username }}
+                                    {% elif form.instance.pk %}
+                                        <em class="text-muted">Legacy</em>
+                                    {% else %}
+                                        {{ request.user.username }}
+                                    {% endif %}
+                                </strong>
                             </div>
                             <div class="form-text small">
                                 {% if form.instance.pk %}
@@ -55,14 +56,12 @@
                         <div class="col-md-4">
                             <label class="form-label">Last updated</label>
                             <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
-                                <i class="bi bi-clock-history" style="color: #0284C7;"></i>
+                                <i class="bi bi-clock-history" style="color: #6B7280;"></i>
                                 <strong>
                                     {% if form.instance.pk and form.instance.updated_by %}
                                         {{ form.instance.updated_by.username }}
-                                    {% elif form.instance.pk %}
-                                        {{ request.user.username }}
                                     {% else %}
-                                        —
+                                        <em class="text-muted">—</em>
                                     {% endif %}
                                 </strong>
                             </div>
@@ -77,6 +76,17 @@
                     </div>
                 </div>
             </div>
+
+            {# ─────────── Vendor identification ─────────── #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-truck"></i> Vendor identification</strong></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Vendor name <span class="text-danger">*</span></label>
+                            {{ form.name }}
+                            {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
+                        </div>
                         <div class="col-md-4">
                             <label class="form-label">Status</label>
                             {{ form.status }}
@@ -90,6 +100,7 @@
                 </div>
             </div>
 
+            {# ─────────── Classification ─────────── #}
             <div class="card mb-3">
                 <div class="card-header bg-white"><strong><i class="bi bi-shield-exclamation"></i> Classification</strong></div>
                 <div class="card-body">
@@ -111,6 +122,7 @@
                 </div>
             </div>
 
+            {# ─────────── Ownership ─────────── #}
             <div class="card mb-3">
                 <div class="card-header bg-white"><strong><i class="bi bi-person"></i> Ownership</strong></div>
                 <div class="card-body">
@@ -128,6 +140,7 @@
                 </div>
             </div>
 
+            {# ─────────── Contact ─────────── #}
             <div class="card mb-3">
                 <div class="card-header bg-white"><strong><i class="bi bi-telephone"></i> Contact</strong></div>
                 <div class="card-body">
@@ -148,6 +161,7 @@
                 </div>
             </div>
 
+            {# ─────────── Contract ─────────── #}
             <div class="card mb-3">
                 <div class="card-header bg-white"><strong><i class="bi bi-file-earmark-text"></i> Contract</strong></div>
                 <div class="card-body">
@@ -164,6 +178,7 @@
                 </div>
             </div>
 
+            {# ─────────── Compliance attestations ─────────── #}
             <div class="card mb-3">
                 <div class="card-header bg-white"><strong><i class="bi bi-shield-check"></i> Compliance attestations</strong></div>
                 <div class="card-body">
@@ -179,6 +194,7 @@
                 </div>
             </div>
 
+            {# ─────────── Assets provided ─────────── #}
             <div class="card mb-3">
                 <div class="card-header bg-white"><strong><i class="bi bi-hdd-stack"></i> Assets provided</strong></div>
                 <div class="card-body">
@@ -188,6 +204,7 @@
                 </div>
             </div>
 
+            {# ─────────── Notes ─────────── #}
             <div class="card mb-3">
                 <div class="card-header bg-white"><strong><i class="bi bi-journal-text"></i> Notes</strong></div>
                 <div class="card-body">

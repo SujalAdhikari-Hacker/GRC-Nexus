@@ -4,34 +4,46 @@
 
 {% block content %}
 
-{# ─────────────── STAT CARDS ─────────────── #}
+{# ─────────────── STAT CARDS (clickable) ─────────────── #}
 <div class="row g-3 mb-4">
     <div class="col-md-3">
-        <div class="stat-card">
-            <div class="value">{{ asset_count }}</div>
-            <div class="label"><i class="bi bi-hdd-stack"></i> Assets</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="value">{{ risk_count }}</div>
-            <div class="label">
-                <i class="bi bi-exclamation-triangle"></i> Risks
-                <span class="text-muted">· {{ open_risk_count }} open</span>
+        <a href="{% url 'assets:list' %}" class="stat-card-link">
+            <div class="stat-card">
+                <div class="value">{{ asset_count }}</div>
+                <div class="label"><i class="bi bi-hdd-stack"></i> Assets</div>
+                <div class="stat-card-cta">View all →</div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <div class="stat-card" {% if breached_count %}style="border-color:#dc3545"{% endif %}>
-            <div class="value {% if breached_count %}text-danger{% endif %}">{{ breached_count }}</div>
-            <div class="label"><i class="bi bi-shield-exclamation"></i> Appetite breaches</div>
-        </div>
+        <a href="{% url 'risks:list' %}" class="stat-card-link">
+            <div class="stat-card">
+                <div class="value">{{ risk_count }}</div>
+                <div class="label">
+                    <i class="bi bi-exclamation-triangle"></i> Risks
+                    <span class="text-muted">· {{ open_risk_count }} open</span>
+                </div>
+                <div class="stat-card-cta">View register →</div>
+            </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <div class="stat-card">
-            <div class="value">{{ implemented_control_count }}/{{ control_count }}</div>
-            <div class="label"><i class="bi bi-shield-check"></i> Controls implemented</div>
-        </div>
+        <a href="{% url 'risks:list' %}?breach=1" class="stat-card-link">
+            <div class="stat-card" {% if breached_count %}style="border-color:#dc3545"{% endif %}>
+                <div class="value {% if breached_count %}text-danger{% endif %}">{{ breached_count }}</div>
+                <div class="label"><i class="bi bi-shield-exclamation"></i> Appetite breaches</div>
+                <div class="stat-card-cta">Show breached →</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'controls:list' %}?status=implemented" class="stat-card-link">
+            <div class="stat-card">
+                <div class="value">{{ implemented_control_count }}/{{ control_count }}</div>
+                <div class="label"><i class="bi bi-shield-check"></i> Controls implemented</div>
+                <div class="stat-card-cta">View controls →</div>
+            </div>
+        </a>
     </div>
 </div>
 
