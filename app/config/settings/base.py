@@ -63,6 +63,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'tickets.context_processors.ticket_counters',
+                'core.context_processors.pending_actions',
             ],
         },
     },

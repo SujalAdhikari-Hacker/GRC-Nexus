@@ -1343,3 +1343,93 @@ td:hover > .mx-add-btn {
 [data-bs-theme="dark"] .sidebar-dot {
     background: #FBBF24;
 }
+
+/* ============================================================
+   SIDEBAR — PENDING ACTION BADGES AND DOTS
+   ============================================================ */
+
+.sidebar-badge {
+    margin-left: auto;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 9px;
+    background: #DC2626;
+    color: #FFFFFF;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.sidebar-badge-amber { background: #D97706; }
+.sidebar-badge-blue  { background: #0284C7; }
+
+.sidebar-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #F59E0B;
+    margin-left: 6px;
+    vertical-align: middle;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+    animation: sidebar-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes sidebar-dot-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25); }
+    50%      { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.10); }
+}
+
+[data-bs-theme="dark"] .sidebar-dot {
+    background: #FBBF24;
+}
+
+/* ============================================================
+   SIDEBAR — PENDING ACTION BADGES AND DOTS
+   ============================================================ */
+
+.sidebar-badge {
+    margin-left: auto;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 9px;
+    background: #DC2626;
+    color: #FFFFFF;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.sidebar-badge-amber { background: #D97706; }
+.sidebar-badge-blue  { background: #0284C7; }
+
+.sidebar-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #F59E0B;
+    margin-left: 6px;
+    vertical-align: middle;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+    animation: sidebar-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes sidebar-dot-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25); }
+    50%      { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.10); }
+}
+
+[data-bs-theme="dark"] .sidebar-dot {
+    background: #FBBF24;
+}
