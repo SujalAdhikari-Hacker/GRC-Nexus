@@ -9,9 +9,25 @@
     <script>
         (function(){
             try {
-                var t = localStorage.getItem('aegis-theme');
-                if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                document.documentElement.setAttribute('data-bs-theme', t);
+                // Priority 1: user's DB preference from settings page
+                var userPref = '{{ user_theme_pref|default:"system" }}';
+                // Priority 2: localStorage (from manual toggle)
+                var lsPref = localStorage.getItem('grcnexus-theme');
+                // Priority 3: system default
+                var sysPref = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+                var theme;
+                if (userPref === 'light' || userPref === 'dark') {
+                    theme = userPref;
+                    // Keep localStorage in sync so the toggle button still works
+                    localStorage.setItem('grcnexus-theme', theme);
+                } else if (lsPref === 'light' || lsPref === 'dark') {
+                    theme = lsPref;
+                } else {
+                    theme = sysPref;
+                }
+
+                document.documentElement.setAttribute('data-bs-theme', theme);
             } catch(e) {}
         })();
     </script>

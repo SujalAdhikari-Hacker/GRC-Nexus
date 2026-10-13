@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load user_formats %}
 {% block title %}Settings{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -37,7 +38,7 @@
                         <div class="col-md-6">
                             <label class="form-label">Date format</label>
                             {{ form.date_format }}
-                            <div class="form-text small">Today preview: <strong>{% now "Y-m-d" %}</strong></div>
+                            <div class="form-text small">Today preview: <strong>{% userdate today_preview %}</strong></div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Time format</label>

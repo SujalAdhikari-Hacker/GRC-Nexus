@@ -15,6 +15,16 @@ class DepartmentScopedMixin(LoginRequiredMixin):
             return qs.none()
         return qs.filter(**{self.department_field: user.department})
 
+    def get_paginate_by(self, queryset):
+        """Respect the user's items_per_page preference if set."""
+        try:
+            pref = getattr(self.request.user, 'preference', None)
+            if pref and pref.items_per_page:
+                return pref.items_per_page
+        except Exception:
+            pass
+        return super().get_paginate_by(queryset)
+
 
 class HODOrSuperuserMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):

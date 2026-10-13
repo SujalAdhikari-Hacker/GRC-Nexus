@@ -149,3 +149,28 @@ def notification_sections(request):
         }
     except Exception:
         return empty
+
+
+def user_preference_context(request):
+    """Expose the current user's preferences to every template."""
+    empty = {
+        'user_theme_pref': 'system',
+        'user_date_format': 'Y-m-d',
+        'user_time_format': 'H:i',
+        'user_timezone_pref': 'UTC',
+    }
+    if not request.user.is_authenticated:
+        return empty
+    try:
+        from core.settings_model import UserPreference
+        pref = UserPreference.get_for(request.user)
+        if not pref:
+            return empty
+        return {
+            'user_theme_pref': pref.theme or 'system',
+            'user_date_format': pref.date_format or 'Y-m-d',
+            'user_time_format': pref.time_format or 'H:i',
+            'user_timezone_pref': pref.timezone or 'UTC',
+        }
+    except Exception:
+        return empty

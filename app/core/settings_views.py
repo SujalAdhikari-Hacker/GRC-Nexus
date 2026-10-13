@@ -27,6 +27,7 @@ def settings_view(request):
         'form': form,
         'pref': pref,
         'timezone_now': timezone.now(),
+        'today_preview': timezone.now().date(),
         'user_timezone': timezone.get_current_timezone(),
     }
     return render(request, 'core/settings.html', ctx)

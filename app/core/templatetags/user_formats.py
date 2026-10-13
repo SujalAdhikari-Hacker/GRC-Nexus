@@ -1,0 +1,58 @@
+"""Template filters that respect the user's date/time format preference."""
+from django import template
+from django.utils import timezone
+
+register = template.Library()
+
+
+def _get_format(context, key, default):
+    """Extract a preference from the template context, with fallbacks."""
+    try:
+        # The context processors add user_date_format / user_time_format
+        return context.get(key) or default
+    except Exception:
+        return default
+
+
+@register.simple_tag(takes_context=True)
+def userdate(context, value):
+    """Format a date using the user's preferred date format."""
+    if not value:
+        return '—'
+    fmt = _get_format(context, 'user_date_format', 'Y-m-d')
+    try:
+        if hasattr(value, 'strftime'):
+            return value.strftime(fmt)
+        # Django's date filter handles both
+        from django.template.defaultfilters import date as date_filter
+        return date_filter(value, fmt)
+    except Exception:
+        return str(value)
+
+
+@register.simple_tag(takes_context=True)
+def userdatetime(context, value):
+    """Format a datetime using the user's preferred date + time format."""
+    if not value:
+        return '—'
+    d_fmt = _get_format(context, 'user_date_format', 'Y-m-d')
+    t_fmt = _get_format(context, 'user_time_format', 'H:i')
+    fmt = f'{d_fmt} {t_fmt}'
+    try:
+        from django.template.defaultfilters import date as date_filter
+        return date_filter(value, fmt)
+    except Exception:
+        return str(value)
+
+
+@register.simple_tag(takes_context=True)
+def usertime(context, value):
+    """Format just the time using the user's preferred time format."""
+    if not value:
+        return '—'
+    fmt = _get_format(context, 'user_time_format', 'H:i')
+    try:
+        from django.template.defaultfilters import date as date_filter
+        return date_filter(value, fmt)
+    except Exception:
+        return str(value)

@@ -68,6 +68,7 @@ TEMPLATES = [
                 'core.context_processors.notification_count',
                 'core.context_processors.recent_notifications_context',
                 'core.context_processors.notification_sections',
+                'core.context_processors.user_preference_context',
             ],
         },
     },
