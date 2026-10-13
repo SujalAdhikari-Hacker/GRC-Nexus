@@ -175,6 +175,34 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'month_values_json': json.dumps(month_values),
         })
 
+        # ---------- Ticket widget stats ----------
+        try:
+            from tickets.models import Ticket
+            ticket_qs = Ticket.objects.all()
+            if not is_super and user.department_id:
+                ticket_qs = ticket_qs.filter(owner_dept=user.department)
+
+            open_statuses = ['open', 'assigned', 'in_progress', 'blocked']
+            open_tickets = ticket_qs.filter(status__in=open_statuses)
+
+            ctx['ticket_open_count'] = open_tickets.count()
+            ctx['ticket_critical_count'] = open_tickets.filter(priority=4).count()
+            ctx['ticket_high_count'] = open_tickets.filter(priority=3).count()
+            ctx['ticket_unassigned_count'] = open_tickets.filter(assigned_to__isnull=True).count()
+            ctx['ticket_my_count'] = open_tickets.filter(assigned_to=user).count()
+            ctx['ticket_overdue_count'] = sum(1 for t in open_tickets if t.is_overdue)
+            ctx['recent_tickets'] = open_tickets.select_related(
+                'owner_dept', 'assigned_to'
+            ).order_by('-priority', 'due_date', '-created_at')[:5]
+        except Exception:
+            ctx['ticket_open_count'] = 0
+            ctx['ticket_critical_count'] = 0
+            ctx['ticket_high_count'] = 0
+            ctx['ticket_unassigned_count'] = 0
+            ctx['ticket_my_count'] = 0
+            ctx['ticket_overdue_count'] = 0
+            ctx['recent_tickets'] = []
+
         # Trend charts
         ctx.update(compute_trends(risks, findings, actions, months=6))
         return ctx
