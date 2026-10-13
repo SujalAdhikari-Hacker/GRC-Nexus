@@ -74,13 +74,67 @@
                 <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit{% else %}Create{% endif %} control</strong></div>
                 <div class="card-body">
                     {% for field in form %}
-                        <div class="mb-3">
-                            <label class="form-label">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
-                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
-                        </div>
+                        {% if field.name == 'framework_controls' %}
+                            {# ─────────── Framework-filtered requirement picker ─────────── #}
+                            <div class="mb-3">
+                                <label class="form-label d-block">
+                                    <strong>{{ field.label }}</strong>
+                                </label>
+
+                                <div class="alert alert-info py-2 small mb-3">
+                                    <i class="bi bi-info-circle"></i>
+                                    Pick one or more frameworks below to filter, then Ctrl+click (Cmd+click on Mac) the specific requirements this control addresses. You can select requirements from multiple frameworks.
+                                </div>
+
+                                {# ─── Step 1: Framework filter ─── #}
+                                <label class="form-label">1. Filter by framework</label>
+                                <div class="d-flex flex-wrap gap-2 mb-3" id="framework-filter">
+                                    {% for fw in all_frameworks %}
+                                        <div class="form-check form-check-inline fw-checkbox-wrap">
+                                            <input type="checkbox" class="form-check-input fw-filter-checkbox"
+                                                   data-framework-pk="{{ fw.pk }}" id="fw-{{ fw.pk }}">
+                                            <label class="form-check-label" for="fw-{{ fw.pk }}">
+                                                {{ fw.name }}
+                                                <span class="badge bg-secondary" style="font-size:10px;">{{ fw.controls.count }}</span>
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-fw-filter">
+                                        Show all
+                                    </button>
+                                </div>
+
+                                {# ─── Step 2: Requirement picker ─── #}
+                                <label class="form-label">2. Select requirements</label>
+                                <select name="framework_controls" multiple class="form-select"
+                                        id="id_framework_controls" style="min-height:400px; font-size:12.5px;">
+                                    {% for fw in all_frameworks %}
+                                        <optgroup label="{{ fw.name }} ({{ fw.controls.count }})" data-framework-pk="{{ fw.pk }}">
+                                            {% for fc in fw.controls.all %}
+                                                <option value="{{ fc.pk }}" {% if fc.pk|stringformat:"s" in selected_fc_pks %}selected{% endif %}>
+                                                    {{ fc.code }} — {{ fc.title|truncatechars:80 }}
+                                                </option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% empty %}
+                                        <option disabled>No frameworks configured. Add one via Django admin.</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text small">
+                                    Hold <kbd>Ctrl</kbd> (or <kbd>Cmd</kbd> on Mac) to select multiple. Use the filter above to narrow the list.
+                                </div>
+                                {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                            </div>
+                        {% else %}
+                            <div class="mb-3">
+                                <label class="form-label">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+                                {{ field }}
+                                {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                                {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                            </div>
+                        {% endif %}
                     {% endfor %}
+
                     <button type="submit" class="btn btn-dark">Save Control</button>
                     <a href="{% url 'controls:list' %}" class="btn btn-outline-secondary">Cancel</a>
                 </div>
@@ -115,6 +169,17 @@
                 </ul>
             </div>
         </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Tips</strong></div>
+            <div class="card-body small text-muted">
+                <ul class="ps-3 mb-0">
+                    <li>A single control can satisfy requirements from multiple frameworks</li>
+                    <li>Use the framework filter to hide irrelevant requirements</li>
+                    <li>The matrix view shows which requirements each control covers</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -125,5 +190,56 @@
         background: var(--surface); color: var(--text); font-size: 13px;
     }
     select[multiple] { min-height: 200px; }
+
+    #id_framework_controls optgroup {
+        font-weight: 600;
+        background: var(--surface-2);
+        padding: 4px 8px;
+    }
+    #id_framework_controls option {
+        font-weight: 400;
+        padding: 3px 8px;
+    }
+
+    .fw-checkbox-wrap {
+        background: var(--surface-2);
+        border: 1px solid var(--border-soft);
+        border-radius: 6px;
+        padding: 6px 10px;
+        margin: 0;
+    }
+    .fw-checkbox-wrap:hover {
+        border-color: #00A8E8;
+    }
 </style>
+
+<script>
+(function() {
+    const checkboxes = document.querySelectorAll('.fw-filter-checkbox');
+    const optgroups = document.querySelectorAll('#id_framework_controls optgroup');
+
+    function applyFilter() {
+        const checked = new Set();
+        checkboxes.forEach(cb => { if (cb.checked) checked.add(cb.dataset.frameworkPk); });
+
+        optgroups.forEach(og => {
+            if (checked.size === 0 || checked.has(og.dataset.frameworkPk)) {
+                og.style.display = '';
+            } else {
+                og.style.display = 'none';
+            }
+        });
+    }
+
+    checkboxes.forEach(cb => cb.addEventListener('change', applyFilter));
+
+    const clearBtn = document.getElementById('clear-fw-filter');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            checkboxes.forEach(cb => cb.checked = false);
+            applyFilter();
+        });
+    }
+})();
+</script>
 {% endblock %}

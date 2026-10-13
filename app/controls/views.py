@@ -105,12 +105,20 @@ class ControlCreateView(DepartmentScopedMixin, CreateView):
             initial['owner_dept'] = user.department
         return initial
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        return _framework_context(self, ctx)
+
 
 class ControlUpdateView(DepartmentScopedMixin, UpdateView):
     model = Control
     form_class = ControlForm
     template_name = 'controls/control_form.html'
     success_url = reverse_lazy('controls:list')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        return _framework_context(self, ctx)
 
 
 class ControlEvidenceCreateView(LoginRequiredMixin, CreateView):
@@ -361,3 +369,17 @@ class ControlEffectivenessView(DepartmentScopedMixin, TemplateView):
             'lifecycles': lifecycles,
         })
         return ctx
+
+def _framework_context(self, ctx):
+    """Pass frameworks + selected FC pks to the template."""
+    from frameworks.models import Framework
+
+    ctx['all_frameworks'] = Framework.objects.prefetch_related('controls').order_by('name')
+
+    selected = set()
+    if getattr(self, 'object', None):
+        selected = set(str(pk) for pk in self.object.framework_controls.values_list('pk', flat=True))
+    elif self.request.method == 'POST':
+        selected = set(str(pk) for pk in self.request.POST.getlist('framework_controls'))
+    ctx['selected_fc_pks'] = selected
+    return ctx
