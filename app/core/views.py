@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from core.mixins import HODOrSuperuserMixin
 from django.contrib.auth.models import Group, Permission
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db.models import Q
@@ -43,6 +44,13 @@ def _severity_band(score):
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'core/dashboard.html'
 
+        # Refresh alerts once per dashboard load
+    from tickets.alerts import scan_and_create_tickets
+    try:
+            scan_and_create_tickets(verbose=False)
+    except Exception:
+            pass
+    
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
@@ -216,14 +224,6 @@ def global_search(request):
     })
 
 
-# ============================================================
-# ADMINISTRATION UI
-# ============================================================
-
-class HODOrSuperuserMixin(LoginRequiredMixin, UserPassesTestMixin):
-    def test_func(self):
-        u = self.request.user
-        return u.is_authenticated and (u.is_superuser or u.is_hod)
 
 
 class SuperuserOnlyMixin(LoginRequiredMixin, UserPassesTestMixin):

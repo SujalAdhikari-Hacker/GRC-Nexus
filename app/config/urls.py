@@ -23,6 +23,7 @@ urlpatterns = [
     path('kris/', include('kris.urls')),
     path('audits/', include('audits.urls')),
     path('threat-intel/', include('threatintel.urls')),
+    path('tickets/', include('tickets.urls')),
 ]
 
 # Serve static files in dev — Django's built-in runserver handler

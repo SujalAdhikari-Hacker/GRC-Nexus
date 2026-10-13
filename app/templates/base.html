@@ -209,6 +209,37 @@
                 <i class="bi bi-list-task"></i><span>Action Plans</span>
             </a>
 
+            {# ==================== OPERATIONS ==================== #}
+            <div class="sidebar-section-head sidebar-head-toggle" data-target="ops" style="display: flex;">
+                <span>Operations
+                    {% if my_tickets_count %}
+                        <span class="sidebar-dot" title="{{ my_tickets_count }} ticket{{ my_tickets_count|pluralize }} assigned to you"></span>
+                    {% endif %}
+                </span>
+                <i class="bi bi-chevron-down section-caret"></i>
+            </div>
+            <a href="{% url 'tickets:list' %}" class="sidebar-link toggle-item" data-section="ops" style="display: {% if ns == 'tickets' and urlname == 'list' %}flex{% else %}none{% endif %};">
+                <i class="bi bi-ticket-detailed"></i>
+                <span>Tickets</span>
+                {% if open_tickets_count %}<span class="sidebar-badge">{{ open_tickets_count }}</span>{% endif %}
+            </a>
+            <a href="{% url 'tickets:my_tickets' %}" class="sidebar-link toggle-item" data-section="ops" style="display: {% if ns == 'tickets' and urlname == 'my_tickets' %}flex{% else %}none{% endif %};">
+                <i class="bi bi-person-check"></i>
+                <span>My Tickets</span>
+                {% if my_tickets_count %}<span class="sidebar-badge sidebar-badge-amber">{{ my_tickets_count }}</span>{% endif %}
+            </a>
+            <a href="{% url 'tickets:available' %}" class="sidebar-link toggle-item" data-section="ops" style="display: {% if ns == 'tickets' and urlname == 'available' %}flex{% else %}none{% endif %};">
+                <i class="bi bi-inbox"></i>
+                <span>Available Queue</span>
+                {% if available_tickets_count %}<span class="sidebar-badge sidebar-badge-blue">{{ available_tickets_count }}</span>{% endif %}
+            </a>
+            {% if user.is_hod or user.is_superuser %}
+            <a href="{% url 'tickets:create' %}" class="sidebar-link toggle-item" data-section="ops" style="display: {% if ns == 'tickets' and urlname == 'create' %}flex{% else %}none{% endif %};">
+                <i class="bi bi-plus-square"></i><span>New Ticket</span>
+            </a>
+            {% endif %}
+
+
             {# ==================== THREAT INTEL ==================== #}
             <div class="sidebar-section-head sidebar-head-toggle" data-target="threat" style="display: flex;">
                 <span>Threat Intel</span>

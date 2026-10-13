@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Tickets{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item">Operations</li>
+    <li class="breadcrumb-item active">Tickets</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-ticket-detailed"></i> Total tickets</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-danger">{{ open_count }}</div><div class="label"><i class="bi bi-exclamation-circle"></i> Open</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#D97706;">{{ unassigned_count }}</div><div class="label"><i class="bi bi-person-dash"></i> Unassigned</div></div></div>
+    <div class="col-md-3"><div class="stat-card" {% if overdue_count %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ overdue_count }}</div><div class="label"><i class="bi bi-clock-history"></i> Overdue</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-3"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search tickets..." value="{{ search_query }}"></div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All statuses</option>
+                    {% for val, label in statuses %}<option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="priority" class="form-select form-select-sm">
+                    <option value="">All priorities</option>
+                    {% for val, label in priorities %}<option value="{{ val }}" {% if selected_priority == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="assigned" class="form-select form-select-sm">
+                    <option value="">Any assignment</option>
+                    <option value="me" {% if selected_assigned == 'me' %}selected{% endif %}>Assigned to me</option>
+                    <option value="unassigned" {% if selected_assigned == 'unassigned' %}selected{% endif %}>Unassigned</option>
+                </select>
+            </div>
+            <div class="col-md-3"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
+        </form>
+        {% if user.is_hod or user.is_superuser %}
+        <a href="{% url 'tickets:create' %}" class="btn btn-sm btn-primary text-nowrap">+ New Ticket</a>
+        {% endif %}
+    </div>
+
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:100px;">ID</th>
+                    <th>Title</th>
+                    <th class="text-center">Priority</th>
+                    <th class="text-center">Status</th>
+                    <th>Assigned to</th>
+                    <th>Dept</th>
+                    <th class="text-center">Due</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for t in tickets %}
+                <tr>
+                    <td><a href="{% url 'tickets:detail' t.pk %}"><code>{{ t.ticket_id }}</code></a></td>
+                    <td><a href="{% url 'tickets:detail' t.pk %}"><strong>{{ t.title|truncatechars:70 }}</strong></a></td>
+                    <td class="text-center"><span class="badge" style="background:{{ t.priority_color }}; color:#fff;">{{ t.get_priority_display }}</span></td>
+                    <td class="text-center"><span class="badge" style="background:{{ t.status_color }}; color:#fff;">{{ t.get_status_display }}</span></td>
+                    <td>
+                        {% if t.assigned_to %}<small>{{ t.assigned_to.username }}</small>
+                        {% else %}<span class="text-muted small">— Unassigned —</span>{% endif %}
+                    </td>
+                    <td><small>{{ t.owner_dept.name }}</small></td>
+                    <td class="text-center">
+                        <small>
+                        {% if t.due_date %}
+                            {% if t.is_overdue %}<span class="text-danger fw-bold">{{ t.due_date }} <i class="bi bi-exclamation-triangle"></i></span>
+                            {% else %}{{ t.due_date }}{% endif %}
+                        {% else %}—{% endif %}
+                        </small>
+                    </td>
+                    <td class="text-end"><a href="{% url 'tickets:detail' t.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">
+                    No tickets match your filters.
+                    {% if user.is_hod or user.is_superuser %}<a href="{% url 'tickets:create' %}">Create the first one</a>.{% endif %}
+                </td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

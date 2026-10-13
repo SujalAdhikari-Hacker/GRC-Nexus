@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Ticket{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'tickets:list' %}">Tickets</a></li>
+    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}New{% endif %}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+            <div class="card">
+                <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit{% else %}Create{% endif %} ticket</strong></div>
+                <div class="card-body">
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-dark">Save Ticket</button>
+                    <a href="{% url 'tickets:list' %}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card sticky-top" style="top:1rem;">
+            <div class="card-header bg-white"><strong>Guidance</strong></div>
+            <div class="card-body small text-muted">
+                <p><strong>Priority</strong> — Critical = same-day response, High = within a week, Medium = within a month, Low = when convenient.</p>
+                <p><strong>Assigned to</strong> — Leave blank to post to the department queue. Anyone can then claim it.</p>
+                <p><strong>Due date</strong> — Optional. Overdue tickets show a red warning on the list.</p>
+                <p class="mb-0"><strong>Status</strong> — Open → Assigned → In Progress → Resolved → Closed.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="text"], input[type="date"], select, textarea {
+        width: 100%; padding: .375rem .75rem;
+        border: 1px solid var(--border); border-radius: var(--r-sm);
+        background: var(--surface); color: var(--text); font-size: 13px;
+    }
+</style>
+{% endblock %}
