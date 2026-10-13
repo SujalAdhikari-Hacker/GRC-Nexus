@@ -493,7 +493,6 @@ hr { border-color: var(--border-soft); opacity: 1; }
 [data-bs-theme="dark"] .nav-link:hover,
 [data-bs-theme="dark"] .nav-link.active { background: rgba(255,255,255,0.05); }
 
-
 /* ============================================================
    TOPBAR COMPONENTS — search, buttons, user menu, palette
    ============================================================ */
@@ -1515,38 +1514,6 @@ td:hover > .mx-add-btn {
 }
 
 /* ============================================================
-   REPORT CLASSIFICATION SEAL
-   Circular badge with logo + curved text (TRANSPARENT / CONFIDENTIAL)
-   ============================================================ */
-.report-seal {
-    position: absolute;
-    top: 20mm;
-    right: 20mm;
-    width: 38mm;
-    height: 38mm;
-    opacity: 0.85;
-}
-.report-seal svg {
-    width: 100%;
-    height: 100%;
-}
-.report-seal-text {
-    font-family: 'Helvetica', 'Arial', sans-serif;
-    fill: #00A8E8;
-    font-weight: 700;
-    letter-spacing: 0.15em;
-}
-
-/* Report header logo (top-left of every PDF page) */
-.report-header-logo {
-    width: 10mm;
-    height: 10mm;
-    vertical-align: middle;
-    margin-right: 8px;
-}
-
-
-/* ============================================================
    DARK MODE FIX — Bootstrap bg-white leaking white headers
    ============================================================ */
 .bg-white {
@@ -1567,7 +1534,6 @@ td:hover > .mx-add-btn {
     color: var(--text) !important;
     border-top-color: var(--border-soft) !important;
 }
-
 
 /* ============================================================
    NOTIFICATION BELL + DROPDOWN + LIST
@@ -1713,3 +1679,4 @@ td:hover > .mx-add-btn {
 [data-bs-theme="dark"] .notification-count {
     box-shadow: 0 0 0 2px var(--surface);
 }
+

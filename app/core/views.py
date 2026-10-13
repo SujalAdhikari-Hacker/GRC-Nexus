@@ -393,5 +393,5 @@ class ExecutiveReportView(LoginRequiredMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         ctx = _build_exec7(request.user)
         from django.utils import timezone
-        filename = f'aegis_executive_report_{timezone.now().strftime("%Y%m%d_%H%M")}.pdf'
+        filename = f'grcnexus_executive_report_{timezone.now().strftime("%Y%m%d_%H%M")}.pdf'
         return _render_pdf7(request, self.template_name, ctx, filename)
