@@ -355,7 +355,7 @@
                     </div>
                 </div>
 
-                <a href="/admin/" class="topbar-btn" title="Admin">
+                <a href="{% url 'core:settings' %}" class="topbar-btn" title="Settings">
                     <i class="bi bi-gear"></i>
                 </a>
                 <div class="user-menu-wrap">
@@ -377,10 +377,13 @@
                         {% endif %}
                         {% if user.is_superuser %}
                         <a href="/admin/" class="user-menu-item"><i class="bi bi-gear"></i><span>Django Admin</span></a>
+                        <a href="{% url 'core:settings' %}" class="user-menu-item"><i class="bi bi-gear"></i><span>Settings</span></a>
                         <div class="user-menu-divider"></div>
                         {% endif %}
-                        <form method="post" action="{% url 'logout' %}" style="margin:0;">
+                        
+<form method="post" action="{% url 'logout' %}" style="margin:0;">
                             {% csrf_token %}
+                        <a href="{% url 'password_change' %}" class="user-menu-item"><i class="bi bi-key"></i><span>Change Password</span></a>
                             <button type="submit" class="user-menu-item danger"><i class="bi bi-box-arrow-right"></i><span>Sign out</span></button>
                         </form>
                     </div>

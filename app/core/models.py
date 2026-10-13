@@ -16,7 +16,6 @@ class Department(models.Model):
     def __str__(self):
         return self.name
 
-
 class User(AbstractUser):
     department = models.ForeignKey(
         Department, null=True, blank=True,
@@ -92,3 +91,6 @@ class OrganisationProfile(models.Model):
     def get(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+# Import for Django model discovery
+from .settings_model import UserPreference  # noqa

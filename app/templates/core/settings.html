@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item">Account</li>
+    <li class="breadcrumb-item active">Settings</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-8">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+            {# ─── Regional ─── #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-globe2"></i> Regional</strong></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Language</label>
+                            {{ form.language }}
+                            <div class="form-text small">Interface language (translation support coming soon)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Timezone</label>
+                            {{ form.timezone }}
+                            <div class="form-text small">
+                                Server time now: <strong>{{ timezone_now|date:"Y-m-d H:i:s" }}</strong>
+                                · Your timezone: <strong>{{ user_timezone }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date format</label>
+                            {{ form.date_format }}
+                            <div class="form-text small">Today preview: <strong>{% now "Y-m-d" %}</strong></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Time format</label>
+                            {{ form.time_format }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ─── Interface ─── #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-palette2"></i> Interface</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Theme</label>
+                        <div class="d-flex flex-wrap gap-3">
+                            {% for radio in form.theme %}
+                                <div class="form-check">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Items per page</label>
+                        {{ form.items_per_page }}
+                        <div class="form-text small">Applied to all list views</div>
+                    </div>
+                </div>
+            </div>
+
+            {# ─── Notifications ─── #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-bell"></i> Notifications</strong></div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        {{ form.email_notifications_enabled }}
+                        <label class="form-check-label" for="{{ form.email_notifications_enabled.id_for_label }}">
+                            <strong>Enable email notifications</strong>
+                        </label>
+                        <div class="form-text small">Master switch for all emails from GRC Nexus</div>
+                    </div>
+
+                    <hr>
+                    <p class="text-muted small mb-2">Send me an email when:</p>
+
+                    <div class="form-check mb-2">
+                        {{ form.email_on_ticket_assigned }}
+                        <label class="form-check-label" for="{{ form.email_on_ticket_assigned.id_for_label }}">
+                            A ticket is assigned to me
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        {{ form.email_on_risk_breach }}
+                        <label class="form-check-label" for="{{ form.email_on_risk_breach.id_for_label }}">
+                            A risk breaches its appetite threshold
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        {{ form.email_on_audit_finding }}
+                        <label class="form-check-label" for="{{ form.email_on_audit_finding.id_for_label }}">
+                            A new audit finding is created
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        {{ form.email_on_kri_red }}
+                        <label class="form-check-label" for="{{ form.email_on_kri_red.id_for_label }}">
+                            A KRI crosses into red
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        {{ form.email_on_vuln_sla }}
+                        <label class="form-check-label" for="{{ form.email_on_vuln_sla.id_for_label }}">
+                            A vulnerability passes its SLA deadline
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-dark">Save Settings</button>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        {# ─── Account card ─── #}
+        <div class="card sticky-top" style="top:1rem;">
+            <div class="card-header bg-white"><strong>Your account</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Username</span>
+                    <strong>{{ user.username }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Name</span>
+                    <span>{{ user.get_full_name|default:"—" }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Email</span>
+                    <span><small>{{ user.email|default:"—" }}</small></span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Department</span>
+                    <span>{{ user.department.name|default:"—" }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Role</span>
+                    <span>
+                        {% if user.is_superuser %}<span class="badge bg-danger">Superadmin</span>
+                        {% elif user.is_hod %}<span class="badge bg-info text-dark">HOD</span>
+                        {% else %}<span class="badge bg-secondary">User</span>{% endif %}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Joined</span>
+                    <small>{{ user.date_joined|date:"Y-m-d" }}</small>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Last login</span>
+                    <small>{{ user.last_login|date:"Y-m-d H:i"|default:"—" }}</small>
+                </li>
+            </ul>
+        </div>
+
+        {# ─── Security card ─── #}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Security</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Password</strong>
+                        <div class="small text-muted">Change your login password</div>
+                    </div>
+                    <a href="{% url 'password_change' %}" class="btn btn-sm btn-outline-dark">Change</a>
+                </li>
+            </ul>
+        </div>
+
+        {# ─── System card ─── #}
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>System</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">App</span><span>GRC Nexus</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Version</span><code>v2.2.0</code></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Server timezone</span><code>UTC</code></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,4 +1,5 @@
 from django.urls import path
+from .settings_views import settings_view
 from .notification_views import (
     NotificationListView, notification_dismiss,
     notification_mark_read, notification_mark_all_read,
@@ -34,4 +35,5 @@ urlpatterns = [
     path('notifications/<int:pk>/dismiss/', notification_dismiss, name='notification_dismiss'),
     path('notifications/<int:pk>/read/', notification_mark_read, name='notification_mark_read'),
     path('notifications/mark-all-read/', notification_mark_all_read, name='notification_mark_all_read'),
+    path('settings/', settings_view, name='settings'),
 ]
