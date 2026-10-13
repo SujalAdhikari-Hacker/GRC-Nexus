@@ -1,4 +1,4 @@
-﻿from django.urls import path
+from django.urls import path
 from .views import KRIListView, KRIDetailView, KRICreateView, KRIUpdateView
 
 app_name = 'kris'

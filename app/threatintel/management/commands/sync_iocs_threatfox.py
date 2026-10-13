@@ -1,4 +1,4 @@
-﻿"""
+"""
 Sync recent IOCs from abuse.ch ThreatFox.
 
 Requires a free Auth-Key from https://auth.abuse.ch/

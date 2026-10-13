@@ -1,4 +1,4 @@
-﻿from django import forms
+from django import forms
 
 from .models import Risk, RiskTreatment, RiskException, RiskAppetite
 

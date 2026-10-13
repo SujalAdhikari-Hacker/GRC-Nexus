@@ -1,4 +1,4 @@
-﻿"""
+"""
 Sync MITRE ATT&CK Enterprise framework from the official STIX bundle.
 
 Source: https://github.com/mitre-attack/attack-stix-data

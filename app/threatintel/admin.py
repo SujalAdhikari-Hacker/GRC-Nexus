@@ -1,4 +1,4 @@
-﻿from django.contrib import admin
+from django.contrib import admin
 from django.utils.html import format_html
 from simple_history.admin import SimpleHistoryAdmin
 from .models import Tactic, Technique, ThreatActor, IOC, IOCFeedSync

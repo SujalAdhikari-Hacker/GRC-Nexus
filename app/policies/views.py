@@ -1,4 +1,4 @@
-﻿from django.db.models import Q
+from django.db.models import Q
 from django.views.generic import ListView, DetailView
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, UpdateView

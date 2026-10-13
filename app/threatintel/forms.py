@@ -1,1 +1,1 @@
-﻿# Forms will be filled in Batch 3
+# Forms will be filled in Batch 3

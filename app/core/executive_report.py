@@ -1,4 +1,4 @@
-﻿"""
+"""
 Gathers all data + generates narratives for the executive report.
 """
 from collections import Counter

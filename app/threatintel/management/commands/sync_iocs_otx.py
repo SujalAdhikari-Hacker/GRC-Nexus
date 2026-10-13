@@ -1,4 +1,4 @@
-﻿"""
+"""
 Sync IOCs from AlienVault OTX.
 
 Requires a free API key from https://otx.alienvault.com/

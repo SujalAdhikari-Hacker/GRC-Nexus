@@ -1,4 +1,4 @@
-﻿"""
+"""
 Report generation utilities: PDF (WeasyPrint) + Excel (openpyxl) + ReportMixin for ListViews.
 """
 from io import BytesIO

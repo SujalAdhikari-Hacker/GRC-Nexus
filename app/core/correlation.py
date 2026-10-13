@@ -1,4 +1,4 @@
-﻿"""
+"""
 Cross-app correlation service.
 
 Given any object in the GRC graph, return everything correlated to it.

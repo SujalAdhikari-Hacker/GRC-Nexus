@@ -1,4 +1,4 @@
-﻿"""
+"""
 Sync IOCs from ThreatCluster public feed. No API key needed.
 """
 import requests

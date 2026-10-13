@@ -1,4 +1,4 @@
-﻿"""
+"""
 Chart generation for PDF reports using matplotlib.
 Returns base64-encoded PNG data URIs for embedding in HTML.
 """

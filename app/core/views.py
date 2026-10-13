@@ -1,4 +1,4 @@
-﻿import json
+import json
 from collections import Counter
 from datetime import timedelta
 

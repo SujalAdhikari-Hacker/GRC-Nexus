@@ -47,6 +47,80 @@
     </div>
 </div>
 
+{# ─────────────── TICKETS WIDGET ─────────────── #}
+<div class="row g-3 mb-3">
+    <div class="col-md-5">
+        <a href="{% url 'tickets:list' %}" class="stat-card-link">
+            <div class="card h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong><i class="bi bi-ticket-detailed"></i> Open Tickets</strong>
+                    <span class="badge bg-dark">{{ ticket_open_count }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 text-center">
+                        <div class="col-4">
+                            <div style="font-size:1.6rem; font-weight:700; color:#DC2626;">{{ ticket_critical_count }}</div>
+                            <div class="text-muted small">Critical</div>
+                        </div>
+                        <div class="col-4">
+                            <div style="font-size:1.6rem; font-weight:700; color:#D97706;">{{ ticket_high_count }}</div>
+                            <div class="text-muted small">High</div>
+                        </div>
+                        <div class="col-4">
+                            <div style="font-size:1.6rem; font-weight:700; color:#6B7280;">{{ ticket_unassigned_count }}</div>
+                            <div class="text-muted small">Unassigned</div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between small">
+                        <span><i class="bi bi-person-check" style="color:#0284C7;"></i> {{ ticket_my_count }} assigned to me</span>
+                        {% if ticket_overdue_count %}
+                            <span class="text-danger"><i class="bi bi-exclamation-triangle"></i> {{ ticket_overdue_count }} overdue</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-7">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Top open tickets</strong>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'tickets:my_tickets' %}" class="btn btn-sm btn-outline-dark">My Tickets</a>
+                    <a href="{% url 'tickets:available' %}" class="btn btn-sm btn-outline-dark">Available</a>
+                </div>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for t in recent_tickets %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{% url 'tickets:detail' t.pk %}">
+                                <code>{{ t.ticket_id }}</code>
+                                {{ t.title|truncatechars:60 }}
+                            </a>
+                            <div class="small text-muted">
+                                {{ t.owner_dept.name }}
+                                {% if t.assigned_to %} · {{ t.assigned_to.username }}{% else %} · <em>Unassigned</em>{% endif %}
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge" style="background:{{ t.priority_color }}; color:#fff;">{{ t.get_priority_display }}</span>
+                            {% if t.is_overdue %}<div class="small text-danger fw-bold">Overdue</div>{% endif %}
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small py-4">
+                        <i class="bi bi-check-circle" style="font-size:1.5rem; opacity:.4;"></i>
+                        <div class="mt-2">No open tickets. All clear.</div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
 {# ─────────────── RISK HEATMAP + SEVERITY SUMMARY ─────────────── #}
 <div class="row g-3 mb-3">
     <div class="col-md-7">

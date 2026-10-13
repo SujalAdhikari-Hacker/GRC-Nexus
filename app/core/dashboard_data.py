@@ -1,4 +1,4 @@
-﻿"""
+"""
 Trend computation for the dashboard.
 """
 import json

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Live enrichment from public APIs + cascade to risk register.
 
 APIs used (all free, no auth):

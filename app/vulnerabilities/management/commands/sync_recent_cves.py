@@ -1,4 +1,4 @@
-﻿"""
+"""
 Sync recent CVEs from NVD API 2.0.
 
 NVD rate limits: 5 requests per 30 seconds without API key.
