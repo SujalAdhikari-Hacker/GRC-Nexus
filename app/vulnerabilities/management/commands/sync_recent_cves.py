@@ -81,7 +81,7 @@ class Command(BaseCommand):
         page = 0
 
         session = requests.Session()
-        session.headers.update({'User-Agent': 'Aegis-GRC/1.0'})
+        session.headers.update({'User-Agent': 'GRC Nexus-GRC/1.0'})
 
         while page < max_pages:
             page += 1

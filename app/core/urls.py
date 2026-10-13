@@ -1,4 +1,8 @@
 from django.urls import path
+from .notification_views import (
+    NotificationListView, notification_dismiss,
+    notification_mark_read, notification_mark_all_read,
+)
 from .views import (
     DashboardView, global_search,
     UserListView, UserCreateView, UserUpdateView,
@@ -24,4 +28,10 @@ urlpatterns = [
     path('admin-ui/departments/<int:pk>/edit/', DepartmentUpdateView.as_view(), name='department_update'),
 
     path('admin-ui/roles/', RolesPermissionsView.as_view(), name='roles_permissions'),
+
+    # Notifications
+    path('notifications/', NotificationListView.as_view(), name='notifications'),
+    path('notifications/<int:pk>/dismiss/', notification_dismiss, name='notification_dismiss'),
+    path('notifications/<int:pk>/read/', notification_mark_read, name='notification_mark_read'),
+    path('notifications/mark-all-read/', notification_mark_all_read, name='notification_mark_all_read'),
 ]

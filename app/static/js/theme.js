@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const STORAGE_KEY = 'aegis-theme';
+    const STORAGE_KEY = 'grcnexus-theme';
 
     function getPreferred() {
         const stored = localStorage.getItem(STORAGE_KEY);

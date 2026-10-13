@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sign in{% endblock %} · Aegis</title>
+    <title>{% block title %}Sign in{% endblock %} · GRC Nexus</title>
     <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
     <script>
         (function(){
             try {
-                var t = localStorage.getItem('aegis-theme');
+                var t = localStorage.getItem('grcnexus-theme');
                 if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-bs-theme', t);
             } catch(e) {}

@@ -65,7 +65,7 @@ def render_excel(title, headers, rows, filename, sheet_name=None, column_widths=
 
     ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=max_cols)
     c = ws.cell(row=2, column=1,
-                value=f'Generated {timezone.now().strftime("%Y-%m-%d %H:%M")} · Aegis GRC Platform')
+                value=f'Generated {timezone.now().strftime("%Y-%m-%d %H:%M")} · GRC Nexus GRC Platform')
     c.font = meta_font
 
     header_row = 4

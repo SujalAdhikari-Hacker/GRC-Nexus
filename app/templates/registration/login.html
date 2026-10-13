@@ -6,33 +6,39 @@
 <div class="auth-shell">
 
     {# ─── Left: brand panel ─── #}
-    <div class="auth-brand-panel">
+    <div class="auth-brand-panel" style="background-image: url('{% static "img/login-hero.png" %}'); background-size: cover; background-position: right center; background-blend-mode: screen;">
+        <div style="position:absolute; inset:0; background: linear-gradient(90deg, rgba(11,18,32,0.92) 0%, rgba(11,18,32,0.55) 50%, rgba(11,18,32,0.15) 100%); z-index:0;"></div>
         <div class="auth-brand">
-            <img src="{% static 'img/logo.svg' %}" class="brand-mark" alt="">
-            <span class="brand-name">Aegis</span>
+            <img src="{% static 'img/logo.png' %}" class="brand-mark" alt="GRC Nexus">
+            <div>
+                <div class="brand-name">GRC Nexus</div>
+                <div style="font-size:10px; color:#94A3B8; letter-spacing:.10em; text-transform:uppercase; margin-top:2px;">From Assets to Assurance</div>
+            </div>
         </div>
 
         <div class="auth-hero">
-            <h1>Governance. Risk.<br>Compliance. Unified.</h1>
+            <h1>From assets<br>to assurance.</h1>
             <p>
-                One platform for asset inventory, risk register, control mapping,
-                policy management, and vendor risk — connected end to end.
+                One platform that carries every record — asset, risk, control,
+                policy, vendor, vulnerability — from where it starts to the
+                assurance it delivers.
             </p>
 
             <div class="auth-features">
-                <div class="auth-feature"><i class="bi bi-check2-circle"></i> Auto-cascading risk engine</div>
-                <div class="auth-feature"><i class="bi bi-check2-circle"></i> ISO 27001 · NIST CSF · CIS v8 coverage</div>
-                <div class="auth-feature"><i class="bi bi-check2-circle"></i> Department-scoped RBAC &amp; audit trail</div>
+                <div class="auth-feature"><i class="bi bi-check2-circle"></i> Cascade engine — data flows from asset to assurance</div>
+                <div class="auth-feature"><i class="bi bi-check2-circle"></i> ISO 27001 · NIST CSF 2.0 · CIS v8 · SOC 2 · PCI DSS · GDPR</div>
+                <div class="auth-feature"><i class="bi bi-check2-circle"></i> Department-scoped RBAC · Full audit trail</div>
+                <div class="auth-feature"><i class="bi bi-check2-circle"></i> Live threat-intel · NVD · EPSS · KEV · MITRE ATT&amp;CK</div>
             </div>
         </div>
 
         <div style="position:relative; z-index:1; font-size:12px; color:var(--brand-500);">
-            © 2026 Aegis · GRC Platform
+            © 2026 GRC Nexus · From Assets to Assurance
         </div>
     </div>
 
     {# ─── Right: form panel ─── #}
-        <div class="auth-form-panel" style="position:relative;">
+    <div class="auth-form-panel" style="position:relative;">
         <button type="button" class="topbar-btn" data-theme-toggle
                 style="position:absolute; top:20px; right:20px;"
                 title="Toggle theme">
