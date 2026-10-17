@@ -2,6 +2,7 @@
 Report generation utilities: PDF (WeasyPrint) + Excel (openpyxl) + ReportMixin for ListViews.
 """
 from io import BytesIO
+from urllib.parse import urlparse
 
 from django.http import HttpResponse
 from django.template.loader import render_to_string
@@ -10,6 +11,88 @@ from django.template.loader import render_to_string
 # ============================================================
 # PDF RENDERING
 # ============================================================
+
+_MIME_TYPES = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp',
+    '.ttf': 'font/ttf',
+    '.otf': 'font/otf',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.css': 'text/css',
+}
+
+
+def _local_asset(url):
+    """Return ``(Path, mime_type)`` for a local /static/ or /media/ URL."""
+    from pathlib import Path
+
+    from django.conf import settings
+
+    parsed = urlparse(url)
+    path = parsed.path if parsed.scheme in ('http', 'https', 'file') else url
+
+    static_url = settings.STATIC_URL or '/static/'
+    media_url = settings.MEDIA_URL or '/media/'
+    found = None
+
+    if path.startswith(static_url):
+        relative = path[len(static_url):]
+        candidate = Path(settings.STATIC_ROOT) / relative
+        if candidate.is_file():
+            found = candidate
+        else:
+            try:
+                from django.contrib.staticfiles import finders
+
+                hit = finders.find(relative)
+                if hit and Path(hit).is_file():
+                    found = Path(hit)
+            except Exception:  # noqa: BLE001 - never fail a report over asset lookup
+                found = None
+    elif path.startswith(media_url):
+        candidate = Path(settings.MEDIA_ROOT) / path[len(media_url):]
+        if candidate.is_file():
+            found = candidate
+
+    if found is None:
+        return None
+
+    import mimetypes
+
+    suffix = found.suffix.lower()
+    mime = _MIME_TYPES.get(suffix) or mimetypes.guess_type(str(found))[0]
+    return found, (mime or 'application/octet-stream')
+
+
+def local_asset_url_fetcher():
+    """Build a WeasyPrint URL fetcher that serves /static/ and /media/ from disk.
+
+    WeasyPrint would otherwise HTTP-fetch every asset against the request's own
+    absolute URI. That is fragile: it needs the app to reach itself, and it breaks
+    in tests, off-box renderers and behind reverse proxies. Resolving these two
+    namespaces locally makes report images (the confidentiality seal, the brand
+    mark) deterministic. Anything else - remote URLs, fonts, ``data:`` URIs - is
+    handed to WeasyPrint's normal fetcher.
+    """
+    from weasyprint.urls import URLFetcher, URLFetcherResponse
+
+    class _LocalAssetURLFetcher(URLFetcher):
+        def fetch(self, url, headers=None):
+            asset = _local_asset(url)
+            if asset is not None:
+                path, mime = asset
+                return URLFetcherResponse(
+                    url, body=path.read_bytes(), headers={'Content-Type': mime}
+                )
+            return super().fetch(url, headers)
+
+    return _LocalAssetURLFetcher()
+
 
 def render_pdf(request, template_name, context, filename):
     """Render a Django template to PDF."""
@@ -21,7 +104,11 @@ def render_pdf(request, template_name, context, filename):
     context['generated_by'] = getattr(request, 'user', None)
 
     html_string = render_to_string(template_name, context, request=request)
-    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+    html = HTML(
+        string=html_string,
+        base_url=request.build_absolute_uri('/'),
+        url_fetcher=local_asset_url_fetcher(),
+    )
     pdf_bytes = html.write_pdf()
 
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
@@ -32,6 +119,13 @@ def render_pdf(request, template_name, context, filename):
 # ============================================================
 # EXCEL RENDERING
 # ============================================================
+
+def _excel_safe(value):
+    """Stop spreadsheet formula injection when exporting user-controlled text."""
+    from core.mixins import csv_safe
+
+    return csv_safe(value)
+
 
 def render_excel(title, headers, rows, filename, sheet_name=None, column_widths=None):
     """Render tabular data to an Excel workbook."""
@@ -79,7 +173,7 @@ def render_excel(title, headers, rows, filename, sheet_name=None, column_widths=
 
     for row_idx, row_data in enumerate(rows, start=header_row + 1):
         for col_idx, value in enumerate(row_data, start=1):
-            c = ws.cell(row=row_idx, column=col_idx, value=value)
+            c = ws.cell(row=row_idx, column=col_idx, value=_excel_safe(value))
             c.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
             c.border = border
             c.font = Font(name='Calibri', size=10)

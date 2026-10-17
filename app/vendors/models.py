@@ -238,7 +238,9 @@ class VendorAssessment(models.Model):
                 next_num += 1
             self.assessment_id = f'VRA-{next_num:04d}'
 
-        if self.vendor_id and not self.vendor_tier:
+        # Snapshot the vendor's tier at assessment time (only when the
+        # assessment is first created — edits must not rewrite history).
+        if self.vendor_id and not self.pk:
             self.vendor_tier = self.vendor.tier
 
         # Clamp each dimension to 0-25

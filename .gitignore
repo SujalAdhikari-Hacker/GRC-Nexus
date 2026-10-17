@@ -7,7 +7,7 @@ __pycache__/
 .venv/
 venv/
 db.sqlite3
-/staticfiles/
-/media/
+staticfiles/
+media/
 postgres_data/
 .vscode/.env

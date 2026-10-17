@@ -66,21 +66,16 @@ CLEAR_RULES = {
 }
 
 
-def _resolve_object(ref_model, ref_id):
-    try:
-        app_label, model_name = ref_model.split('.')
-        Model = apps.get_model(app_label, model_name)
-        return Model.objects.filter(pk=ref_id).first()
-    except Exception:
-        return None
-
-
 def refresh_notifications(dept=None, is_super=False):
     """
     Check every active notification and mark it cleared if its condition
     is now met (or the linked object has been deleted).
 
     Returns the number of notifications cleared.
+
+    Referenced objects are batch-loaded with ``in_bulk`` — one query per
+    model rather than one query per notification. A department with 500 open
+    alerts used to cost 500+ queries on every sweep.
     """
     qs = Notification.objects.filter(is_cleared=False)
     if not is_super:
@@ -88,11 +83,32 @@ def refresh_notifications(dept=None, is_super=False):
             return 0
         qs = qs.filter(owner_dept=dept)
 
+    notifications = list(qs)
+
+    # Group referenced ids by model so we can load them in one query each.
+    ids_by_model = {}
+    for n in notifications:
+        if n.ref_model and n.ref_id:
+            ids_by_model.setdefault(n.ref_model, set()).add(n.ref_id)
+
+    loaded = {}
+    for ref_model, ids in ids_by_model.items():
+        try:
+            app_label, model_name = ref_model.split('.')
+            Model = apps.get_model(app_label, model_name)
+        except Exception:
+            loaded[ref_model] = {}
+            continue
+        try:
+            loaded[ref_model] = Model.objects.in_bulk(ids)
+        except Exception:
+            loaded[ref_model] = {}
+
     cleared_count = 0
-    for n in qs:
+    for n in notifications:
         if not n.ref_model or not n.ref_id:
             continue
-        obj = _resolve_object(n.ref_model, n.ref_id)
+        obj = loaded.get(n.ref_model, {}).get(n.ref_id)
         if obj is None:
             n.mark_cleared()
             cleared_count += 1
@@ -120,3 +136,26 @@ def unread_count_for(user):
             return 0
         qs = qs.filter(owner_dept_id=user.department_id)
     return qs.count()
+
+
+# The clear sweep is O(notifications) and runs while rendering *every* page
+# (the notification bell is in the base template). Throttle it so a burst of
+# page views does not re-walk the whole queue each time; the cache is a plain
+# per-process locmem cache, so worst case each worker sweeps once per window.
+REFRESH_THROTTLE_SECONDS = 60
+
+
+def refresh_notifications_throttled(dept=None, is_super=False, force=False):
+    """Run :func:`refresh_notifications` at most once per scope per window.
+
+    Returns the number cleared by *this* call (0 when the sweep was skipped).
+    """
+    from django.core.cache import cache
+
+    scope = 'super' if is_super else f'dept-{dept.pk if dept else "none"}'
+    key = f'grc:notif-refresh:{scope}'
+    if not force and cache.get(key) is not None:
+        return 0
+    cleared = refresh_notifications(dept=dept, is_super=is_super)
+    cache.set(key, 1, REFRESH_THROTTLE_SECONDS)
+    return cleared

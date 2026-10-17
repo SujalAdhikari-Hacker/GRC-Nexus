@@ -44,7 +44,7 @@
             <div class="card-header bg-white"><strong>Location</strong></div>
             <div class="card-body">
                 {% if item.url_location %}<div><a href="{{ item.url_location }}" target="_blank">{{ item.url_location }}</a></div>{% endif %}
-                {% if item.attachment %}<div class="mt-2"><a href="{{ item.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-dark"><i class="bi bi-paperclip"></i> Download attachment</a></div>{% endif %}
+                {% if item.attachment %}<div class="mt-2"><a href="{% url 'core:secure_media' path=item.attachment.name %}" target="_blank" class="btn btn-sm btn-outline-dark"><i class="bi bi-paperclip"></i> Download attachment</a></div>{% endif %}
             </div>
         </div>
         {% endif %}

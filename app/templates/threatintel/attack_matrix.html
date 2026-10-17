@@ -47,10 +47,8 @@
                 <td class="align-top p-1" style="vertical-align:top;">
                     {% for t in col.techniques %}
                         <a href="{{ t.technique.url }}" target="_blank" rel="noopener"
-                           class="d-block mb-1 p-1 text-decoration-none"
-                           style="border-radius:3px; font-size:10.5px; line-height:1.25;
-                                  {% if t.has_iocs %}background:#FEF2F2; border-left:3px solid #DC2626; color:#7F1D1D;
-                                  {% else %}background:var(--surface); border-left:3px solid #D1D5DB; color:var(--text);{% endif %}"
+                           class="d-block mb-1 p-1 text-decoration-none attack-tech{% if t.has_iocs %} has-iocs{% endif %}"
+                           style="border-radius:3px; font-size:10.5px; line-height:1.25;"
                            title="{{ t.technique.name }}{% if t.ioc_count %} — {{ t.ioc_count }} IOCs{% endif %}">
                             <code style="font-size:9.5px; color:inherit;">{{ t.technique.attack_id }}</code>
                             <div>{{ t.technique.name|truncatechars:45 }}</div>
@@ -69,10 +67,29 @@
 <div class="card mt-3">
     <div class="card-body small text-muted">
         <strong>Legend:</strong>
-        <span class="badge" style="background:#FEF2F2; color:#7F1D1D; border-left:3px solid #DC2626;">Technique with IOCs</span>
-        <span class="badge" style="background:var(--surface); color:var(--text); border-left:3px solid #D1D5DB;">Technique without IOCs</span>
+        <span class="badge attack-tech has-iocs">Technique with IOCs</span>
+        <span class="badge attack-tech">Technique without IOCs</span>
         · Click any technique to open its MITRE page
     </div>
 </div>
+
+<style>
+    .attack-tech {
+        background: var(--surface);
+        border-left: 3px solid var(--border);
+        color: var(--text);
+        font-weight: 400;
+        text-align: left;
+    }
+    .attack-tech.has-iocs {
+        background: var(--danger-bg);
+        border-left-color: var(--danger);
+        color: #7F1D1D;
+    }
+    [data-bs-theme="dark"] .attack-tech.has-iocs {
+        background: rgba(220, 38, 38, 0.18);
+        color: #FCA5A5;
+    }
+</style>
 
 {% endblock %}

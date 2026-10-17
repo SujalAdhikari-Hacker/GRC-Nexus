@@ -7,7 +7,16 @@ from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
 from .notifications import Notification
-from .notification_registry import refresh_notifications
+from .notification_registry import refresh_notifications_throttled
+
+
+def _scoped(qs, user):
+    """Limit notifications to what ``user`` may see (no-dept sees nothing)."""
+    if user.is_superuser:
+        return qs
+    if not user.department_id:
+        return qs.none()
+    return qs.filter(owner_dept=user.department)
 
 
 class NotificationListView(LoginRequiredMixin, ListView):
@@ -18,15 +27,15 @@ class NotificationListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         user = self.request.user
-        # Lazy clear first — mark fixed notifications as cleared
-        refresh_notifications(
+        # Lazy clear first — mark fixed notifications as cleared. Throttled so
+        # it does not run a second time in the context processors for this
+        # same request.
+        refresh_notifications_throttled(
             dept=user.department,
             is_super=user.is_superuser,
         )
 
-        qs = Notification.objects.filter(is_cleared=False)
-        if not user.is_superuser:
-            qs = qs.filter(owner_dept=user.department)
+        qs = _scoped(Notification.objects.filter(is_cleared=False), user)
 
         # Filter by kind if requested
         kind = self.request.GET.get('kind')
@@ -46,18 +55,16 @@ class NotificationListView(LoginRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
 
-        base = Notification.objects.filter(is_cleared=False)
-        if not user.is_superuser:
-            base = base.filter(owner_dept=user.department)
+        base = _scoped(Notification.objects.filter(is_cleared=False), user)
 
         ctx['unread_count'] = base.filter(is_read=False).count()
         ctx['total_count'] = base.count()
         ctx['selected_kind'] = self.request.GET.get('kind', '')
         ctx['selected_state'] = self.request.GET.get('state', '')
 
-        # Auto-mark all as read
-        base.filter(is_read=False).update(is_read=True, read_at=timezone.now())
-
+        # NOTE: deliberately does NOT auto-mark-as-read on view. Marking is an
+        # explicit action (per-item or "mark all read") so unread stays a real
+        # work queue.
         return ctx
 
 
@@ -90,9 +97,7 @@ def notification_mark_read(request, pk):
 @login_required
 def notification_mark_all_read(request):
     user = request.user
-    qs = Notification.objects.filter(is_cleared=False, is_read=False)
-    if not user.is_superuser:
-        qs = qs.filter(owner_dept=user.department)
+    qs = _scoped(Notification.objects.filter(is_cleared=False, is_read=False), user)
     count = qs.update(is_read=True, read_at=timezone.now())
     messages.success(request, f'{count} notification(s) marked as read.')
     return redirect('core:notifications')

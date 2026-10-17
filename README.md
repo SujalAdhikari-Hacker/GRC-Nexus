@@ -2,7 +2,7 @@
 
 > **Governance. Risk. Compliance. Unified.**
 
-Aegis is a modern GRC platform that connects assets, vendors, risks, controls, policies, frameworks, audits, and vulnerabilities into a single correlated graph — with automatic cascading, per-department RBAC, and full audit trails.
+Aegis is a modern GRC platform that connects assets, vendors, risks, controls, policies, frameworks, audits, and vulnerabilities into a single correlated graph — with automatic cascading, department-scoped RBAC, and model history.
 
 ![Status](https://img.shields.io/badge/status-active%20development-blue)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
@@ -24,7 +24,7 @@ It answers the executive question: *"Where is our risk concentrated, and what ar
 - **Cascade scoring** — change a control's effectiveness → every risk it mitigates has its residual score recalculated against department-specific appetite thresholds.
 - **Cross-framework mapping** — one control satisfies multiple framework requirements (ISO 27001 + NIST + CIS) with relationship weights (Equal, Subset, Superset, Intersects, Functional Partial).
 - **Department-scoped RBAC** — HODs see only their own data. Superadmins see everything. Enforced at queryset level, not just UI.
-- **Full audit trail** — every model has a History button. Who changed what, when, and the before/after values.
+- **Model history** — django-simple-history tracks who changed what, when, on the core domain models.
 
 ---
 
@@ -37,7 +37,7 @@ It answers the executive question: *"Where is our risk concentrated, and what ar
 - **Asset Owners** view — grouped by department or individual
 - **Vendor register** with VEN-XXXX IDs, service type, tier, compliance attestations
 - **Vendor Risk Assessment** — 5-dimension scoring (Security, Compliance, Financial, Reputation, Operational) with auto-computed overall rating
-- **Policy Library** — versioning, approval workflow, applies-to departments, PDF attachment
+- **Policy Library** — versioning, approval workflow (Draft → Review → Approved, named approver required), applies-to departments, PDF attachment
 
 ### Risk & Controls
 - **Risk Register** with inherent/residual scoring, appetite breach flagging, treatment plans
@@ -82,11 +82,12 @@ It answers the executive question: *"Where is our risk concentrated, and what ar
 - **Per-Audit Report** — full engagement PDF
 
 ### Platform
-- **Login & RBAC** — Groups + object-level permissions via django-guardian
-- **Command palette** (Ctrl+K / ⌘K) — search across assets, risks, controls, policies, vendors
+- **Login & RBAC** — department-scoped RBAC enforced at the queryset level (`core/mixins.py`); django-guardian is installed and available for future object-level permissions
+- **Command palette** (Ctrl+K / ⌘K) — search across assets, risks, controls, policies, vendors, findings, audits, frameworks, KRIs, tickets and threat actors
 - **Dark mode** with persistence
-- **CSV export** on every list view
-- **Audit trail** (django-simple-history) on every model
+- **CSV + Excel + PDF export** on the list views that support it
+- **Model history** (django-simple-history) on the core domain models
+- **Authorised media downloads** — evidence and policy documents are served through a login- and department-scoped view, not raw `/media/`
 - **Native calendar pickers** on all date fields
 
 ---
@@ -100,12 +101,12 @@ It answers the executive question: *"Where is our risk concentrated, and what ar
 | Frontend | Django Templates · Bootstrap 5.3 · HTMX 1.9 · Chart.js 4.4 · vis-network |
 | Reporting | WeasyPrint (PDF) · matplotlib (charts) · openpyxl (Excel) |
 | External APIs | NIST NVD · FIRST EPSS · CISA KEV · MITRE ATT&CK STIX · ThreatCluster |
-| Auth | Django auth + django-guardian (object-level permissions) |
+| Auth | Django auth + department-scoped queryset RBAC (django-guardian available) |
 | Audit | django-simple-history |
 | Infra | Docker · Docker Compose |
 
-<<<<<<< HEAD
-=======
+---
+
 ## Contributors
 
 **Sujal Adhikari** — Creator & Lead Developer
@@ -114,7 +115,6 @@ It answers the executive question: *"Where is our risk concentrated, and what ar
 
 See [CONTRIBUTORS.md](CONTRIBUTORS.md) for full attribution and contribution guidelines.
 
->>>>>>> a6d83f0d927a44fba3e03233f6a6825441f77769
 ---
 
 ## Quick start
@@ -127,3 +127,68 @@ See [CONTRIBUTORS.md](CONTRIBUTORS.md) for full attribution and contribution gui
 ```bash
 git clone https://github.com/SujalAdhikari-Hacker/aegis-grc.git
 cd aegis-grc
+```
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` if you want a custom `SECRET_KEY` or different database credentials.
+
+### 3. Build and start
+
+```bash
+docker compose up --build
+```
+
+The first build takes a few minutes. The web container waits for PostgreSQL, applies migrations automatically, collects static files, then starts **gunicorn** (production settings) on port 8000.
+
+Because the container runs the production settings module, a few TLS-only switches are relaxed for local HTTP. See `.env.example` — importantly, make sure `SECRET_KEY` contains **no `$` character**, as `docker compose` interpolates `$…` in `.env` files.
+
+### 4. Load demo data (optional)
+
+In a second terminal:
+
+```bash
+docker compose exec web python manage.py seed_demo
+docker compose exec web python manage.py createsuperuser
+```
+
+### 5. Open the app
+
+- App: <http://localhost:8000>
+- Admin: <http://localhost:8000/admin>
+
+Seeded demo users all use the password `demo1234` (e.g. `it_hod`, `fin_hod`).
+
+### Useful commands
+
+```bash
+docker compose logs -f web          # follow app logs
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py collectstatic --noinput
+docker compose exec web python manage.py recompute_risk_scores   # re-derive residual scores
+docker compose restart web          # after editing code (gunicorn does not auto-reload)
+docker compose down                 # stop
+docker compose down -v              # stop and wipe the database
+```
+
+### Settings layout
+
+Configuration lives in `app/config/settings/`:
+
+| Module | Purpose |
+|---|---|
+| `base.py` | Everything environment-neutral; reads values via `python-decouple` |
+| `dev.py` | Permissive local development (`DEBUG=True`, relaxed security) |
+| `prod.py` | Hardened defaults (HTTPS, HSTS, secure cookies) as shipped in the container |
+
+Select the module with `DJANGO_SETTINGS_MODULE` (set in `.env` for the containers).
+
+## Notes
+
+- The database is not published on the host by default. Add `ports: ["5432:5432"]` to the `db` service in `docker-compose.yml` if you need to connect from a host tool.
+- For production: set `DEBUG=False`, use a strong `SECRET_KEY` (no `$`), set a real `ALLOWED_HOSTS`, and terminate TLS at a reverse proxy. Static files are served by WhiteNoise. Uploaded media (evidence, policy documents) is served only through the login- and department-scoped view in `app/core/media.py` — the raw `/media/` mount is removed so it cannot be bypassed.
+- Authorization is centralised in `app/core/mixins.py` (`scope_queryset`, `user_can_access`, …). Views must not hand-roll department filtering; a user with no department sees nothing rather than everything.

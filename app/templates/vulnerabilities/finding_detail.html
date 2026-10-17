@@ -28,7 +28,9 @@
             {% csrf_token %}
             <button type="submit" class="btn btn-sm btn-outline-dark"><i class="bi bi-exclamation-triangle"></i> Create linked Risk</button>
         </form>
-        <a href="/admin/vulnerabilities/finding/{{ finding.pk }}/change/" class="btn btn-sm btn-outline-dark">Edit</a>
+        {% if user.is_staff %}
+        <a href="{% url 'admin:vulnerabilities_finding_change' finding.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        {% endif %}
     </div>
 </div>
 

@@ -23,7 +23,9 @@
         <a href="{% url 'risks:exception_create' %}?risk={{ risk.pk }}" class="btn btn-sm btn-outline-dark">
             <i class="bi bi-shield-check"></i> Request exception
         </a>
-        <a href="/admin/risks/risk/{{ risk.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+        {% if user.is_staff %}
+        <a href="{% url 'admin:risks_risk_change' risk.pk %}" class="btn btn-sm btn-outline-dark">Admin</a>
+        {% endif %}
     </div>
 </div>
 

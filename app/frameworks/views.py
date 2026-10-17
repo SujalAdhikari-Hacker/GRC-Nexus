@@ -1,30 +1,50 @@
-from django.views.generic import ListView, DetailView, TemplateView
-from django.urls import reverse_lazy
-from django.views.generic import CreateView, UpdateView
 from django.contrib import messages
-from .forms import FrameworkForm, FrameworkControlForm
-from core.correlation import (
-    get_framework_coverage,
-    get_control_coverage_by_control_for_framework,
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
+from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+from django.views.generic import (
+    CreateView, DetailView, ListView, TemplateView, UpdateView,
 )
-from .models import Framework, FrameworkControl
+
+from controls.models import Control, ControlFrameworkMapping
+from core.correlation import (
+    get_control_coverage_by_control_for_framework,
+    get_framework_coverage,
+)
+from core.mixins import DepartmentCreateMixin, DepartmentScopedMixin, SuperuserOnlyMixin, user_can_access
+
+from .forms import (
+    ComplianceAssessmentForm,
+    ComplianceAssessmentItemForm,
+    FrameworkControlForm,
+    FrameworkForm,
+)
+from .models import ComplianceAssessment, ComplianceAssessmentItem, Framework, FrameworkControl
 
 
-class FrameworkListView(ListView):
+# ============================================================
+# FRAMEWORKS — readable by any signed-in user, editable by superusers
+# ============================================================
+
+class FrameworkListView(LoginRequiredMixin, ListView):
     model = Framework
     template_name = 'frameworks/framework_list.html'
     context_object_name = 'frameworks'
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        rows = []
-        for fw in self.object_list:
-            rows.append((fw, get_framework_coverage(fw)))
-        ctx['frameworks_with_coverage'] = rows
+        ctx['frameworks_with_coverage'] = [
+            (fw, get_framework_coverage(fw)) for fw in self.object_list
+        ]
         return ctx
 
 
-class FrameworkDetailView(DetailView):
+class FrameworkDetailView(LoginRequiredMixin, DetailView):
     model = Framework
     template_name = 'frameworks/framework_detail.html'
     context_object_name = 'framework'
@@ -36,12 +56,10 @@ class FrameworkDetailView(DetailView):
         return ctx
 
 
-class ComplianceStatusView(TemplateView):
+class ComplianceStatusView(LoginRequiredMixin, TemplateView):
     template_name = 'frameworks/compliance_status.html'
 
     def get_context_data(self, **kwargs):
-        from controls.models import Control
-
         ctx = super().get_context_data(**kwargs)
 
         frameworks = list(Framework.objects.all().order_by('name'))
@@ -49,7 +67,6 @@ class ComplianceStatusView(TemplateView):
         rows = []
         total_weighted = 0.0
         total_requirements = 0
-
         for fw in frameworks:
             cov = get_framework_coverage(fw)
             rows.append({'framework': fw, 'cov': cov})
@@ -58,18 +75,12 @@ class ComplianceStatusView(TemplateView):
 
         overall_percent = round((total_weighted / total_requirements) * 100) if total_requirements else 0
 
-        # Which controls contribute to most frameworks?
         top_controls = []
         for c in Control.objects.all().prefetch_related('framework_mappings', 'framework_controls'):
             count = c.framework_controls.count() + c.framework_mappings.count()
             if count > 0:
                 top_controls.append({'control': c, 'count': count})
         top_controls.sort(key=lambda x: -x['count'])
-        top_controls = top_controls[:10]
-
-        # Requirements not covered (across all frameworks)
-        from frameworks.models import FrameworkControl
-        from controls.models import ControlFrameworkMapping
 
         covered_fc_ids = set(
             Control.objects.values_list('framework_controls__pk', flat=True)
@@ -83,7 +94,7 @@ class ComplianceStatusView(TemplateView):
             'overall_percent': overall_percent,
             'total_frameworks': len(frameworks),
             'total_requirements': total_requirements,
-            'top_controls': top_controls,
+            'top_controls': top_controls[:10],
             'uncovered': uncovered[:20],
             'uncovered_count': uncovered.count(),
         })
@@ -91,21 +102,75 @@ class ComplianceStatusView(TemplateView):
 
 
 # ============================================================
-# COMPLIANCE ASSESSMENTS
+# FRAMEWORK CREATE / UPDATE (platform configuration — superuser only)
 # ============================================================
 
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
-from django.urls import reverse_lazy
-from django.utils import timezone
-from django.db.models import Q
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+class FrameworkCreateView(SuperuserOnlyMixin, CreateView):
+    model = Framework
+    form_class = FrameworkForm
+    template_name = 'frameworks/framework_form.html'
 
-from .models import ComplianceAssessment, ComplianceAssessmentItem
-from .forms import ComplianceAssessmentForm, ComplianceAssessmentItemForm
-from core.mixins import DepartmentScopedMixin
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f'Framework "{self.object.name}" created.')
+        return response
 
+    def get_success_url(self):
+        return reverse_lazy('frameworks:detail', kwargs={'pk': self.object.pk})
+
+
+class FrameworkUpdateView(SuperuserOnlyMixin, UpdateView):
+    model = Framework
+    form_class = FrameworkForm
+    template_name = 'frameworks/framework_form.html'
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f'Framework "{self.object.name}" updated.')
+        return response
+
+    def get_success_url(self):
+        return reverse_lazy('frameworks:detail', kwargs={'pk': self.object.pk})
+
+
+class FrameworkControlCreateView(SuperuserOnlyMixin, CreateView):
+    model = FrameworkControl
+    form_class = FrameworkControlForm
+    template_name = 'frameworks/framework_control_form.html'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        fw_pk = self.request.GET.get('framework')
+        if fw_pk:
+            initial['framework'] = fw_pk
+        return initial
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f'Requirement {self.object.code} added.')
+        return response
+
+    def get_success_url(self):
+        return reverse_lazy('frameworks:detail', kwargs={'pk': self.object.framework.pk})
+
+
+class FrameworkControlUpdateView(SuperuserOnlyMixin, UpdateView):
+    model = FrameworkControl
+    form_class = FrameworkControlForm
+    template_name = 'frameworks/framework_control_form.html'
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f'Requirement {self.object.code} updated.')
+        return response
+
+    def get_success_url(self):
+        return reverse_lazy('frameworks:detail', kwargs={'pk': self.object.framework.pk})
+
+
+# ============================================================
+# COMPLIANCE ASSESSMENTS — department scoped
+# ============================================================
 
 class ComplianceAssessmentListView(DepartmentScopedMixin, ListView):
     model = ComplianceAssessment
@@ -126,14 +191,10 @@ class ComplianceAssessmentListView(DepartmentScopedMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        base = self.get_queryset()
         ctx['statuses'] = ComplianceAssessment.STATUS_CHOICES
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_status'] = self.request.GET.get('status', '')
-
-        base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(owner_dept=user.department)
         ctx['total_count'] = base.count()
         ctx['in_progress_count'] = base.filter(status='in_progress').count()
         ctx['completed_count'] = base.filter(status='completed').count()
@@ -149,7 +210,9 @@ class ComplianceAssessmentDetailView(DepartmentScopedMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        items = self.object.items.select_related('framework_control', 'owner_user').order_by('framework_control__code')
+        items = self.object.items.select_related(
+            'framework_control', 'owner_user'
+        ).order_by('framework_control__code')
 
         status_filter = self.request.GET.get('item_status')
         if status_filter:
@@ -162,7 +225,7 @@ class ComplianceAssessmentDetailView(DepartmentScopedMixin, DetailView):
         return ctx
 
 
-class ComplianceAssessmentCreateView(DepartmentScopedMixin, CreateView):
+class ComplianceAssessmentCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
     model = ComplianceAssessment
     form_class = ComplianceAssessmentForm
     template_name = 'frameworks/assessment_form.html'
@@ -171,7 +234,7 @@ class ComplianceAssessmentCreateView(DepartmentScopedMixin, CreateView):
     def get_initial(self):
         initial = super().get_initial()
         user = self.request.user
-        if not user.is_superuser and user.department_id:
+        if user.department_id:
             initial['owner_dept'] = user.department
         initial['assessor'] = user
         initial['assessment_date'] = timezone.now().date()
@@ -181,7 +244,6 @@ class ComplianceAssessmentCreateView(DepartmentScopedMixin, CreateView):
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
-        # Auto-populate one item per framework control, inheriting accountability
         items = [
             ComplianceAssessmentItem(
                 assessment=self.object,
@@ -214,11 +276,12 @@ class ComplianceAssessmentUpdateView(DepartmentScopedMixin, UpdateView):
         return reverse_lazy('frameworks:assessment_detail', kwargs={'pk': self.object.pk})
 
 
-class ComplianceAssessmentItemUpdateView(LoginRequiredMixin, UpdateView):
+class ComplianceAssessmentItemUpdateView(DepartmentScopedMixin, UpdateView):
     model = ComplianceAssessmentItem
     form_class = ComplianceAssessmentItemForm
     template_name = 'frameworks/assessment_item_form.html'
     context_object_name = 'item'
+    department_field = 'assessment__owner_dept'
 
     def get_success_url(self):
         return reverse_lazy('frameworks:assessment_detail', kwargs={'pk': self.object.assessment.pk})
@@ -229,87 +292,18 @@ class ComplianceAssessmentItemUpdateView(LoginRequiredMixin, UpdateView):
         return ctx
 
 
-from django.views.decorators.http import require_POST
-
-
+@login_required
 @require_POST
 def assessment_item_quick_status(request, pk):
-    """HTMX-free inline status updater: POST form on the detail page redirects back."""
-    item = get_object_or_404(ComplianceAssessmentItem, pk=pk)
+    """Inline status updater used by the assessment detail page."""
+    item = get_object_or_404(
+        ComplianceAssessmentItem.objects.select_related('assessment'), pk=pk
+    )
+    if not user_can_access(request.user, item.assessment):
+        raise PermissionDenied
     new_status = request.POST.get('status')
     valid = [s[0] for s in ComplianceAssessmentItem.STATUS_CHOICES]
     if new_status in valid:
         item.status = new_status
         item.save(update_fields=['status', 'updated_at'])
     return redirect('frameworks:assessment_detail', pk=item.assessment.pk)
-
-
-# ============================================================
-# FRAMEWORK CREATE / UPDATE
-# ============================================================
-
-class FrameworkCreateView(CreateView):
-    model = Framework
-    form_class = FrameworkForm
-    template_name = 'frameworks/framework_form.html'
-
-    def get_success_url(self):
-        return reverse_lazy('frameworks:detail', kwargs={'pk': self.object.pk})
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, f'Framework "{self.object.name}" created.')
-        return response
-
-
-class FrameworkUpdateView(UpdateView):
-    model = Framework
-    form_class = FrameworkForm
-    template_name = 'frameworks/framework_form.html'
-
-    def get_success_url(self):
-        return reverse_lazy('frameworks:detail', kwargs={'pk': self.object.pk})
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, f'Framework "{self.object.name}" updated.')
-        return response
-
-
-# ============================================================
-# FRAMEWORK CONTROL CREATE / UPDATE
-# ============================================================
-
-class FrameworkControlCreateView(CreateView):
-    model = FrameworkControl
-    form_class = FrameworkControlForm
-    template_name = 'frameworks/framework_control_form.html'
-
-    def get_initial(self):
-        initial = super().get_initial()
-        fw_pk = self.request.GET.get('framework')
-        if fw_pk:
-            initial['framework'] = fw_pk
-        return initial
-
-    def get_success_url(self):
-        return reverse_lazy('frameworks:detail', kwargs={'pk': self.object.framework.pk})
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, f'Requirement {self.object.code} added.')
-        return response
-
-
-class FrameworkControlUpdateView(UpdateView):
-    model = FrameworkControl
-    form_class = FrameworkControlForm
-    template_name = 'frameworks/framework_control_form.html'
-
-    def get_success_url(self):
-        return reverse_lazy('frameworks:detail', kwargs={'pk': self.object.framework.pk})
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, f'Requirement {self.object.code} updated.')
-        return response

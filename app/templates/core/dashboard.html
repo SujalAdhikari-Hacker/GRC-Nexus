@@ -463,6 +463,18 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ category_labels|json_script:"dash-category-labels" }}
+{{ category_values|json_script:"dash-category-values" }}
+{{ control_status_data|json_script:"dash-control-status" }}
+{{ month_labels|json_script:"dash-month-labels" }}
+{{ month_values|json_script:"dash-month-values" }}
+{{ trend_labels|json_script:"dash-trend-labels" }}
+{{ risk_inherent_trend|json_script:"dash-inherent-trend" }}
+{{ risk_residual_trend|json_script:"dash-residual-trend" }}
+{{ findings_remediated_trend|json_script:"dash-findings-remediated" }}
+{{ actions_completed_trend|json_script:"dash-actions-completed" }}
+{{ risks_created_trend|json_script:"dash-risks-created" }}
+{{ risks_closed_trend|json_script:"dash-risks-closed" }}
 <script>
 (function () {
     'use strict';
@@ -472,9 +484,16 @@
         return;
     }
 
+    // Read server data from json_script blocks (XSS-safe).
+    function dj(id, fallback) {
+        var el = document.getElementById(id);
+        if (!el) { return fallback; }
+        try { return JSON.parse(el.textContent); } catch (e) { return fallback; }
+    }
+
     // ---------- Risks by category ----------
-    var categoryLabels = {{ category_labels_json|default:"[]"|safe }};
-    var categoryValues = {{ category_values_json|default:"[]"|safe }};
+    var categoryLabels = dj('dash-category-labels', []);
+    var categoryValues = dj('dash-category-values', []);
 
     var categoryCanvas = document.getElementById('categoryChart');
     if (categoryCanvas && categoryLabels.length) {
@@ -501,7 +520,7 @@
     }
 
     // ---------- Control implementation status ----------
-    var controlData = {{ control_status_data_json|default:"{}"|safe }};
+    var controlData = dj('dash-control-status', {});
     var controlCanvas = document.getElementById('controlChart');
     if (controlCanvas) {
         new Chart(controlCanvas, {
@@ -529,8 +548,8 @@
     }
 
     // ---------- Risks added (last 6 months) ----------
-    var monthLabels = {{ month_labels_json|default:"[]"|safe }};
-    var monthValues = {{ month_values_json|default:"[]"|safe }};
+    var monthLabels = dj('dash-month-labels', []);
+    var monthValues = dj('dash-month-values', []);
     var trendCanvas = document.getElementById('trendChart');
     if (trendCanvas) {
         new Chart(trendCanvas, {
@@ -558,13 +577,13 @@
     }
 
     // ---------- Shared trend arrays ----------
-    var trendLabels = {{ trend_labels_json|default:"[]"|safe }};
-    var inherentTrend = {{ risk_inherent_trend_json|default:"[]"|safe }};
-    var residualTrend = {{ risk_residual_trend_json|default:"[]"|safe }};
-    var findingsRemediated = {{ findings_remediated_trend_json|default:"[]"|safe }};
-    var actionsCompleted = {{ actions_completed_trend_json|default:"[]"|safe }};
-    var risksCreated = {{ risks_created_trend_json|default:"[]"|safe }};
-    var risksClosed = {{ risks_closed_trend_json|default:"[]"|safe }};
+    var trendLabels = dj('dash-trend-labels', []);
+    var inherentTrend = dj('dash-inherent-trend', []);
+    var residualTrend = dj('dash-residual-trend', []);
+    var findingsRemediated = dj('dash-findings-remediated', []);
+    var actionsCompleted = dj('dash-actions-completed', []);
+    var risksCreated = dj('dash-risks-created', []);
+    var risksClosed = dj('dash-risks-closed', []);
 
     // ---------- Risk posture trend ----------
     var postureCanvas = document.getElementById('riskPostureChart');

@@ -42,58 +42,26 @@ def pending_actions(request):
     return result
 
 
-def notification_count(request):
-    """Add unread notification count to every template's context."""
-    if not request.user.is_authenticated:
-        return {'unread_notification_count': 0}
-
-    try:
-        from core.notification_registry import (
-            unread_count_for, refresh_notifications,
-        )
-        # Lazy clear first
-        refresh_notifications(
-            dept=request.user.department,
-            is_super=request.user.is_superuser,
-        )
-        count = unread_count_for(request.user)
-    except Exception:
-        count = 0
-    return {'unread_notification_count': count}
+_SNAPSHOT_ATTR = '_grc_notification_snapshot'
 
 
-def recent_notifications_context(request):
-    """Add recent (5) notifications + unread count to every template."""
-    if not request.user.is_authenticated:
-        return {'recent_notifications': [], 'unread_notification_count': 0}
+def _notification_snapshot(request):
+    """Compute the notification snapshot once per request.
 
-    try:
-        from core.notifications import Notification
-        from core.notification_registry import refresh_notifications, unread_count_for
+    Previously three separate context processors each called
+    ``refresh_notifications`` (which walks every uncleared notification and
+    runs a query per row) and re-counted unread notifications — three times
+    per page render. The snapshot is now computed once and memoised on the
+    request, and the expensive clear-rule sweep is throttled through the cache
+    so it does not run on every single page view.
+    """
+    cached = getattr(request, _SNAPSHOT_ATTR, None)
+    if cached is not None:
+        return cached
 
-        refresh_notifications(
-            dept=request.user.department,
-            is_super=request.user.is_superuser,
-        )
-
-        qs = Notification.objects.filter(is_cleared=False)
-        if not request.user.is_superuser:
-            if not request.user.department_id:
-                return {'recent_notifications': [], 'unread_notification_count': 0}
-            qs = qs.filter(owner_dept_id=request.user.department_id)
-
-        recent = list(qs.order_by('-created_at')[:5])
-        return {
-            'recent_notifications': recent,
-            'unread_notification_count': unread_count_for(request.user),
-        }
-    except Exception:
-        return {'recent_notifications': [], 'unread_notification_count': 0}
-
-
-def notification_sections(request):
-    """Per-section and per-link unread notification counts for the sidebar."""
     empty = {
+        'recent_notifications': [],
+        'unread_notification_count': 0,
         'notif_assets': 0, 'notif_vendors': 0, 'notif_policies': 0,
         'notif_risks': 0, 'notif_controls': 0, 'notif_kris': 0,
         'notif_findings': 0, 'notif_tickets': 0,
@@ -101,26 +69,42 @@ def notification_sections(request):
         'notif_section_risk': 0,
         'notif_section_audit': 0,
     }
-    if not request.user.is_authenticated:
+
+    user = request.user
+    if not user.is_authenticated:
+        setattr(request, _SNAPSHOT_ATTR, empty)
+        return empty
+    if not user.is_superuser and not user.department_id:
+        # A department-less account sees nothing — never the whole organisation.
+        setattr(request, _SNAPSHOT_ATTR, empty)
         return empty
 
     try:
-        from core.notifications import Notification
-        from core.notification_registry import refresh_notifications
+        from django.db.models import Count
 
-        refresh_notifications(
-            dept=request.user.department,
-            is_super=request.user.is_superuser,
+        from core.notification_registry import refresh_notifications_throttled
+        from core.notifications import Notification
+
+        refresh_notifications_throttled(
+            dept=user.department, is_super=user.is_superuser,
         )
 
-        qs = Notification.objects.filter(is_cleared=False, is_read=False)
-        if not request.user.is_superuser:
-            if not request.user.department_id:
-                return empty
-            qs = qs.filter(owner_dept_id=request.user.department_id)
+        base = Notification.objects.filter(is_cleared=False)
+        if not user.is_superuser:
+            base = base.filter(owner_dept_id=user.department_id)
+
+        recent = list(base.order_by('-created_at')[:5])
+
+        unread = base.filter(is_read=False)
+        unread_total = unread.count()
+
+        # One GROUP BY over kind instead of eight COUNT queries.
+        by_kind = dict(
+            unread.values_list('kind').annotate(n=Count('id')).values_list('kind', 'n')
+        )
 
         def count(*kinds):
-            return qs.filter(kind__in=kinds).count()
+            return sum(by_kind.get(k, 0) for k in kinds)
 
         notif_assets = count('asset_needs_vendor', 'asset_needs_owner', 'asset_needs_policies')
         notif_vendors = count('vendor_needs_assessment')
@@ -134,7 +118,9 @@ def notification_sections(request):
         )
         notif_tickets = count('ticket_unassigned')
 
-        return {
+        snapshot = {
+            'recent_notifications': recent,
+            'unread_notification_count': unread_total,
             'notif_assets': notif_assets,
             'notif_vendors': notif_vendors,
             'notif_policies': notif_policies,
@@ -148,7 +134,31 @@ def notification_sections(request):
             'notif_section_audit': notif_findings,
         }
     except Exception:
-        return empty
+        snapshot = empty
+
+    setattr(request, _SNAPSHOT_ATTR, snapshot)
+    return snapshot
+
+
+def notification_count(request):
+    """Add unread notification count to every template's context."""
+    snap = _notification_snapshot(request)
+    return {'unread_notification_count': snap['unread_notification_count']}
+
+
+def recent_notifications_context(request):
+    """Add recent (5) notifications + unread count to every template."""
+    snap = _notification_snapshot(request)
+    return {
+        'recent_notifications': snap['recent_notifications'],
+        'unread_notification_count': snap['unread_notification_count'],
+    }
+
+
+def notification_sections(request):
+    """Per-section and per-link unread notification counts for the sidebar."""
+    snap = _notification_snapshot(request)
+    return {k: v for k, v in snap.items() if k.startswith('notif_')}
 
 
 def user_preference_context(request):

@@ -69,3 +69,17 @@ class Policy(models.Model):
 
     def __str__(self):
         return f"{self.code} - {self.title}"
+
+    # Workflow (state machine) — enforced in PolicyForm.
+    TRANSITIONS = {
+        'draft':    {'review', 'retired'},
+        'review':   {'draft', 'approved', 'retired'},
+        'approved': {'review', 'retired'},
+        'retired':  {'draft'},
+    }
+
+    def allowed_transitions(self):
+        return self.TRANSITIONS.get(self.status, set())
+
+    def can_transition_to(self, new_status):
+        return new_status == self.status or new_status in self.allowed_transitions()

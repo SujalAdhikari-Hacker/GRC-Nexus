@@ -46,6 +46,8 @@
 </div>
 
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+{{ graph_nodes|json_script:"explorer-nodes" }}
+{{ graph_edges|json_script:"explorer-edges" }}
 <script>
 (function() {
     const COLORS = {
@@ -58,8 +60,8 @@
         finding:   { background: '#EA580C', border: '#C2410C', font: '#FFFFFF' },
     };
 
-    const nodesRaw = {{ graph_nodes_json|safe }};
-    const edgesRaw = {{ graph_edges_json|safe }};
+    const nodesRaw = JSON.parse(document.getElementById('explorer-nodes').textContent);
+    const edgesRaw = JSON.parse(document.getElementById('explorer-edges').textContent);
 
     const nodes = nodesRaw.map(n => {
         const c = COLORS[n.group] || COLORS.asset;

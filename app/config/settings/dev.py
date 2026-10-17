@@ -1,9 +1,23 @@
-from .base import *
+"""Local development settings.
 
-DEBUG = True
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-from .base import *
-import os
+Permissive: no HTTPS, no secure cookies, verbose errors. Never use in
+production.
+"""
+from decouple import config
 
-DEBUG = os.getenv('DEMO_MODE', 'false').lower() != 'true'
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+from .base import *  # noqa: F401,F403
+
+DEBUG = config('DEBUG', default=True, cast=bool)
+
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0', cast=lambda v: [s.strip() for s in v.split(',')]
+)
+
+# No TLS in local dev.
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_HSTS_SECONDS = 0
+
+# Serve uploaded files through Django during development.
+SERVE_MEDIA = True

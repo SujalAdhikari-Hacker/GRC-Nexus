@@ -1,9 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from django.utils import timezone
 
-from frameworks.models import Framework, FrameworkControl, ComplianceAssessment, ComplianceAssessmentItem
-from core.models import Department, User
+from frameworks.models import FrameworkControl, ComplianceAssessment, ComplianceAssessmentItem
 
 
 class Command(BaseCommand):

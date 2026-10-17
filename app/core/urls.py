@@ -1,5 +1,6 @@
-from django.urls import path
+from django.urls import path, re_path
 from .settings_views import settings_view
+from .media import download_media
 from .notification_views import (
     NotificationListView, notification_dismiss,
     notification_mark_read, notification_mark_all_read,
@@ -17,6 +18,10 @@ app_name = 'core'
 urlpatterns = [
     path('', DashboardView.as_view(), name='dashboard'),
     path('search/', global_search, name='search'),
+
+    # Authorised media downloads (evidence, policy documents). Replaces raw
+    # /media/ serving so files are department-scoped.
+    re_path(r'^media/(?P<path>.+)$', download_media, name='secure_media'),
 
     path('reports/executive/', ExecutiveReportView.as_view(), name='executive_report'),
 

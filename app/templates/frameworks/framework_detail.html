@@ -15,7 +15,14 @@
         <h4 class="mb-0">{{ framework.name }} {{ framework.version }}</h4>
         <small class="text-muted">{{ framework.description|default:""|truncatechars:200 }}</small>
     </div>
-    <a href="{% url 'frameworks:update' framework.pk %}" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+    <div class="d-flex gap-2">
+        {% if user.is_superuser %}
+            <a href="{% url 'frameworks:control_create' %}?framework={{ framework.pk }}" class="btn btn-sm btn-dark">
+                <i class="bi bi-plus-lg"></i> Add requirement
+            </a>
+        {% endif %}
+        <a href="{% url 'frameworks:update' framework.pk %}" class="btn btn-sm btn-outline-dark">Edit framework</a>
+    </div>
 </div>
 
 <div class="row g-3 mb-3">
@@ -55,6 +62,7 @@
                     <th style="width:35%;">Requirement</th>
                     <th style="width:15%;">Status</th>
                     <th>Covered by</th>
+                    {% if user.is_superuser %}<th style="width:6%;"></th>{% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -78,9 +86,18 @@
                             <span class="text-muted small">No internal control maps to this requirement</span>
                         {% endfor %}
                     </td>
+                    {% if user.is_superuser %}
+                    <td class="text-end">
+                        <a href="{% url 'frameworks:control_update' fc.pk %}"
+                           class="btn btn-sm btn-outline-secondary py-0 px-2" title="Edit requirement"
+                           aria-label="Edit requirement {{ fc.code }}">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                    {% endif %}
                 </tr>
             {% empty %}
-                <tr><td colspan="4" class="text-center text-muted py-4">No requirements defined.</td></tr>
+                <tr><td colspan="{% if user.is_superuser %}5{% else %}4{% endif %}" class="text-center text-muted py-4">No requirements defined.</td></tr>
             {% endfor %}
             </tbody>
         </table>

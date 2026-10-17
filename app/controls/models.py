@@ -1,4 +1,6 @@
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 from simple_history.models import HistoricalRecords
 from core.models import Department
 from frameworks.models import Framework, FrameworkControl
@@ -141,14 +143,46 @@ class Control(models.Model):
 
     class Meta:
         ordering = ['code']
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(effectiveness__in=[0, 1, 3, 5]),
+                name='control_effectiveness_valid',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.code} - {self.name}"
+
+    def clean(self):
+        """Effectiveness must be evidence-based.
+
+        A control cannot be rated "partially effective"/"effective" without a
+        test date, and a test date cannot be in the future. This is what stops
+        someone marking a control effective with no proof.
+        """
+        super().clean()
+        errors = {}
+        if self.effectiveness_rating != 'not_tested' and not self.last_tested:
+            errors['effectiveness_rating'] = (
+                'Record the test date (Last tested) before rating a control. '
+                'Effectiveness must be evidence-based.'
+            )
+        if self.last_tested and self.last_tested > timezone.localdate():
+            errors['last_tested'] = 'Test date cannot be in the future.'
+        if errors:
+            raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
         # Auto-sync numeric effectiveness from rating
         self.effectiveness = self.EFFECTIVENESS_SCORES.get(self.effectiveness_rating, 0)
         super().save(*args, **kwargs)
+
+    @property
+    def test_overdue(self):
+        """True if the control is due for re-testing."""
+        if not self.next_test_date:
+            return False
+        return self.next_test_date < timezone.localdate()
 
     @property
     def effectiveness_ratio(self):

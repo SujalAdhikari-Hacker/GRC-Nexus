@@ -29,7 +29,7 @@
             <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
             <div class="col-md-2"><a href="{% url 'audits:timeline' %}" class="btn btn-sm btn-outline-dark w-100">Timeline view</a></div>
         </form>
-        <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{ k }}={{ v }}&{% endif %}{% endfor %}export=csv" class="btn btn-sm btn-outline-dark text-nowrap me-2"><i class="bi bi-download"></i> CSV</a>
+        <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{ k|urlencode }}={{ v|urlencode }}&amp;{% endif %}{% endfor %}export=csv" class="btn btn-sm btn-outline-dark text-nowrap me-2"><i class="bi bi-download"></i> CSV</a>
         <a href="{% url 'audits:create' %}" class="btn btn-sm btn-primary text-nowrap">+ New Audit</a>
     </div>
 

@@ -21,4 +21,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app/
 
+# Normalise line endings on the entrypoint in case the repo was checked out on Windows
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
 EXPOSE 8000
+
+ENTRYPOINT ["sh", "/app/entrypoint.sh"]
+CMD ["gunicorn", "config.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "3", \
+     "--threads", "2", \
+     "--timeout", "120", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]

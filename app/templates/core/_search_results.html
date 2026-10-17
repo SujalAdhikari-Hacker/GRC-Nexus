@@ -1,6 +1,7 @@
 {% if not q %}
     <div class="palette-empty">
-        Start typing to search across assets, risks, controls, policies, and vendors.
+        Search across assets, risks, controls, policies, vendors, findings,
+        audits, frameworks, KRIs, tickets and threat actors.
     </div>
 {% elif total == 0 %}
     <div class="palette-empty">
@@ -45,6 +46,68 @@
             <a href="{% url 'policies:detail' p.pk %}" class="palette-item">
                 <i class="bi bi-file-earmark-text"></i>
                 <span>{{ p.code }} · {{ p.title }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+
+    {% if results.findings %}
+        <div class="palette-section-title">Vulnerability findings</div>
+        {% for f in results.findings %}
+            <a href="{% url 'vulnerabilities:finding_detail' f.pk %}" class="palette-item">
+                <i class="bi bi-bug"></i>
+                <span>{{ f.vulnerability.cve_id|default:f.vulnerability.title|truncatechars:50 }} · {{ f.asset.name }}</span>
+                <span class="item-meta">composite {{ f.composite_score }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+
+    {% if results.audits %}
+        <div class="palette-section-title">Audits</div>
+        {% for a in results.audits %}
+            <a href="{% url 'audits:detail' a.pk %}" class="palette-item">
+                <i class="bi bi-clipboard-check"></i>
+                <span>{{ a.name }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+
+    {% if results.frameworks %}
+        <div class="palette-section-title">Frameworks</div>
+        {% for fw in results.frameworks %}
+            <a href="{% url 'frameworks:detail' fw.pk %}" class="palette-item">
+                <i class="bi bi-diagram-3"></i>
+                <span>{{ fw.name }}</span>
+                <span class="item-meta">{{ fw.version }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+
+    {% if results.kris %}
+        <div class="palette-section-title">KRIs</div>
+        {% for k in results.kris %}
+            <a href="{% url 'kris:detail' k.pk %}" class="palette-item">
+                <i class="bi bi-speedometer"></i>
+                <span>{{ k.name }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+
+    {% if results.tickets %}
+        <div class="palette-section-title">Tickets</div>
+        {% for t in results.tickets %}
+            <a href="{% url 'tickets:detail' t.pk %}" class="palette-item">
+                <i class="bi bi-ticket-detailed"></i>
+                <span>{{ t.ticket_id }} · {{ t.title|truncatechars:60 }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+
+    {% if results.actors %}
+        <div class="palette-section-title">Threat actors</div>
+        {% for ac in results.actors %}
+            <a href="{% url 'threatintel:actor_detail' ac.pk %}" class="palette-item">
+                <i class="bi bi-person-badge"></i>
+                <span>{{ ac.name }}</span>
             </a>
         {% endfor %}
     {% endif %}

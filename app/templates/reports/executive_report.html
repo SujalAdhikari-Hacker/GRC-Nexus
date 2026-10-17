@@ -333,6 +333,7 @@
 </style>
 </head>
 <body>
+{% include "reports/_watermark.html" %}
 
 <!-- =========================================================
      COVER PAGE
@@ -966,7 +967,7 @@
         {% for rec in recommendations %}
         <div class="rec-item {{ rec.priority }}">
             <div class="rec-priority">{{ rec.priority }}</div>
-            <div class="rec-text">{{ rec.text|safe }}</div>
+            <div class="rec-text">{{ rec.text }}</div>
         </div>
         {% endfor %}
     </div>

@@ -1,10 +1,12 @@
+from django.contrib import messages
 from django.db.models import Q
-from django.views.generic import ListView, DetailView
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, UpdateView
-from .forms import PolicyForm
-from core.mixins import DepartmentScopedMixin, CsvExportMixin
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
+
 from core.correlation import get_full_policy_context
+from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin
+
+from .forms import PolicyForm
 from .models import Policy, PolicyCategory
 
 
@@ -65,16 +67,15 @@ class PolicyDetailView(DepartmentScopedMixin, DetailView):
 # POLICY CREATE / UPDATE
 # ============================================================
 
-class PolicyCreateView(DepartmentScopedMixin, CreateView):
+class PolicyCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
     model = Policy
     form_class = PolicyForm
     template_name = 'policies/policy_form.html'
 
     def get_initial(self):
         initial = super().get_initial()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            initial['owner_dept'] = user.department
+        if self.request.user.department_id:
+            initial['owner_dept'] = self.request.user.department
         initial['version'] = '1.0'
         initial['status'] = 'draft'
         return initial
@@ -83,7 +84,6 @@ class PolicyCreateView(DepartmentScopedMixin, CreateView):
         return reverse_lazy('policies:detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
-        from django.contrib import messages
         # Lock accountability to the logged-in user — not editable from the form
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
@@ -101,7 +101,6 @@ class PolicyUpdateView(DepartmentScopedMixin, UpdateView):
         return reverse_lazy('policies:detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
-        from django.contrib import messages
         # updated_by tracks the last editor; created_by stays as the original creator
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)

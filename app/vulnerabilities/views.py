@@ -1,17 +1,27 @@
 from datetime import timedelta
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
-from django.http import HttpResponse
-from django.shortcuts import render, redirect, get_object_or_404
+from django.core.exceptions import PermissionDenied
+from django.db.models import Count, Q
+from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from django.views.generic import ListView, DetailView
+from django.views.generic import DetailView, FormView, ListView
+from django.urls import reverse_lazy
+
+from core.mixins import (
+    CsvExportMixin,
+    DepartmentScopedMixin,
+    scope_queryset,
+    user_can_access,
+)
 from core.reports import ReportMixin
-from core.mixins import DepartmentScopedMixin, CsvExportMixin
-from .models import Vulnerability, Finding
-from .services import enrich_vulnerability, cascade_finding_to_risk
+
+from .forms import ManualVulnerabilityForm
+from .models import Finding, Vulnerability
+from .services import cascade_finding_to_risk, enrich_vulnerability
 
 
 # ============================================================
@@ -67,23 +77,18 @@ class FindingListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListVi
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        base = self.get_queryset()
         ctx['statuses'] = Finding.STATUS_CHOICES
         ctx['severities'] = Vulnerability.SEVERITY_CHOICES
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_status'] = self.request.GET.get('status', '')
         ctx['selected_severity'] = self.request.GET.get('severity', '')
         ctx['kev_filter'] = self.request.GET.get('kev', '')
-
-        base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(owner_dept=user.department)
         ctx['total_count'] = base.count()
         ctx['open_count'] = base.exclude(status__in=Finding.CLOSED_STATUSES).count()
         ctx['critical_count'] = base.filter(vulnerability__cvss_severity='critical').count()
         ctx['kev_count'] = base.filter(vulnerability__kev_status=True).count()
         return ctx
-
 
     def build_rows(self):
         headers = ['CVE', 'Title', 'Severity', 'CVSS', 'Asset', 'Status',
@@ -113,7 +118,8 @@ class FindingListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListVi
             'open_count': sum(1 for f in qs if f.status not in f.CLOSED_STATUSES),
             'overdue_count': sum(1 for f in qs if f.is_overdue),
         }
-    
+
+
 class FindingDetailView(DepartmentScopedMixin, DetailView):
     model = Finding
     template_name = 'vulnerabilities/finding_detail.html'
@@ -122,17 +128,16 @@ class FindingDetailView(DepartmentScopedMixin, DetailView):
 
 
 # ============================================================
-# VULNERABILITY CATALOG
+# VULNERABILITY CATALOG (internal — any signed-in user)
 # ============================================================
 
-class VulnerabilityListView(ListView):
+class VulnerabilityListView(LoginRequiredMixin, ListView):
     model = Vulnerability
     template_name = 'vulnerabilities/vulnerability_list.html'
     context_object_name = 'vulnerabilities'
     paginate_by = 30
 
     def get_queryset(self):
-        from django.db.models import Count
         qs = super().get_queryset().annotate(finding_count=Count('findings'))
         q = self.request.GET.get('q', '').strip()
         if q:
@@ -143,7 +148,7 @@ class VulnerabilityListView(ListView):
         kev = self.request.GET.get('kev')
         if kev == '1':
             qs = qs.filter(kev_status=True)
-        return qs
+        return qs.order_by('-cvss_score', '-published_date')
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -154,14 +159,17 @@ class VulnerabilityListView(ListView):
         return ctx
 
 
-class VulnerabilityDetailView(DetailView):
+class VulnerabilityDetailView(LoginRequiredMixin, DetailView):
     model = Vulnerability
     template_name = 'vulnerabilities/vulnerability_detail.html'
     context_object_name = 'vulnerability'
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['findings'] = self.object.findings.select_related('asset', 'owner_dept')
+        # Only show findings the user is allowed to see.
+        ctx['findings'] = scope_queryset(
+            self.object.findings.select_related('asset', 'owner_dept'), self.request.user
+        )
         return ctx
 
 
@@ -169,18 +177,24 @@ class VulnerabilityDetailView(DetailView):
 # ENRICHMENT + CASCADE ACTIONS
 # ============================================================
 
+def _require_enricher(user):
+    if not (user.is_superuser or user.is_hod):
+        raise PermissionDenied
+
+
+@login_required
 @require_POST
 def enrich_vulnerability_view(request, pk):
+    _require_enricher(request.user)
     vuln = get_object_or_404(Vulnerability, pk=pk)
     results = enrich_vulnerability(vuln)
 
-    ok_count = sum(1 for r in results.values() if r.get('ok'))
     msgs = []
     for source, r in results.items():
         status = '✓' if r.get('ok') else '✗'
         msgs.append(f"{source.upper()}: {status} {r.get('message') or r.get('error')}")
 
-    if ok_count:
+    if any(r.get('ok') for r in results.values()):
         messages.success(request, ' | '.join(msgs))
     else:
         messages.error(request, ' | '.join(msgs))
@@ -188,9 +202,12 @@ def enrich_vulnerability_view(request, pk):
     return redirect('vulnerabilities:vulnerability_detail', pk=pk)
 
 
+@login_required
 @require_POST
 def cascade_finding_view(request, pk):
     finding = get_object_or_404(Finding, pk=pk)
+    if not user_can_access(request.user, finding):
+        raise PermissionDenied
     risk, created = cascade_finding_to_risk(finding)
     if created:
         messages.success(request, f'Risk created: "{risk.title[:80]}"')
@@ -238,8 +255,7 @@ class LiveCVEFeedView(LoginRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
 
         base = Vulnerability.objects.filter(source='nvd').exclude(cve_id__isnull=True)
-        last_7_days = timezone.now().date() - timedelta(days=7)
-        recent = base.filter(published_date__gte=last_7_days)
+        recent = base.filter(published_date__gte=timezone.now().date() - timedelta(days=7))
 
         ctx['total_synced'] = base.count()
         ctx['last_7_days'] = recent.count()
@@ -259,22 +275,17 @@ class LiveCVEFeedView(LoginRequiredMixin, ListView):
 # MANUAL VULNERABILITY ENTRY
 # ============================================================
 
-from django.contrib.auth.mixins import LoginRequiredMixin as _LRM5
-from django.views.generic import FormView as _FV5
-from django.urls import reverse_lazy as _RL5
-from .forms import ManualVulnerabilityForm
-from django.utils import timezone as _tz5
-
-
-class ManualVulnerabilityCreateView(_LRM5, _FV5):
+class ManualVulnerabilityCreateView(LoginRequiredMixin, FormView):
     form_class = ManualVulnerabilityForm
     template_name = 'vulnerabilities/manual_entry.html'
-    success_url = _RL5('vulnerabilities:finding_list')
+    success_url = reverse_lazy('vulnerabilities:finding_list')
 
     def form_valid(self, form):
         data = form.cleaned_data
+        asset = data['asset']
+        if not user_can_access(self.request.user, asset):
+            raise PermissionDenied
 
-        # Reuse existing vulnerability if CVE matches, else create new
         existing = data.get('existing_vulnerability')
         if existing:
             vuln = existing
@@ -291,17 +302,15 @@ class ManualVulnerabilityCreateView(_LRM5, _FV5):
                 updated_by=self.request.user,
             )
 
-        # Compute SLA if not given
         sla = data.get('sla_due_date')
         if not sla:
-            from datetime import timedelta
             days = Finding.SLA_DAYS.get(data['cvss_severity'], 90)
             sla = data['discovered_date'] + timedelta(days=days)
 
         finding = Finding(
             vulnerability=vuln,
-            asset=data['asset'],
-            owner_dept=data['asset'].owner_dept,
+            asset=asset,
+            owner_dept=asset.owner_dept,
             port=data.get('port', ''),
             evidence=data.get('evidence', ''),
             status=data['status'],
@@ -321,7 +330,7 @@ class ManualVulnerabilityCreateView(_LRM5, _FV5):
 
     def get_initial(self):
         return {
-            'discovered_date': _tz5.now().date(),
+            'discovered_date': timezone.now().date(),
             'status': 'new',
             'cvss_severity': 'medium',
             'cvss_score': 5.0,

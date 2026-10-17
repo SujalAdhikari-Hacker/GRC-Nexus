@@ -5,7 +5,6 @@ rather than waiting for the next scan_for_alerts run.
 Handles: risk appetite breach (immediate).
 Everything else (overdue, KEV sync, etc.) is handled by scan_for_alerts.
 """
-from django.apps import apps
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 

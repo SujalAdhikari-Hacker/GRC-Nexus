@@ -1,15 +1,31 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
+from django.views.generic import (
+    CreateView,
+    DetailView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 
-from core.mixins import DepartmentScopedMixin, CsvExportMixin
-from core.correlation import get_full_control_context, get_framework_coverage
+from core.correlation import get_framework_coverage, get_full_control_context
+from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, scope_queryset, user_can_access
+
+from .forms import ControlEvidenceForm, ControlForm, ControlFrameworkMappingForm
 from .models import Control, ControlEvidence, ControlFrameworkMapping
-from .forms import ControlForm, ControlEvidenceForm, ControlFrameworkMappingForm
+
+
+def _get_control_or_403(request, pk):
+    control = get_object_or_404(Control, pk=pk)
+    if not user_can_access(request.user, control):
+        raise PermissionDenied
+    return control
 
 
 class ControlListView(DepartmentScopedMixin, CsvExportMixin, ListView):
@@ -57,6 +73,7 @@ class ControlListView(DepartmentScopedMixin, CsvExportMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        all_controls = list(self.get_queryset())
         ctx['statuses'] = Control.STATUS_CHOICES
         ctx['categories_choices'] = Control.CATEGORY_CHOICES
         ctx['lifecycle_choices'] = Control.LIFECYCLE_CHOICES
@@ -66,16 +83,12 @@ class ControlListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ctx['selected_category'] = self.request.GET.get('category', '')
         ctx['selected_lifecycle'] = self.request.GET.get('lifecycle', '')
         ctx['selected_effectiveness'] = self.request.GET.get('effectiveness', '')
-
-        base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(owner_dept=user.department)
-        all_controls = list(base)
         ctx['total_count'] = len(all_controls)
         ctx['effective_count'] = sum(1 for c in all_controls if c.effectiveness_rating == 'effective')
         ctx['not_tested_count'] = sum(1 for c in all_controls if c.effectiveness_rating == 'not_tested')
-        ctx['operational_count'] = sum(1 for c in all_controls if c.lifecycle_status in ['operational', 'monitored', 'reviewed'])
+        ctx['operational_count'] = sum(
+            1 for c in all_controls if c.lifecycle_status in ['operational', 'monitored', 'reviewed']
+        )
         return ctx
 
 
@@ -88,11 +101,11 @@ class ControlDetailView(DepartmentScopedMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_control_context(self.object))
         ctx['framework_mappings'] = self.object.framework_mappings.select_related('framework_control__framework')
-        ctx['audit_tests'] = self.object.audit_tests.select_related('tester', 'audit').order_by('-test_date')[:10]  # ← ADD THIS
+        ctx['audit_tests'] = self.object.audit_tests.select_related('tester', 'audit').order_by('-test_date')[:10]
         return ctx
 
 
-class ControlCreateView(DepartmentScopedMixin, CreateView):
+class ControlCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
     model = Control
     form_class = ControlForm
     template_name = 'controls/control_form.html'
@@ -100,14 +113,17 @@ class ControlCreateView(DepartmentScopedMixin, CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            initial['owner_dept'] = user.department
+        if self.request.user.department_id:
+            initial['owner_dept'] = self.request.user.department
         return initial
 
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        form.instance.updated_by = self.request.user
+        return super().form_valid(form)
+
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        return _framework_context(self, ctx)
+        return _framework_context(self, super().get_context_data(**kwargs))
 
 
 class ControlUpdateView(DepartmentScopedMixin, UpdateView):
@@ -116,9 +132,12 @@ class ControlUpdateView(DepartmentScopedMixin, UpdateView):
     template_name = 'controls/control_form.html'
     success_url = reverse_lazy('controls:list')
 
+    def form_valid(self, form):
+        form.instance.updated_by = self.request.user
+        return super().form_valid(form)
+
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        return _framework_context(self, ctx)
+        return _framework_context(self, super().get_context_data(**kwargs))
 
 
 class ControlEvidenceCreateView(LoginRequiredMixin, CreateView):
@@ -127,7 +146,12 @@ class ControlEvidenceCreateView(LoginRequiredMixin, CreateView):
     template_name = 'controls/evidence_form.html'
 
     def dispatch(self, request, *args, **kwargs):
-        self.control = Control.objects.get(pk=kwargs['control_pk'])
+        # Authenticate before touching the object. Resolving first would let an
+        # anonymous visitor distinguish a real ID (403) from a missing one
+        # (404) — an enumeration oracle — and would skip the login redirect.
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        self.control = _get_control_or_403(request, kwargs['control_pk'])
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -150,7 +174,9 @@ class ControlFrameworkMappingCreateView(LoginRequiredMixin, CreateView):
     template_name = 'controls/mapping_form.html'
 
     def dispatch(self, request, *args, **kwargs):
-        self.control = Control.objects.get(pk=kwargs['control_pk'])
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        self.control = _get_control_or_403(request, kwargs['control_pk'])
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -174,34 +200,23 @@ class ControlFrameworkMatrixView(DepartmentScopedMixin, TemplateView):
         from frameworks.models import Framework, FrameworkControl
 
         ctx = super().get_context_data(**kwargs)
-        user = self.request.user
 
-        controls = Control.objects.all().prefetch_related(
-            'framework_controls', 'framework_mappings__framework_control__framework'
-        )
-        if not user.is_superuser and user.department_id:
-            controls = controls.filter(owner_dept=user.department)
-        controls = controls.order_by('code')
+        controls = scope_queryset(
+            Control.objects.all().prefetch_related(
+                'framework_controls', 'framework_mappings__framework_control__framework'
+            ),
+            self.request.user,
+        ).order_by('code')
 
         frameworks = list(Framework.objects.all().order_by('name'))
+        framework_rows = [{'framework': fw, 'cov': get_framework_coverage(fw)} for fw in frameworks]
 
-        # Build a list of {framework, cov} tuples for the template
-        framework_rows = []
-        for fw in frameworks:
-            framework_rows.append({
-                'framework': fw,
-                'cov': get_framework_coverage(fw),
-            })
-
-        # Matrix cells
         matrix_rows = []
         for c in controls:
-            direct_fc_ids = set(c.framework_controls.values_list('pk', flat=True))
-            mapped_fc_ids = set(
-                c.framework_mappings.values_list('framework_control__pk', flat=True)
+            all_fc_ids = (
+                set(c.framework_controls.values_list('pk', flat=True))
+                | set(c.framework_mappings.values_list('framework_control__pk', flat=True))
             )
-            all_fc_ids = direct_fc_ids | mapped_fc_ids
-
             row_cells = []
             for fw in frameworks:
                 matching = list(FrameworkControl.objects.filter(pk__in=all_fc_ids, framework=fw))
@@ -211,11 +226,7 @@ class ControlFrameworkMatrixView(DepartmentScopedMixin, TemplateView):
                     'count': len(matching),
                     'details': matching[:3],
                 })
-
-            matrix_rows.append({
-                'control': c,
-                'cells': row_cells,
-            })
+            matrix_rows.append({'control': c, 'cells': row_cells})
 
         ctx['matrix_rows'] = matrix_rows
         ctx['frameworks'] = frameworks
@@ -230,11 +241,9 @@ class ControlLifecycleView(DepartmentScopedMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        user = self.request.user
-
-        controls = Control.objects.all().select_related('owner_dept', 'owner_user')
-        if not user.is_superuser and user.department_id:
-            controls = controls.filter(owner_dept=user.department)
+        controls = scope_queryset(
+            Control.objects.all().select_related('owner_dept', 'owner_user'), self.request.user
+        )
 
         stages = []
         for code, label in Control.LIFECYCLE_CHOICES:
@@ -247,10 +256,9 @@ class ControlLifecycleView(DepartmentScopedMixin, TemplateView):
                 'is_terminal': code == 'retired',
             })
 
-        ctx['stages'] = stages
-        ctx['total_controls'] = controls.count()
-
         all_controls = list(controls)
+        ctx['stages'] = stages
+        ctx['total_controls'] = len(all_controls)
         ctx['operational_count'] = sum(
             1 for c in all_controls if c.lifecycle_status in ['operational', 'monitored', 'reviewed']
         )
@@ -261,16 +269,15 @@ class ControlLifecycleView(DepartmentScopedMixin, TemplateView):
         return ctx
 
 
+@login_required
 @require_POST
 def advance_lifecycle_view(request, pk):
-    control = get_object_or_404(Control, pk=pk)
+    control = _get_control_or_403(request, pk)
     stages = [s[0] for s in Control.LIFECYCLE_CHOICES]
-    try:
-        idx = stages.index(control.lifecycle_status)
-    except ValueError:
-        idx = 0
+    idx = stages.index(control.lifecycle_status) if control.lifecycle_status in stages else 0
     if idx < len(stages) - 1:
         control.lifecycle_status = stages[idx + 1]
+        control.updated_by = request.user
         control.save()
         messages.success(request, f'{control.code} advanced to "{control.get_lifecycle_status_display()}".')
     else:
@@ -278,16 +285,15 @@ def advance_lifecycle_view(request, pk):
     return redirect(request.META.get('HTTP_REFERER') or 'controls:list')
 
 
+@login_required
 @require_POST
 def regress_lifecycle_view(request, pk):
-    control = get_object_or_404(Control, pk=pk)
+    control = _get_control_or_403(request, pk)
     stages = [s[0] for s in Control.LIFECYCLE_CHOICES]
-    try:
-        idx = stages.index(control.lifecycle_status)
-    except ValueError:
-        idx = 0
+    idx = stages.index(control.lifecycle_status) if control.lifecycle_status in stages else 0
     if idx > 0:
         control.lifecycle_status = stages[idx - 1]
+        control.updated_by = request.user
         control.save()
         messages.warning(request, f'{control.code} moved back to "{control.get_lifecycle_status_display()}".')
     else:
@@ -295,16 +301,19 @@ def regress_lifecycle_view(request, pk):
     return redirect(request.META.get('HTTP_REFERER') or 'controls:list')
 
 
+@login_required
 @require_POST
 def set_lifecycle_view(request, pk):
-    control = get_object_or_404(Control, pk=pk)
+    control = _get_control_or_403(request, pk)
     target = request.POST.get('target')
     valid = [s[0] for s in Control.LIFECYCLE_CHOICES]
     if target in valid:
         control.lifecycle_status = target
+        control.updated_by = request.user
         control.save()
         messages.success(request, f'{control.code} set to "{control.get_lifecycle_status_display()}".')
     return redirect(request.META.get('HTTP_REFERER') or 'controls:list')
+
 
 class ControlEffectivenessView(DepartmentScopedMixin, TemplateView):
     template_name = 'controls/effectiveness.html'
@@ -312,19 +321,12 @@ class ControlEffectivenessView(DepartmentScopedMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        user = self.request.user
-
-        qs = Control.objects.all().select_related('owner_dept')
-        if not user.is_superuser and user.department_id:
-            qs = qs.filter(owner_dept=user.department)
+        qs = scope_queryset(Control.objects.all().select_related('owner_dept'), self.request.user)
 
         buckets = []
         for code, label in Control.EFFECTIVENESS_RATING_CHOICES:
             items = list(qs.filter(effectiveness_rating=code).order_by('code'))
-            buckets.append({
-                'code': code, 'label': label,
-                'count': len(items), 'controls': items,
-            })
+            buckets.append({'code': code, 'label': label, 'count': len(items), 'controls': items})
 
         all_controls = list(qs)
         total = len(all_controls)
@@ -369,6 +371,7 @@ class ControlEffectivenessView(DepartmentScopedMixin, TemplateView):
             'lifecycles': lifecycles,
         })
         return ctx
+
 
 def _framework_context(self, ctx):
     """Pass frameworks + selected FC pks to the template."""

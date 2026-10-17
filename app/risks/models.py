@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 from simple_history.models import HistoricalRecords
 from core.models import Department
 from assets.models import Asset
@@ -98,11 +99,43 @@ class RiskAppetite(models.Model):
     class Meta:
         verbose_name_plural = 'Risk appetites'
         ordering = ['department', 'category']
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(max_residual_score__lte=models.F('risk_capacity')),
+                name='appetite_residual_within_capacity',
+            ),
+            models.CheckConstraint(
+                check=models.Q(max_inherent_score__lte=models.F('risk_capacity')),
+                name='appetite_inherent_within_capacity',
+            ),
+        ]
 
     def __str__(self):
         scope = self.department.name if self.department else 'Org-wide'
         cat = self.category.name if self.category else 'all categories'
         return f"{scope} / {cat}"
+
+    def clean(self):
+        """Reject a duplicate appetite for the same (department, category) scope.
+
+        The combination is a natural key; without this, ``find_applicable_appetite``
+        could silently pick between two contradictory appetites for one risk.
+        """
+        super().clean()
+        qs = RiskAppetite.objects.filter(
+            department=self.department, category=self.category
+        )
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        if qs.exists():
+            raise ValidationError(
+                'An appetite already exists for this department/category scope. '
+                'Edit the existing one instead of creating a duplicate.'
+            )
+        if (self.max_residual_score or 0) > (self.risk_capacity or 0):
+            raise ValidationError({
+                'max_residual_score': 'Residual tolerance cannot exceed risk capacity.'
+            })
 
 
 # ==================================================================
@@ -125,6 +158,32 @@ class Risk(models.Model):
     ]
     LIKELIHOOD_CHOICES = [(i, str(i)) for i in range(1, 6)]
     IMPACT_CHOICES = [(i, str(i)) for i in range(1, 6)]
+
+    # Anchors make the 1–5 scales mean the same thing to every assessor.
+    LIKELIHOOD_ANCHORS = {
+        1: 'Rare — not expected in the next 5 years',
+        2: 'Unlikely — could happen in 2–5 years',
+        3: 'Possible — expected once in 1–2 years',
+        4: 'Likely — expected several times a year',
+        5: 'Almost certain — expected monthly or more',
+    }
+    IMPACT_ANCHORS = {
+        1: 'Insignificant — negligible cost, no regulatory impact',
+        2: 'Minor — limited local impact, handled in business-as-usual',
+        3: 'Moderate — material cost/reputational hit, management attention',
+        4: 'Major — significant financial loss, regulatory scrutiny',
+        5: 'Severe — existential, fines, safety or mass outage',
+    }
+
+    # Allowed status transitions (state machine). Enforced in RiskForm so the
+    # UI cannot jump straight from "identified" to "closed" without assessment.
+    TRANSITIONS = {
+        'identified': {'assessed', 'treating', 'closed'},
+        'assessed':   {'treating', 'monitored', 'closed'},
+        'treating':   {'monitored', 'closed'},
+        'monitored':  {'treating', 'closed'},
+        'closed':     {'identified'},   # reopen for re-assessment
+    }
 
     title = models.CharField(max_length=300)
     description = models.TextField(blank=True)
@@ -165,6 +224,22 @@ class Risk(models.Model):
     )
     escalated_at = models.DateTimeField(null=True, blank=True)
 
+    # Approval / sign-off (maker-checker). Closing a risk that breaches appetite
+    # requires a named approver and a timestamp — see RiskForm.clean().
+    approved_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='approved_risks',
+        help_text='Person who signed off the closure / treatment of this risk'
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    next_review_date = models.DateField(
+        null=True, blank=True,
+        help_text='When this risk should next be reviewed'
+    )
+    closure_notes = models.TextField(
+        blank=True, help_text='Rationale recorded when the risk is closed'
+    )
+
     treatment_strategy = models.CharField(
         max_length=20, choices=TREATMENT_CHOICES, default='mitigate'
     )
@@ -172,6 +247,12 @@ class Risk(models.Model):
 
     assets = models.ManyToManyField(Asset, blank=True, related_name='risks')
     controls = models.ManyToManyField(Control, blank=True, related_name='risks')
+
+    source_finding = models.ForeignKey(
+        'vulnerabilities.Finding', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='cascaded_risks',
+        help_text='Vulnerability finding this risk was derived from (auto-cascade).'
+    )
 
     identified_date = models.DateField(null=True, blank=True)
     target_close_date = models.DateField(null=True, blank=True)
@@ -194,13 +275,83 @@ class Risk(models.Model):
 
     class Meta:
         ordering = ['-inherent_score', 'title']
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(likelihood__gte=1, likelihood__lte=5),
+                name='risk_likelihood_between_1_and_5',
+            ),
+            models.CheckConstraint(
+                check=models.Q(impact__gte=1, impact__lte=5),
+                name='risk_impact_between_1_and_5',
+            ),
+            models.CheckConstraint(
+                check=models.Q(inherent_score__lte=25),
+                name='risk_inherent_at_most_25',
+            ),
+            models.CheckConstraint(
+                check=models.Q(residual_score__lte=25),
+                name='risk_residual_at_most_25',
+            ),
+        ]
 
     def __str__(self):
         return self.title
 
     def save(self, *args, **kwargs):
+        # Defensive clamping — the DB CheckConstraints reject anything invalid,
+        # this keeps direct ORM writes from even getting that far.
+        self.likelihood = max(1, min(5, int(self.likelihood or 3)))
+        self.impact = max(1, min(5, int(self.impact or 3)))
         self.inherent_score = self.likelihood * self.impact
+        # Keep closed_date consistent with status.
+        if self.status == 'closed':
+            if not self.closed_date:
+                self.closed_date = timezone.now().date()
+            if self.approved_by_id and not self.approved_at:
+                self.approved_at = timezone.now()
+        else:
+            self.closed_date = None
         super().save(*args, **kwargs)
+
+    # ---- severity bands (single source of truth: risks.services) ----
+
+    @property
+    def severity_band(self):
+        from .services import severity_band
+        return severity_band(self.inherent_score)
+
+    @property
+    def residual_band(self):
+        from .services import severity_band
+        return severity_band(self.residual_score)
+
+    # ---- workflow helpers ----
+
+    def allowed_transitions(self):
+        """Statuses this risk may move to from its current status."""
+        return self.TRANSITIONS.get(self.status, set())
+
+    def can_transition_to(self, new_status):
+        return new_status == self.status or new_status in self.allowed_transitions()
+
+    @property
+    def is_overdue(self):
+        """A non-closed risk whose target close date has passed."""
+        if self.status == 'closed' or not self.target_close_date:
+            return False
+        return self.target_close_date < timezone.now().date()
+
+    @property
+    def days_overdue(self):
+        if not self.is_overdue:
+            return 0
+        return (timezone.now().date() - self.target_close_date).days
+
+    @property
+    def review_due(self):
+        if not self.next_review_date:
+            return False
+        return self.next_review_date <= timezone.now().date()
 
     @property
     def risk_statement(self):

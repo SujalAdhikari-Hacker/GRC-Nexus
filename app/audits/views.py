@@ -1,16 +1,39 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
 from django.utils import timezone
-from core.mixins import DepartmentScopedMixin, CsvExportMixin
-from .models import Audit, EvidenceItem, EvidenceScore, ControlTest, AuditFinding
-from .forms import EvidenceItemForm, EvidenceScoreForm, ControlTestForm, AuditFindingForm
-from .forms import (
-    AuditForm, EvidenceItemForm, EvidenceScoreForm,
-    ControlTestForm, AuditFindingForm, ActionItemForm,
+from django.views.decorators.http import require_POST
+from django.views.generic import (
+    CreateView,
+    DetailView,
+    ListView,
+    TemplateView,
+    UpdateView,
 )
+
+from core.mixins import (
+    CsvExportMixin,
+    DepartmentCreateMixin,
+    DepartmentScopedMixin,
+    scope_queryset,
+    user_can_access,
+)
+from core.reports import render_pdf
+
+from .forms import (
+    ActionItemForm,
+    AuditFindingForm,
+    AuditForm,
+    ControlTestForm,
+    EvidenceItemForm,
+    EvidenceScoreForm,
+)
+from .models import ActionItem, Audit, AuditFinding, ControlTest, EvidenceItem, EvidenceScore
+
 
 # ==================================================================
 # AUDIT
@@ -56,10 +79,7 @@ class AuditListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ctx['selected_type'] = self.request.GET.get('type', '')
         ctx['selected_status'] = self.request.GET.get('status', '')
 
-        base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(owner_dept=user.department)
+        base = scope_queryset(Audit.objects.all(), self.request.user)
         all_audits = list(base)
         ctx['total_count'] = len(all_audits)
         ctx['planned_count'] = sum(1 for a in all_audits if a.status == 'planned')
@@ -85,7 +105,7 @@ class AuditDetailView(DepartmentScopedMixin, DetailView):
         return ctx
 
 
-class AuditCreateView(DepartmentScopedMixin, CreateView):
+class AuditCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
     model = Audit
     form_class = AuditForm
     template_name = 'audits/audit_form.html'
@@ -93,10 +113,8 @@ class AuditCreateView(DepartmentScopedMixin, CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            initial['owner_dept'] = user.department
-        from django.utils import timezone
+        if self.request.user.department_id:
+            initial['owner_dept'] = self.request.user.department
         initial['start_date'] = timezone.now().date()
         return initial
 
@@ -115,10 +133,10 @@ class AuditTimelineView(DepartmentScopedMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        user = self.request.user
-        qs = Audit.objects.all().select_related('auditor_lead', 'owner_dept')
-        if not user.is_superuser and user.department_id:
-            qs = qs.filter(owner_dept=user.department)
+        qs = scope_queryset(
+            Audit.objects.all().select_related('auditor_lead', 'owner_dept'),
+            self.request.user,
+        )
 
         columns = []
         for code, label in Audit.STATUS_CHOICES:
@@ -149,7 +167,7 @@ class EvidenceListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ('Audit', lambda e: e.audit.name if e.audit else ''),
         ('Owner', lambda e: e.owner_user.username if e.owner_user else ''),
         ('Department', lambda e: e.owner_dept.name),
-        ('Score', lambda e: e.score.total_score if e.score else ''),
+        ('Score', lambda e: e.score.total_score if getattr(e, 'score', None) else ''),
         ('Created', lambda e: e.created_at.strftime('%Y-%m-%d')),
     ]
 
@@ -172,16 +190,14 @@ class EvidenceListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_type'] = self.request.GET.get('type', '')
 
-        base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(owner_dept=user.department)
+        base = scope_queryset(EvidenceItem.objects.all(), self.request.user)
         all_items = list(base)
         ctx['total_count'] = len(all_items)
         ctx['scored_count'] = sum(1 for e in all_items if hasattr(e, 'scoring'))
         ctx['unscored_count'] = ctx['total_count'] - ctx['scored_count']
-        strong = sum(1 for e in all_items if hasattr(e, 'scoring') and e.scoring.total_score >= 75)
-        ctx['strong_count'] = strong
+        ctx['strong_count'] = sum(
+            1 for e in all_items if hasattr(e, 'scoring') and e.scoring.total_score >= 75
+        )
         return ctx
 
 
@@ -197,7 +213,7 @@ class EvidenceDetailView(DepartmentScopedMixin, DetailView):
         return ctx
 
 
-class EvidenceCreateView(DepartmentScopedMixin, CreateView):
+class EvidenceCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
     model = EvidenceItem
     form_class = EvidenceItemForm
     template_name = 'audits/evidence_form.html'
@@ -205,10 +221,8 @@ class EvidenceCreateView(DepartmentScopedMixin, CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            initial['owner_dept'] = user.department
-        # Pre-fill from query params
+        if self.request.user.department_id:
+            initial['owner_dept'] = self.request.user.department
         control = self.request.GET.get('control')
         if control:
             initial['related_control'] = control
@@ -232,7 +246,11 @@ class EvidenceScoreCreateView(LoginRequiredMixin, CreateView):
     template_name = 'audits/evidence_score_form.html'
 
     def dispatch(self, request, *args, **kwargs):
-        self.evidence = EvidenceItem.objects.get(pk=kwargs['evidence_pk'])
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        self.evidence = get_object_or_404(EvidenceItem, pk=kwargs['evidence_pk'])
+        if not user_can_access(request.user, self.evidence):
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -249,10 +267,11 @@ class EvidenceScoreCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
 
-class EvidenceScoreUpdateView(LoginRequiredMixin, UpdateView):
+class EvidenceScoreUpdateView(DepartmentScopedMixin, UpdateView):
     model = EvidenceScore
     form_class = EvidenceScoreForm
     template_name = 'audits/evidence_score_form.html'
+    department_field = 'evidence__owner_dept'
 
     def get_success_url(self):
         return reverse_lazy('audits:evidence_detail', kwargs={'pk': self.object.evidence.pk})
@@ -288,7 +307,11 @@ class ControlTestListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         qs = super().get_queryset().select_related('control', 'tester', 'owner_dept', 'audit')
         q = self.request.GET.get('q', '').strip()
         if q:
-            qs = qs.filter(Q(control__code__icontains=q) | Q(control__name__icontains=q) | Q(procedure_notes__icontains=q))
+            qs = qs.filter(
+                Q(control__code__icontains=q)
+                | Q(control__name__icontains=q)
+                | Q(procedure_notes__icontains=q)
+            )
         result = self.request.GET.get('result')
         if result:
             qs = qs.filter(result=result)
@@ -300,10 +323,7 @@ class ControlTestListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_result'] = self.request.GET.get('result', '')
 
-        base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(owner_dept=user.department)
+        base = scope_queryset(ControlTest.objects.all(), self.request.user)
         ctx['total_count'] = base.count()
         ctx['pass_count'] = base.filter(result='pass').count()
         ctx['fail_count'] = base.filter(result='fail').count()
@@ -311,7 +331,7 @@ class ControlTestListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         return ctx
 
 
-class ControlTestCreateView(DepartmentScopedMixin, CreateView):
+class ControlTestCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
     model = ControlTest
     form_class = ControlTestForm
     template_name = 'audits/test_form.html'
@@ -319,18 +339,14 @@ class ControlTestCreateView(DepartmentScopedMixin, CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            initial['owner_dept'] = user.department
-
-        # Prefill from query params
+        if self.request.user.department_id:
+            initial['owner_dept'] = self.request.user.department
         control = self.request.GET.get('control')
         if control:
             initial['control'] = control
         audit = self.request.GET.get('audit')
         if audit:
             initial['audit'] = audit
-
         return initial
 
     def form_valid(self, form):
@@ -344,8 +360,6 @@ class ControlTestUpdateView(DepartmentScopedMixin, UpdateView):
     template_name = 'audits/test_form.html'
     success_url = reverse_lazy('audits:test_list')
     department_field = 'owner_dept'
-
-    # On update, don't override the original tester — keep the historical record
 
 
 # ==================================================================
@@ -393,15 +407,12 @@ class FindingListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ctx['selected_status'] = self.request.GET.get('status', '')
         ctx['now_date'] = timezone.now().date()
 
-        base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(owner_dept=user.department)
+        base = scope_queryset(AuditFinding.objects.all(), self.request.user)
         ctx['total_count'] = base.count()
         ctx['open_count'] = base.filter(status='open').count()
         ctx['critical_count'] = base.filter(severity='critical').count()
         ctx['overdue_count'] = base.filter(
-            due_date__lt=__import__('django').utils.timezone.now().date()
+            due_date__lt=timezone.now().date()
         ).exclude(status__in=['resolved', 'closed', 'accepted']).count()
         return ctx
 
@@ -413,7 +424,7 @@ class FindingDetailView(DepartmentScopedMixin, DetailView):
     department_field = 'owner_dept'
 
 
-class FindingCreateView(DepartmentScopedMixin, CreateView):
+class FindingCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
     model = AuditFinding
     form_class = AuditFindingForm
     template_name = 'audits/finding_form.html'
@@ -421,18 +432,14 @@ class FindingCreateView(DepartmentScopedMixin, CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            initial['owner_dept'] = user.department
-
-        # Prefill from query params
+        if self.request.user.department_id:
+            initial['owner_dept'] = self.request.user.department
         audit = self.request.GET.get('audit')
         if audit:
             initial['audit'] = audit
         control = self.request.GET.get('control')
         if control:
             initial['related_control'] = control
-
         return initial
 
 
@@ -442,6 +449,7 @@ class FindingUpdateView(DepartmentScopedMixin, UpdateView):
     template_name = 'audits/finding_form.html'
     success_url = reverse_lazy('audits:finding_list')
     department_field = 'owner_dept'
+
 
 class EvidenceScoreListView(DepartmentScopedMixin, ListView):
     model = EvidenceScore
@@ -476,35 +484,23 @@ class EvidenceScoreListView(DepartmentScopedMixin, ListView):
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_rating'] = self.request.GET.get('rating', '')
 
-        base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(evidence__owner_dept=user.department)
+        base = scope_queryset(EvidenceScore.objects.all(), self.request.user, field='evidence__owner_dept')
         all_scores = list(base)
         ctx['total_count'] = len(all_scores)
         ctx['excellent_count'] = sum(1 for s in all_scores if s.total_score >= 90)
         ctx['good_count'] = sum(1 for s in all_scores if 75 <= s.total_score < 90)
         ctx['partial_count'] = sum(1 for s in all_scores if 50 <= s.total_score < 75)
         ctx['weak_count'] = sum(1 for s in all_scores if s.total_score < 50)
-        if all_scores:
-            ctx['avg_score'] = round(sum(s.total_score for s in all_scores) / len(all_scores), 1)
-        else:
-            ctx['avg_score'] = 0
+        ctx['avg_score'] = (
+            round(sum(s.total_score for s in all_scores) / len(all_scores), 1)
+            if all_scores else 0
+        )
         return ctx
+
 
 # ============================================================
 # ACTION ITEMS (Remediation sub-tasks under findings)
 # ============================================================
-
-from django.contrib.auth.mixins import LoginRequiredMixin as _LRM3
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
-from django.views.decorators.http import require_POST
-from django.utils import timezone as _tz2
-
-from .models import ActionItem
-from .forms import ActionItemForm
-
 
 class ActionItemListView(DepartmentScopedMixin, ListView):
     model = ActionItem
@@ -517,7 +513,9 @@ class ActionItemListView(DepartmentScopedMixin, ListView):
         qs = super().get_queryset().select_related('finding', 'owner_user', 'owner_dept')
         q = self.request.GET.get('q', '').strip()
         if q:
-            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(finding__title__icontains=q))
+            qs = qs.filter(
+                Q(title__icontains=q) | Q(description__icontains=q) | Q(finding__title__icontains=q)
+            )
         status = self.request.GET.get('status')
         if status:
             qs = qs.filter(status=status)
@@ -534,11 +532,7 @@ class ActionItemListView(DepartmentScopedMixin, ListView):
         ctx['selected_status'] = self.request.GET.get('status', '')
         ctx['selected_priority'] = self.request.GET.get('priority', '')
 
-        base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(owner_dept=user.department)
-        all_a = list(base)
+        all_a = list(scope_queryset(ActionItem.objects.all(), self.request.user))
         ctx['total_count'] = len(all_a)
         ctx['open_count'] = sum(1 for a in all_a if a.status not in ('completed', 'cancelled'))
         ctx['in_progress_count'] = sum(1 for a in all_a if a.status == 'in_progress')
@@ -547,13 +541,14 @@ class ActionItemListView(DepartmentScopedMixin, ListView):
         return ctx
 
 
-class ActionItemDetailView(_LRM3, DetailView):
+class ActionItemDetailView(DepartmentScopedMixin, DetailView):
     model = ActionItem
     template_name = 'audits/action_detail.html'
     context_object_name = 'action'
+    department_field = 'owner_dept'
 
 
-class ActionItemCreateView(_LRM3, CreateView):
+class ActionItemCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
     model = ActionItem
     form_class = ActionItemForm
     template_name = 'audits/action_form.html'
@@ -562,38 +557,43 @@ class ActionItemCreateView(_LRM3, CreateView):
         initial = super().get_initial()
         finding_pk = self.request.GET.get('finding')
         if finding_pk:
-            try:
-                f = AuditFinding.objects.get(pk=finding_pk)
-                initial['finding'] = f
-                initial['owner_dept'] = f.owner_dept
-            except AuditFinding.DoesNotExist:
-                pass
+            finding = AuditFinding.objects.filter(pk=finding_pk).first()
+            if finding and user_can_access(self.request.user, finding):
+                initial['finding'] = finding
+                initial['owner_dept'] = finding.owner_dept
         return initial
 
     def get_success_url(self):
         return reverse_lazy('audits:action_detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
+        finding = form.cleaned_data.get('finding')
+        if finding and not user_can_access(self.request.user, finding):
+            raise PermissionDenied
         response = super().form_valid(form)
         messages.success(self.request, f'Action item {self.object.action_id} created.')
         return response
 
 
-class ActionItemUpdateView(_LRM3, UpdateView):
+class ActionItemUpdateView(DepartmentScopedMixin, UpdateView):
     model = ActionItem
     form_class = ActionItemForm
     template_name = 'audits/action_form.html'
+    department_field = 'owner_dept'
 
     def get_success_url(self):
         return reverse_lazy('audits:action_detail', kwargs={'pk': self.object.pk})
 
 
+@login_required
 @require_POST
 def action_mark_complete(request, pk):
     action = get_object_or_404(ActionItem, pk=pk)
+    if not user_can_access(request.user, action):
+        raise PermissionDenied
     action.status = 'completed'
     action.progress_percent = 100
-    action.completed_date = _tz2.now().date()
+    action.completed_date = timezone.now().date()
     action.save()
     messages.success(request, f'{action.action_id} marked complete.')
     return redirect('audits:action_detail', pk=pk)
@@ -603,48 +603,12 @@ def action_mark_complete(request, pk):
 # AUDIT PDF REPORT
 # ============================================================
 
-from core.reports import render_pdf as _render_pdf_audit
-
-
-class AuditReportView(LoginRequiredMixin, DetailView):
+class AuditReportView(DepartmentScopedMixin, DetailView):
     """Renders a full audit engagement report as PDF."""
     model = Audit
+    department_field = 'owner_dept'
 
     def get(self, request, *args, **kwargs):
-        from django.utils import timezone
-        audit = self.get_object()
-        findings = audit.findings.select_related(
-            'related_control', 'owner_user'
-        ).prefetch_related('action_items').order_by('-severity')
-        tests = audit.control_tests.select_related('control', 'tester').order_by('-test_date')
-        evidence_items = audit.evidence_items.select_related(
-            'related_control', 'owner_user'
-        ).prefetch_related('scoring')
-
-        ctx = {
-            'audit': audit,
-            'findings': findings,
-            'tests': tests,
-            'evidence_items': evidence_items,
-            'generated_at': timezone.now(),
-            'generated_by': request.user,
-        }
-        filename = f'audit_{audit.pk}_{audit.name[:40].replace(" ", "_")}_{timezone.now().strftime("%Y%m%d")}.pdf'
-        return _render_pdf_audit(request, 'reports/audit_report.html', ctx, filename)
-
-# ============================================================
-# AUDIT PDF REPORT
-# ============================================================
-
-from core.reports import render_pdf as _render_pdf_audit
-
-
-class AuditReportView(LoginRequiredMixin, DetailView):
-    """Renders a full audit engagement report as PDF."""
-    model = Audit
-
-    def get(self, request, *args, **kwargs):
-        from django.utils import timezone
         audit = self.get_object()
         findings = audit.findings.select_related(
             'related_control', 'owner_user'
@@ -664,4 +628,4 @@ class AuditReportView(LoginRequiredMixin, DetailView):
         }
         safe_name = ''.join(c if c.isalnum() else '_' for c in audit.name)[:40]
         filename = f'audit_{audit.pk}_{safe_name}_{timezone.now().strftime("%Y%m%d")}.pdf'
-        return _render_pdf_audit(request, 'reports/audit_report.html', ctx, filename)
+        return render_pdf(request, 'reports/audit_report.html', ctx, filename)

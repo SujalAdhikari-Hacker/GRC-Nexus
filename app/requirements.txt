@@ -11,3 +11,5 @@ openpyxl
 matplotlib
 numpy
 django-extensions
+whitenoise
+gunicorn

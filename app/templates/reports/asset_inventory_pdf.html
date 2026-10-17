@@ -1,7 +1,6 @@
-
 ﻿{% extends "reports/base_pdf.html" %}
 {% block content %}
-<p>Total assets: {{ total }}</p>
+<p>Total assets: {{ total }} · High / Critical: {{ critical_count }}</p>
 <table>
     <thead><tr>
         <th>Asset ID</th><th>Name</th><th>Hostname</th><th>IP</th>

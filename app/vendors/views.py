@@ -1,13 +1,23 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-from core.mixins import DepartmentScopedMixin, CsvExportMixin
 from core.correlation import get_full_vendor_context
+from core.mixins import (
+    CsvExportMixin,
+    DepartmentCreateMixin,
+    DepartmentScopedMixin,
+    scope_queryset,
+    user_can_access,
+)
+
+from .forms import VendorAssessmentForm, VendorForm
 from .models import Vendor, VendorAssessment
-from .forms import VendorForm, VendorAssessmentForm
 
 
 # ============================================================
@@ -67,9 +77,6 @@ class VendorListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ctx['selected_status'] = self.request.GET.get('status', '')
 
         base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(owner_dept=user.department)
         ctx['total_count'] = base.count()
         ctx['active_count'] = base.filter(status='active').count()
         ctx['critical_count'] = base.filter(tier=1).count()
@@ -88,23 +95,21 @@ class VendorDetailView(DepartmentScopedMixin, DetailView):
         return ctx
 
 
-class VendorCreateView(DepartmentScopedMixin, CreateView):
+class VendorCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
     model = Vendor
     form_class = VendorForm
     template_name = 'vendors/vendor_form.html'
 
     def get_initial(self):
         initial = super().get_initial()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            initial['owner_dept'] = user.department
+        if self.request.user.department_id:
+            initial['owner_dept'] = self.request.user.department
         return initial
 
     def get_success_url(self):
         return reverse_lazy('vendors:detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
-        from django.contrib import messages
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
@@ -121,7 +126,6 @@ class VendorUpdateView(DepartmentScopedMixin, UpdateView):
         return reverse_lazy('vendors:detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
-        from django.contrib import messages
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         messages.success(self.request, f'Vendor {self.object.vendor_id} updated.')
@@ -173,9 +177,6 @@ class VendorAssessmentListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ctx['selected_status'] = self.request.GET.get('status', '')
 
         base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(vendor__owner_dept=user.department)
         ctx['total_count'] = base.count()
         ctx['high_risk_count'] = base.filter(overall_risk_rating__in=['high', 'critical']).count()
         ctx['pending_count'] = base.filter(status='pending').count()
@@ -190,10 +191,14 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
     template_name = 'vendors/assessment_form.html'
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
         self.vendor = None
         vendor_pk = kwargs.get('vendor_pk')
         if vendor_pk:
-            self.vendor = Vendor.objects.get(pk=vendor_pk)
+            self.vendor = get_object_or_404(Vendor, pk=vendor_pk)
+            if not user_can_access(request.user, self.vendor):
+                raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
     def get_initial(self):
@@ -204,9 +209,22 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
             initial['vendor_tier'] = self.vendor.tier
         return initial
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        user = self.request.user
+        # Never let a department user pick another department's vendor.
+        if not user.is_superuser:
+            form.fields['vendor'].queryset = scope_queryset(Vendor.objects.all(), user)
+        if self.vendor:
+            form.fields['vendor'].initial = self.vendor
+            form.fields['vendor'].disabled = True
+        return form
+
     def form_valid(self, form):
         if self.vendor:
             form.instance.vendor = self.vendor
+        if not user_can_access(self.request.user, form.instance.vendor):
+            raise PermissionDenied
         form.instance.assessor = self.request.user
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
@@ -221,10 +239,11 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
 
-class VendorAssessmentUpdateView(LoginRequiredMixin, UpdateView):
+class VendorAssessmentUpdateView(DepartmentScopedMixin, UpdateView):
     model = VendorAssessment
     form_class = VendorAssessmentForm
     template_name = 'vendors/assessment_form.html'
+    department_field = 'vendor__owner_dept'
 
     def form_valid(self, form):
         form.instance.updated_by = self.request.user
@@ -239,10 +258,11 @@ class VendorAssessmentUpdateView(LoginRequiredMixin, UpdateView):
         return ctx
 
 
-class VendorAssessmentDetailView(LoginRequiredMixin, DetailView):
+class VendorAssessmentDetailView(DepartmentScopedMixin, DetailView):
     model = VendorAssessment
     template_name = 'vendors/assessment_detail.html'
     context_object_name = 'assessment'
+    department_field = 'vendor__owner_dept'
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

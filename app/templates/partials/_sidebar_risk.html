@@ -1,0 +1,60 @@
+{% comment %}
+Risk & Controls sidebar links.
+
+Included from base.html with `section_open=True|False` to decide the initial
+visibility of the group. The sidebar JS toggle takes over after first click,
+so we no longer ship two verbatim copies of this list (which had drifted).
+{% endcomment %}
+<a href="{% url 'risks:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-exclamation-triangle"></i><span>Risks</span>
+    {% if notif_risks %}<span class="sidebar-badge sidebar-badge-amber" title="Risk notifications">{{ notif_risks }}</span>{% endif %}
+</a>
+{% if user.is_hod or user.is_superuser %}
+<a href="{% url 'risks:appetite_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-sliders"></i><span>Risk Appetite</span>
+</a>
+{% endif %}
+<a href="{% url 'risks:matrix' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-grid-3x3"></i><span>Risk Matrix</span>
+</a>
+<a href="{% url 'risks:exception_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-shield-check"></i><span>Risk Exceptions</span>
+</a>
+<a href="{% url 'risks:treatment_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-list-check"></i><span>Treatments</span>
+</a>
+<a href="{% url 'controls:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-shield-check"></i><span>Controls</span>
+    {% if notif_controls %}<span class="sidebar-badge sidebar-badge-amber" title="Control notifications">{{ notif_controls }}</span>{% endif %}
+</a>
+<a href="{% url 'controls:effectiveness' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-bar-chart"></i><span>Control Effectiveness</span>
+</a>
+<a href="{% url 'controls:framework_matrix' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-grid-1x2"></i><span>Framework Matrix</span>
+</a>
+<a href="{% url 'controls:lifecycle' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-diagram-2"></i><span>Lifecycle Board</span>
+</a>
+<a href="{% url 'vulnerabilities:finding_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-bug"></i><span>Vulnerabilities</span>
+</a>
+<a href="{% url 'vulnerabilities:manual_create' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-plus-square"></i><span>Log Vulnerability</span>
+</a>
+<a href="{% url 'vulnerabilities:live_feed' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-rss"></i><span>Live CVE Feed</span>
+</a>
+<a href="{% url 'kris:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-speedometer"></i><span>Key Risk Indicators</span>
+    {% if notif_kris %}<span class="sidebar-badge sidebar-badge-amber" title="KRI notifications">{{ notif_kris }}</span>{% endif %}
+</a>
+<a href="{% url 'frameworks:list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-diagram-3"></i><span>Frameworks</span>
+</a>
+<a href="{% url 'frameworks:compliance_status' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-clipboard-data"></i><span>Compliance Status</span>
+</a>
+<a href="{% url 'frameworks:assessment_list' %}" class="sidebar-link toggle-item" data-section="risk" style="display: {% if section_open %}flex{% else %}none{% endif %};">
+    <i class="bi bi-clipboard-check"></i><span>Compliance Assessments</span>
+</a>

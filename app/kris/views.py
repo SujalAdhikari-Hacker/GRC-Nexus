@@ -1,10 +1,9 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q, Count
+from django.db.models import Q
 from django.urls import reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-from core.mixins import DepartmentScopedMixin
-from .models import KRI, KRIReading
+from core.mixins import DepartmentCreateMixin, DepartmentScopedMixin
+from .models import KRI
 
 
 class KRIListView(DepartmentScopedMixin, ListView):
@@ -29,10 +28,8 @@ class KRIListView(DepartmentScopedMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        # DepartmentScopedMixin already scoped this queryset.
         base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(owner_dept=user.department)
 
         # Compute RAG counts by iterating (property is Python-side)
         all_kris = list(base)
@@ -63,7 +60,7 @@ class KRIDetailView(DepartmentScopedMixin, DetailView):
         return ctx
 
 
-class KRICreateView(DepartmentScopedMixin, CreateView):
+class KRICreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
     model = KRI
     template_name = 'kris/kri_form.html'
     fields = [

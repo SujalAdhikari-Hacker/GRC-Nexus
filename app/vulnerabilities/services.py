@@ -186,21 +186,9 @@ def should_cascade(finding):
     return False
 
 
-@transaction.atomic
-def cascade_finding_to_risk(finding):
-    """Create a Risk linked to the finding's asset."""
-    from risks.models import Risk, RiskCategory
-
-    existing = Risk.objects.filter(
-        title__startswith=f"[{finding.vulnerability.cve_id}]",
-        owner_dept=finding.owner_dept,
-    ).first()
-    if existing:
-        return existing, False
-
+def _risk_scoring(finding):
+    """Derive (likelihood, impact) for the risk from CVSS / EPSS / KEV."""
     vuln = finding.vulnerability
-    asset = finding.asset
-
     cvss = float(vuln.cvss_score or 5.0)
     impact = min(5, max(1, round(cvss / 2)))
     likelihood = 2
@@ -208,28 +196,84 @@ def cascade_finding_to_risk(finding):
         likelihood = 4
     elif vuln.epss_score and float(vuln.epss_score) >= 0.5:
         likelihood = 3
+    return likelihood, impact
 
-    category, _ = RiskCategory.objects.get_or_create(
-        name='Information Security',
-        defaults={'description': 'Auto-created from vulnerability findings'},
-    )
 
-    risk = Risk.objects.create(
-        title=f"[{vuln.cve_id or 'VULN'}] {vuln.title[:150]}",
-        description=(
-            f"Auto-generated from finding on asset '{asset.name}'.\n"
-            f"CVSS {vuln.cvss_score} · EPSS {vuln.epss_score or 'N/A'} · "
-            f"KEV {'yes' if vuln.kev_status else 'no'}\n"
-            f"Composite score: {finding.composite_score}\n\n"
-            f"Evidence: {finding.evidence[:500]}"
-        ),
-        category=category,
-        owner_dept=finding.owner_dept,
-        likelihood=likelihood,
-        impact=impact,
-        status='identified',
-        treatment_strategy='mitigate',
-        identified_date=finding.discovered_date,
+@transaction.atomic
+def cascade_finding_to_risk(finding):
+    """Create or refresh the Risk linked to the finding's asset.
+
+    Returns ``(risk, created)`` — the contract used by the manual cascade view.
+    Idempotent: re-running refreshes the same risk rather than duplicating it,
+    and links it back via ``Risk.source_finding`` for traceability.
+    """
+    from risks.models import Risk, RiskCategory
+
+    vuln = finding.vulnerability
+    asset = finding.asset
+    likelihood, impact = _risk_scoring(finding)
+
+    risk = Risk.objects.filter(source_finding=finding).first()
+    if risk is None:
+        # Back-compat: risks created before the source_finding link existed.
+        risk = Risk.objects.filter(
+            title__startswith=f"[{vuln.cve_id}]",
+            owner_dept=finding.owner_dept,
+        ).first()
+        if risk is not None and risk.source_finding_id is None:
+            risk.source_finding = finding
+
+    created = False
+    if risk is None:
+        category, _ = RiskCategory.objects.get_or_create(
+            name='Information Security',
+            defaults={'description': 'Auto-created from vulnerability findings'},
+        )
+        risk = Risk(
+            title=f"[{vuln.cve_id or 'VULN'}] {vuln.title[:150]}",
+            category=category,
+            owner_dept=finding.owner_dept,
+            status='identified',
+            treatment_strategy='mitigate',
+            identified_date=finding.discovered_date,
+            source_finding=finding,
+        )
+        created = True
+
+    risk.likelihood = likelihood
+    risk.impact = impact
+    risk.description = (
+        f"Auto-generated from finding on asset '{asset.name}'.\n"
+        f"CVSS {vuln.cvss_score} · EPSS {vuln.epss_score or 'N/A'} · "
+        f"KEV {'yes' if vuln.kev_status else 'no'}\n"
+        f"Composite score: {finding.composite_score}\n\n"
+        f"Evidence: {(finding.evidence or '')[:500]}"
     )
-    risk.assets.add(asset)
-    return risk, True
+    risk.save()
+
+    if not risk.assets.filter(pk=asset.pk).exists():
+        risk.assets.add(asset)
+
+    return risk, created
+
+
+def close_risks_for_finding(finding):
+    """Close any live risks derived from a finding that is now closed."""
+    from risks.models import Risk
+
+    closed = 0
+    for risk in Risk.objects.filter(source_finding=finding).exclude(status='closed'):
+        risk.status = 'closed'
+        note = f"Auto-closed: finding {finding.vulnerability} marked {finding.get_status_display()}."
+        risk.closure_notes = f"{risk.closure_notes} {note}".strip() if risk.closure_notes else note
+        risk.save(update_fields=['status', 'closed_date', 'closure_notes'])
+        closed += 1
+    return closed
+
+
+def sync_finding_cascade(finding):
+    """Signal entry point: cascade or close depending on the finding's status."""
+    if finding.status in ('remediated', 'false_positive'):
+        close_risks_for_finding(finding)
+    else:
+        cascade_finding_to_risk(finding)

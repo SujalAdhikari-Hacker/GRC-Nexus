@@ -22,7 +22,9 @@
     </div>
     <div class="d-flex gap-2">
         <a href="{% url 'frameworks:assessment_update' assessment.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
-        <a href="/admin/frameworks/complianceassessment/{{ assessment.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+        {% if user.is_staff %}
+        <a href="{% url 'admin:frameworks_complianceassessment_change' assessment.pk %}" class="btn btn-sm btn-outline-dark">Admin</a>
+        {% endif %}
         <a href="{% url 'frameworks:assessment_list' %}" class="btn btn-sm btn-outline-dark">Back to list</a>
     </div>
 </div>

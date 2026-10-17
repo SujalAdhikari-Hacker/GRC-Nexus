@@ -55,6 +55,12 @@ class Vulnerability(models.Model):
     class Meta:
         ordering = ['-cvss_score', 'cve_id']
         verbose_name_plural = 'Vulnerabilities'
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(cvss_score__gte=0, cvss_score__lte=10),
+                name='vulnerability_cvss_between_0_and_10',
+            ),
+        ]
 
     def __str__(self):
         return self.cve_id or self.title[:60]
@@ -171,6 +177,12 @@ class Finding(models.Model):
     class Meta:
         ordering = ['-composite_score', '-discovered_date']
         unique_together = ('vulnerability', 'asset', 'port')
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(composite_score__gte=0, composite_score__lte=100),
+                name='finding_composite_between_0_and_100',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.vulnerability} on {self.asset.name}"
@@ -249,13 +261,33 @@ class Finding(models.Model):
 
 
 def compute_composite_score(finding):
-    vuln = finding.vulnerability
-    asset = finding.asset
-    base = float(vuln.cvss_score or 0) * 10.0
+    """Blend CVSS, asset criticality and threat intel into a 0–100 score.
+
+    The old version multiplied an already-0–100 base (CVSS × 10) by up to
+    ×3.0 of amplifiers and then clamped at 100, so any half-serious finding
+    saturated at exactly 100 and could no longer be ranked. This weighted
+    model is bounded by construction and every input is normalised to 0–1
+    before weighting:
+
+        composite = 100 × (0.55·severity + 0.30·asset + 0.15·threat)
+
+      * severity = CVSS / 10
+      * asset    = asset criticality, mapped 1→0.25 … 4→1.0
+      * threat   = EPSS (0–1), +0.5 if the CVE is on the KEV list, capped at 1
+    """
+    if not finding.vulnerability_id or not finding.asset_id:
+        return 0.0
+
+    cvss = float(finding.vulnerability.cvss_score or 0)
+    severity = max(0.0, min(1.0, cvss / 10.0))
+
     crit_map = {1: 0.25, 2: 0.5, 3: 0.75, 4: 1.0}
-    crit_mult = crit_map.get(asset.criticality, 0.5)
-    epss = float(vuln.epss_score or 0)
-    epss_mult = 1.0 + epss
-    kev_mult = 1.5 if vuln.kev_status else 1.0
-    score = base * crit_mult * epss_mult * kev_mult
-    return round(min(score, 100.0), 2)
+    asset_factor = crit_map.get(finding.asset.criticality, 0.5)
+
+    threat = float(finding.vulnerability.epss_score or 0)
+    if finding.vulnerability.kev_status:
+        threat += 0.5
+    threat = max(0.0, min(1.0, threat))
+
+    score = 100.0 * (0.55 * severity + 0.30 * asset_factor + 0.15 * threat)
+    return round(score, 2)

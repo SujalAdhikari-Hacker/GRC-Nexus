@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from simple_history.models import HistoricalRecords
 from core.models import Department
@@ -101,6 +102,33 @@ class KRI(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.get_category_display()})"
+
+    def clean(self):
+        """Reject threshold configurations that would make the RAG maths nonsensical.
+
+        ``higher_worse``: amber (warning) must sit below red (breach).
+        ``higher_better``: red is the lower bound, so red must sit below amber.
+        """
+        super().clean()
+        errors = {}
+        amber = self.amber_threshold
+        red = self.red_threshold
+        if amber is None or red is None:
+            return
+        if self.direction == 'higher_worse':
+            if red <= amber:
+                errors['red_threshold'] = (
+                    'For "higher is worse" indicators the red (breach) threshold '
+                    'must be greater than the amber (warning) threshold.'
+                )
+        else:
+            if amber <= red:
+                errors['red_threshold'] = (
+                    'For "higher is better" indicators the red (breach) threshold '
+                    'must be lower than the amber (warning) threshold.'
+                )
+        if errors:
+            raise ValidationError(errors)
 
     @property
     def rag_status(self):

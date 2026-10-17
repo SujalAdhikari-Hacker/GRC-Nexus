@@ -4,7 +4,6 @@ from django.db import transaction
 from django.utils import timezone
 
 from core.models import Department
-from risks.models import Risk, RiskAppetite
 from kris.models import KRI, KRIReading
 
 

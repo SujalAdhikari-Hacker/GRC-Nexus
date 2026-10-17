@@ -42,6 +42,17 @@ class PolicyForm(forms.ModelForm):
             raise forms.ValidationError('Policy code must be at least 3 characters.')
         return code
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        policy = self.instance
+        if policy and policy.pk:
+            allowed = policy.allowed_transitions() | {policy.status}
+            self.fields['status'].choices = [
+                (value, label)
+                for value, label in Policy.STATUS_CHOICES
+                if value in allowed
+            ]
+
     def clean_title(self):
         title = (self.cleaned_data.get('title') or '').strip()
         if len(title) < 5:
@@ -52,6 +63,23 @@ class PolicyForm(forms.ModelForm):
         cleaned = super().clean()
         approval = cleaned.get('approval_date')
         review = cleaned.get('next_review_date')
+        status = cleaned.get('status')
+        instance = self.instance
+
+        # State-machine guard.
+        if instance.pk and status and not instance.can_transition_to(status):
+            self.add_error(
+                'status',
+                f'Cannot move a policy from "{instance.get_status_display()}" '
+                f'to "{(dict(Policy.STATUS_CHOICES).get(status, status))}".',
+            )
+
+        # Approval requires a named approver and a date.
+        if status == 'approved' and not (cleaned.get('approved_by') or instance.approved_by_id):
+            self.add_error('approved_by', 'A named approver is required to approve a policy.')
+        if status == 'approved' and not (approval or instance.approval_date):
+            self.add_error('approval_date', 'An approval date is required to approve a policy.')
+
         if approval and review and review < approval:
             self.add_error('next_review_date', 'Next review date cannot be before approval date.')
         return cleaned

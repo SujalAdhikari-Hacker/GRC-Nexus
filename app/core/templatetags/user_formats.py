@@ -1,6 +1,5 @@
 """Template filters that respect the user's date/time format preference."""
 from django import template
-from django.utils import timezone
 
 register = template.Library()
 
@@ -56,3 +55,23 @@ def usertime(context, value):
         return date_filter(value, fmt)
     except Exception:
         return str(value)
+
+
+@register.simple_tag(takes_context=True)
+def querystring(context, **kwargs):
+    """Rebuild the current query string with the given overrides.
+
+    Used by pagination so page links keep active filters. Pass a value of
+    ``None``/``''`` to drop a key.
+    """
+    request = context.get('request')
+    if request is None:
+        from django.http import QueryDict
+        return QueryDict('', mutable=True).urlencode()
+    params = request.GET.copy()
+    for key, value in kwargs.items():
+        if value in (None, ''):
+            params.pop(key, None)
+        else:
+            params[key] = value
+    return params.urlencode()

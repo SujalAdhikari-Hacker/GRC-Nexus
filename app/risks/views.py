@@ -1,23 +1,34 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.http import HttpResponse
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
-
-from core.reports import ReportMixin
-from core.mixins import DepartmentScopedMixin, HODOrSuperuserMixin, CsvExportMixin
-from core.correlation import get_full_risk_context
-
-from .models import Risk, RiskCategory, RiskAppetite, RiskTreatment, RiskException
-from .services import recalculate_risk
-from .forms import (
-    RiskForm, RiskTreatmentForm, RiskTreatmentUpdateForm,
-    RiskExceptionForm, RiskAppetiteForm,
+from django.views.generic import (
+    CreateView,
+    DetailView,
+    ListView,
+    TemplateView,
+    UpdateView,
 )
+
+from core.correlation import get_full_risk_context
+from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, HODOrSuperuserMixin, scope_queryset, user_can_access
+from core.models import Department
+from core.reports import ReportMixin
+
+from .forms import (
+    RiskAppetiteForm,
+    RiskExceptionForm,
+    RiskForm,
+    RiskTreatmentForm,
+    RiskTreatmentUpdateForm,
+)
+from .models import Risk, RiskAppetite, RiskCategory, RiskException, RiskTreatment
+from .services import calculate_residual_from_controls, recalculate_risk, severity_band
 
 
 # ==================================================================
@@ -134,7 +145,7 @@ class RiskDetailView(DepartmentScopedMixin, DetailView):
         return ctx
 
 
-class RiskCreateView(DepartmentScopedMixin, CreateView):
+class RiskCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
     model = Risk
     form_class = RiskForm
     template_name = 'risks/risk_form.html'
@@ -142,9 +153,8 @@ class RiskCreateView(DepartmentScopedMixin, CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            initial['owner_dept'] = user.department
+        if self.request.user.department_id:
+            initial['owner_dept'] = self.request.user.department
         likelihood = self.request.GET.get('likelihood')
         if likelihood and likelihood.isdigit() and 1 <= int(likelihood) <= 5:
             initial['likelihood'] = int(likelihood)
@@ -182,6 +192,7 @@ class RiskUpdateView(DepartmentScopedMixin, UpdateView):
         return response
 
 
+@login_required
 def risk_score_preview(request):
     try:
         likelihood = int(request.GET.get('likelihood', 1))
@@ -191,27 +202,29 @@ def risk_score_preview(request):
     likelihood = max(1, min(5, likelihood))
     impact = max(1, min(5, impact))
     inherent = likelihood * impact
+
     control_ids = request.GET.getlist('controls')
     residual = inherent
     if control_ids:
         from controls.models import Control
-        controls = Control.objects.filter(pk__in=control_ids, status='implemented')
-        if controls.exists():
-            avg_eff = sum(c.effectiveness for c in controls) / (controls.count() * 5.0)
-            residual = round(inherent * (1 - avg_eff))
-            residual = max(0, min(25, residual))
-    if inherent >= 20:
-        band, color = 'Critical', '#dc3545'
-    elif inherent >= 12:
-        band, color = 'High', '#fd7e14'
-    elif inherent >= 6:
-        band, color = 'Medium', '#ffc107'
-    else:
-        band, color = 'Low', '#198754'
+        controls = list(
+            scope_queryset(Control.objects.all(), request.user).filter(
+                pk__in=control_ids, status='implemented'
+            )
+        )
+        residual = calculate_residual_from_controls(inherent, controls)
+
+    band = severity_band(inherent)
+    color = {
+        'critical': '#dc3545',
+        'high':     '#fd7e14',
+        'medium':   '#ffc107',
+        'low':      '#198754',
+    }[band]
     return render(request, 'risks/_score_preview.html', {
         'likelihood': likelihood, 'impact': impact,
         'inherent': inherent, 'residual': residual,
-        'band': band, 'color': color,
+        'band': band.capitalize(), 'color': color,
     })
 
 
@@ -220,34 +233,25 @@ class RiskMatrixView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        user = self.request.user
         show_only_assessed = self.request.GET.get('assessed') == '1'
 
-        all_risks = Risk.objects.all()
-        if not user.is_superuser and user.department_id:
-            all_risks = all_risks.filter(owner_dept=user.department)
-
+        all_risks = scope_queryset(Risk.objects.all(), self.request.user)
         assessed_risks = all_risks.exclude(status='identified')
         unassessed_risks = all_risks.filter(status='identified')
+        source = list(assessed_risks if show_only_assessed else all_risks)
 
-        source = assessed_risks if show_only_assessed else all_risks
-
-        def severity_band(score):
-            if score >= 20:
-                return 'critical'
-            if score >= 12:
-                return 'high'
-            if score >= 6:
-                return 'medium'
-            return 'low'
+        def cell_for(likelihood, impact):
+            return [r for r in source if r.likelihood == likelihood and r.impact == impact]
 
         inherent_grid = []
+        residual_grid = []
         for impact in range(5, 0, -1):
-            row = []
+            inherent_row = []
+            residual_row = []
             for likelihood in range(1, 6):
                 score = likelihood * impact
-                cell_risks = [r for r in source if r.likelihood == likelihood and r.impact == impact]
-                row.append({
+                cell_risks = cell_for(likelihood, impact)
+                inherent_row.append({
                     'likelihood': likelihood,
                     'impact': impact,
                     'score': score,
@@ -256,36 +260,33 @@ class RiskMatrixView(LoginRequiredMixin, TemplateView):
                     'unassessed_count': sum(1 for r in cell_risks if r.status == 'identified'),
                     'breached_count': sum(1 for r in cell_risks if r.appetite_breached),
                 })
-            inherent_grid.append(row)
-
-        residual_grid = []
-        for impact in range(5, 0, -1):
-            row = []
-            for likelihood in range(1, 6):
-                cell_risks = [r for r in source if r.likelihood == likelihood and r.impact == impact]
                 if cell_risks:
-                    max_residual = max(r.residual_score for r in cell_risks)
-                    cell_band = severity_band(max_residual)
-                    avg_residual = round(sum(r.residual_score for r in cell_risks) / len(cell_risks), 1)
+                    residual_row.append({
+                        'likelihood': likelihood,
+                        'impact': impact,
+                        'score': score,
+                        'band': severity_band(max(r.residual_score for r in cell_risks)),
+                        'count': len(cell_risks),
+                        'avg_residual': round(sum(r.residual_score for r in cell_risks) / len(cell_risks), 1),
+                        'max_residual': max(r.residual_score for r in cell_risks),
+                    })
                 else:
-                    cell_band = severity_band(likelihood * impact)
-                    avg_residual = 0
-                row.append({
-                    'likelihood': likelihood,
-                    'impact': impact,
-                    'score': likelihood * impact,
-                    'band': cell_band,
-                    'count': len(cell_risks),
-                    'avg_residual': avg_residual,
-                    'max_residual': max((r.residual_score for r in cell_risks), default=0),
-                })
-            residual_grid.append(row)
+                    residual_row.append({
+                        'likelihood': likelihood,
+                        'impact': impact,
+                        'score': score,
+                        'band': severity_band(score),
+                        'count': 0,
+                        'avg_residual': 0,
+                        'max_residual': 0,
+                    })
+            inherent_grid.append(inherent_row)
+            residual_grid.append(residual_row)
 
         total = all_risks.count()
         assessed = assessed_risks.count()
         unassessed = unassessed_risks.count()
         pct_assessed = round((assessed / total * 100)) if total else 0
-        top_unassessed = unassessed_risks.order_by('-created_at')[:5]
 
         ctx.update({
             'inherent_grid': inherent_grid,
@@ -295,7 +296,7 @@ class RiskMatrixView(LoginRequiredMixin, TemplateView):
             'unassessed_count': unassessed,
             'pct_assessed': pct_assessed,
             'breached_count': all_risks.filter(appetite_breached=True).count(),
-            'top_unassessed': top_unassessed,
+            'top_unassessed': unassessed_risks.order_by('-created_at')[:5],
             'show_only_assessed': show_only_assessed,
             'has_any_risks': total > 0,
             'has_assessed_risks': assessed > 0,
@@ -329,16 +330,12 @@ class TreatmentListView(DepartmentScopedMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        base = self.get_queryset()
         ctx['statuses'] = RiskTreatment.STATUS_CHOICES
         ctx['strategies'] = RiskTreatment.STRATEGY_CHOICES
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_status'] = self.request.GET.get('status', '')
         ctx['selected_strategy'] = self.request.GET.get('strategy', '')
-
-        base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(risk__owner_dept=user.department)
         ctx['total_count'] = base.count()
         ctx['planned_count'] = base.filter(status='planned').count()
         ctx['in_progress_count'] = base.filter(status='in_progress').count()
@@ -352,7 +349,11 @@ class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
     template_name = 'risks/treatment_form.html'
 
     def dispatch(self, request, *args, **kwargs):
-        self.risk = Risk.objects.get(pk=kwargs['risk_pk'])
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        self.risk = get_object_or_404(Risk, pk=kwargs['risk_pk'])
+        if not user_can_access(request.user, self.risk):
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -372,10 +373,11 @@ class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
 
-class RiskTreatmentUpdateView(LoginRequiredMixin, UpdateView):
+class RiskTreatmentUpdateView(DepartmentScopedMixin, UpdateView):
     model = RiskTreatment
     form_class = RiskTreatmentUpdateForm
     template_name = 'risks/treatment_form.html'
+    department_field = 'risk__owner_dept'
 
     def form_valid(self, form):
         form.instance.updated_by = self.request.user
@@ -406,7 +408,9 @@ class RiskAppetiteListView(HODOrSuperuserMixin, ListView):
         user = self.request.user
         if user.is_superuser:
             return qs
-        return qs.filter(department=user.department)
+        if not user.department_id:
+            return qs.none()
+        return qs.filter(Q(department=user.department) | Q(department__isnull=True))
 
 
 class RiskAppetiteCreateView(HODOrSuperuserMixin, CreateView):
@@ -417,27 +421,39 @@ class RiskAppetiteCreateView(HODOrSuperuserMixin, CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            initial['department'] = user.department
+        if self.request.user.department_id:
+            initial['department'] = self.request.user.department
         return initial
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        user = self.request.user
+        # Non-superusers may only create appetite records for their own
+        # department (or an org-wide record if they have no department).
+        if not user.is_superuser:
+            form.fields['department'].queryset = Department.objects.filter(
+                pk=user.department_id
+            )
+        return form
 
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
+        if not self.request.user.is_superuser:
+            form.instance.department = self.request.user.department
         if form.cleaned_data.get('board_approved') and not form.instance.approved_by_id:
             form.instance.approved_by = self.request.user
         return super().form_valid(form)
 
 
-class RiskAppetiteUpdateView(HODOrSuperuserMixin, UpdateView):
+class RiskAppetiteUpdateView(HODOrSuperuserMixin, DepartmentScopedMixin, UpdateView):
     model = RiskAppetite
     form_class = RiskAppetiteForm
     template_name = 'risks/appetite_form.html'
     success_url = reverse_lazy('risks:appetite_list')
+    department_field = 'department'
 
     def form_valid(self, form):
-        # updated_by tracks the editor; created_by stays as-is
         form.instance.updated_by = self.request.user
         return super().form_valid(form)
 
@@ -465,17 +481,10 @@ class RiskExceptionListView(DepartmentScopedMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        all_exc = list(self.get_queryset())
         ctx['statuses'] = RiskException.STATUS_CHOICES
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_status'] = self.request.GET.get('status', '')
-
-        base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(risk__owner_dept=user.department)
-
-        # Compute expired/expiring counts (Python-side, since they depend on today)
-        all_exc = list(base)
         ctx['total_count'] = len(all_exc)
         ctx['pending_count'] = sum(1 for e in all_exc if e.status == 'pending')
         ctx['active_count'] = sum(1 for e in all_exc if e.status == 'active')
@@ -502,12 +511,16 @@ class RiskExceptionCreateView(LoginRequiredMixin, CreateView):
         risk_pk = self.request.GET.get('risk')
         if risk_pk:
             try:
-                initial['risk'] = Risk.objects.get(pk=risk_pk)
+                risk = Risk.objects.get(pk=risk_pk)
+                if user_can_access(self.request.user, risk):
+                    initial['risk'] = risk
             except Risk.DoesNotExist:
                 pass
         return initial
 
     def form_valid(self, form):
+        if not user_can_access(self.request.user, form.instance.risk):
+            raise PermissionDenied
         if not form.instance.requested_by_id:
             form.instance.requested_by = self.request.user
         return super().form_valid(form)
@@ -516,18 +529,29 @@ class RiskExceptionCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy('risks:exception_detail', kwargs={'pk': self.object.pk})
 
 
-class RiskExceptionUpdateView(LoginRequiredMixin, UpdateView):
+class RiskExceptionUpdateView(DepartmentScopedMixin, UpdateView):
     model = RiskException
     form_class = RiskExceptionForm
     template_name = 'risks/exception_form.html'
+    department_field = 'risk__owner_dept'
+
+    def form_valid(self, form):
+        if not user_can_access(self.request.user, form.instance.risk):
+            raise PermissionDenied
+        return super().form_valid(form)
 
     def get_success_url(self):
         return reverse_lazy('risks:exception_detail', kwargs={'pk': self.object.pk})
 
 
+@login_required
 @require_POST
 def exception_approve(request, pk):
+    if not (request.user.is_superuser or request.user.is_hod):
+        raise PermissionDenied
     exc = get_object_or_404(RiskException, pk=pk)
+    if not user_can_access(request.user, exc.risk):
+        raise PermissionDenied
     exc.status = 'active'
     exc.approver = request.user
     exc.approval_date = timezone.now().date()
@@ -536,9 +560,14 @@ def exception_approve(request, pk):
     return redirect('risks:exception_detail', pk=pk)
 
 
+@login_required
 @require_POST
 def exception_revoke(request, pk):
+    if not (request.user.is_superuser or request.user.is_hod):
+        raise PermissionDenied
     exc = get_object_or_404(RiskException, pk=pk)
+    if not user_can_access(request.user, exc.risk):
+        raise PermissionDenied
     exc.status = 'revoked'
     exc.save()
     messages.warning(request, f'{exc.exception_id} revoked.')

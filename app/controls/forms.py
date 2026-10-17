@@ -1,4 +1,7 @@
 from django import forms
+
+from core.validators import validate_evidence_file
+
 from .models import Control, ControlEvidence, ControlFrameworkMapping
 
 
@@ -25,6 +28,12 @@ class ControlEvidenceForm(forms.ModelForm):
     class Meta:
         model = ControlEvidence
         fields = ['file', 'description']
+
+    def clean_file(self):
+        f = self.cleaned_data.get('file')
+        if f:
+            validate_evidence_file(f)
+        return f
 
 
 class ControlFrameworkMappingForm(forms.ModelForm):

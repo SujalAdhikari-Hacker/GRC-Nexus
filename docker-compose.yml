@@ -7,22 +7,45 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    ports:
-      - "5432:5432"
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
 
   web:
     build: ./app
-    command: python manage.py runserver 0.0.0.0:8000
+    # Production server. For hot-reloading local development replace this with:
+    #   command: python manage.py runserver 0.0.0.0:8000
+    command: >
+      gunicorn config.wsgi:application
+      --bind 0.0.0.0:8000
+      --workers 3
+      --threads 2
+      --timeout 120
+      --access-logfile -
+      --error-logfile -
     volumes:
       - ./app:/app
+      - media_data:/app/media
     ports:
       - "8000:8000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import socket,sys; s=socket.socket(); s.settimeout(2); sys.exit(0 if s.connect_ex(('127.0.0.1',8000))==0 else 1)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  media_data:

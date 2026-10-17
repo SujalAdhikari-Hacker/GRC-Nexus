@@ -32,7 +32,9 @@
                 <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>
             </form>
         {% endif %}
-        <a href="/admin/risks/riskexception/{{ exception.pk }}/change/" class="btn btn-sm btn-outline-dark">Admin</a>
+        {% if user.is_staff %}
+        <a href="{% url 'admin:risks_riskexception_change' exception.pk %}" class="btn btn-sm btn-outline-dark">Admin</a>
+        {% endif %}
     </div>
 </div>
 

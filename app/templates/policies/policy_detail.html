@@ -17,7 +17,7 @@
     </div>
     <div>
         {% if policy.document %}
-            <a href="{{ policy.document.url }}" target="_blank" class="btn btn-sm btn-outline-dark">
+            <a href="{% url 'core:secure_media' path=policy.document.name %}" target="_blank" class="btn btn-sm btn-outline-dark">
                 <i class="bi bi-file-pdf"></i> Download PDF
             </a>
         {% endif %}

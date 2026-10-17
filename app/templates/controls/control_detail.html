@@ -234,7 +234,7 @@
             <ul class="list-group list-group-flush">
                 {% for e in evidence %}
                     <li class="list-group-item d-flex justify-content-between">
-                        <a href="{{ e.file.url }}" target="_blank">{{ e.description|default:e.file.name }}</a>
+                        <a href="{% url 'core:secure_media' path=e.file.name %}" target="_blank">{{ e.description|default:e.file.name }}</a>
                         <small class="text-muted">{{ e.uploaded_at|date:"Y-m-d" }}</small>
                     </li>
                 {% endfor %}

@@ -1,17 +1,37 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
-from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import (
-    ListView, DetailView, CreateView, UpdateView, TemplateView,
+    CreateView,
+    DetailView,
+    ListView,
+    UpdateView,
 )
 
-from core.mixins import DepartmentScopedMixin, HODOrSuperuserMixin
-from .forms import TicketForm, TicketCommentForm
-from .models import Ticket, TicketComment
+from core.mixins import (
+    DepartmentCreateMixin,
+    DepartmentScopedMixin,
+    HODOrSuperuserMixin,
+    scope_queryset,
+    user_can_access,
+)
+from core.models import User
+
+from .forms import TicketCommentForm, TicketForm
+from .models import Ticket
+
+
+def _get_ticket_or_403(request, pk):
+    """Fetch a ticket and enforce object-level access for the requester."""
+    ticket = get_object_or_404(Ticket, pk=pk)
+    if not user_can_access(request.user, ticket):
+        raise PermissionDenied
+    return ticket
 
 
 # ==================================================================
@@ -54,6 +74,8 @@ class TicketListView(DepartmentScopedMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        all_tickets = list(self.get_queryset())
+        user = self.request.user
         ctx['statuses'] = Ticket.STATUS_CHOICES
         ctx['priorities'] = Ticket.PRIORITY_CHOICES
         ctx['sources'] = Ticket.SOURCE_CHOICES
@@ -62,13 +84,6 @@ class TicketListView(DepartmentScopedMixin, ListView):
         ctx['selected_priority'] = self.request.GET.get('priority', '')
         ctx['selected_source'] = self.request.GET.get('source', '')
         ctx['selected_assigned'] = self.request.GET.get('assigned', '')
-
-        base = super().get_queryset()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            base = base.filter(owner_dept=user.department)
-
-        all_tickets = list(base)
         ctx['total_count'] = len(all_tickets)
         ctx['open_count'] = sum(1 for t in all_tickets if t.is_open)
         ctx['unassigned_count'] = sum(1 for t in all_tickets if t.is_open and not t.assigned_to_id)
@@ -78,7 +93,7 @@ class TicketListView(DepartmentScopedMixin, ListView):
 
 
 # ==================================================================
-# MY TICKETS — only tickets assigned to me
+# MY TICKETS
 # ==================================================================
 
 class MyTicketsView(LoginRequiredMixin, ListView):
@@ -103,7 +118,7 @@ class MyTicketsView(LoginRequiredMixin, ListView):
 
 
 # ==================================================================
-# AVAILABLE QUEUE — unassigned tickets in my department
+# AVAILABLE QUEUE — unassigned tickets I can work on
 # ==================================================================
 
 class AvailableTicketsView(LoginRequiredMixin, ListView):
@@ -113,13 +128,10 @@ class AvailableTicketsView(LoginRequiredMixin, ListView):
     paginate_by = 25
 
     def get_queryset(self):
-        qs = Ticket.objects.filter(
-            assigned_to__isnull=True,
-            status='open',
+        qs = scope_queryset(
+            Ticket.objects.filter(assigned_to__isnull=True, status='open'),
+            self.request.user,
         ).select_related('owner_dept')
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            qs = qs.filter(owner_dept=user.department)
         return qs
 
     def get_context_data(self, **kwargs):
@@ -149,19 +161,20 @@ class TicketDetailView(DepartmentScopedMixin, DetailView):
 # CREATE / EDIT
 # ==================================================================
 
-class TicketCreateView(HODOrSuperuserMixin, CreateView):
+class TicketCreateView(DepartmentCreateMixin, HODOrSuperuserMixin, CreateView):
     model = Ticket
     form_class = TicketForm
     template_name = 'tickets/ticket_form.html'
 
     def get_initial(self):
         initial = super().get_initial()
-        user = self.request.user
-        if not user.is_superuser and user.department_id:
-            initial['owner_dept'] = user.department
+        if self.request.user.department_id:
+            initial['owner_dept'] = self.request.user.department
         return initial
 
     def form_valid(self, form):
+        if not self.request.user.is_superuser:
+            form.instance.owner_dept = self.request.user.department
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
@@ -189,13 +202,14 @@ class TicketUpdateView(DepartmentScopedMixin, UpdateView):
 
 
 # ==================================================================
-# ACTIONS — claim, assign, resolve
+# ACTIONS — claim, assign, status, comment
 # ==================================================================
 
+@login_required
 @require_POST
 def ticket_claim(request, pk):
     """User claims an unassigned ticket for themselves."""
-    ticket = get_object_or_404(Ticket, pk=pk)
+    ticket = _get_ticket_or_403(request, pk)
 
     if ticket.assigned_to_id:
         messages.warning(request, f'{ticket.ticket_id} is already assigned to {ticket.assigned_to}.')
@@ -211,22 +225,32 @@ def ticket_claim(request, pk):
     return redirect('tickets:detail', pk=pk)
 
 
+@login_required
 @require_POST
 def ticket_assign(request, pk):
-    """HOD/admin assigns ticket to a specific user."""
-    ticket = get_object_or_404(Ticket, pk=pk)
-    user_id = request.POST.get('assigned_to')
+    """HOD/admin assigns a ticket to a specific user."""
+    if not (request.user.is_superuser or request.user.is_hod):
+        raise PermissionDenied
+    ticket = _get_ticket_or_403(request, pk)
 
+    user_id = request.POST.get('assigned_to')
     if not user_id:
         messages.error(request, 'Please choose a user to assign.')
         return redirect('tickets:detail', pk=pk)
 
-    from core.models import User
     try:
         assignee = User.objects.get(pk=user_id)
-    except User.DoesNotExist:
+    except (User.DoesNotExist, ValueError):
         messages.error(request, 'User not found.')
         return redirect('tickets:detail', pk=pk)
+
+    # A department head may only assign within their own department (and to
+    # themselves); only a superuser can cross department boundaries.
+    if not request.user.is_superuser:
+        dept_id = request.user.department_id
+        if assignee.department_id != dept_id:
+            messages.error(request, 'You can only assign tickets within your department.')
+            return redirect('tickets:detail', pk=pk)
 
     ticket.assigned_to = assignee
     ticket.assigned_by = request.user
@@ -239,10 +263,11 @@ def ticket_assign(request, pk):
     return redirect('tickets:detail', pk=pk)
 
 
+@login_required
 @require_POST
 def ticket_update_status(request, pk):
     """Quick inline status update."""
-    ticket = get_object_or_404(Ticket, pk=pk)
+    ticket = _get_ticket_or_403(request, pk)
     new_status = request.POST.get('status')
 
     valid = [s[0] for s in Ticket.STATUS_CHOICES]
@@ -250,7 +275,6 @@ def ticket_update_status(request, pk):
         ticket.status = new_status
         ticket.updated_by = request.user
 
-        # Capture resolution notes when closing
         resolution = request.POST.get('resolution_notes', '').strip()
         if resolution:
             ticket.resolution_notes = resolution
@@ -263,9 +287,10 @@ def ticket_update_status(request, pk):
     return redirect('tickets:detail', pk=pk)
 
 
+@login_required
 @require_POST
 def ticket_add_comment(request, pk):
-    ticket = get_object_or_404(Ticket, pk=pk)
+    ticket = _get_ticket_or_403(request, pk)
     form = TicketCommentForm(request.POST)
 
     if form.is_valid():

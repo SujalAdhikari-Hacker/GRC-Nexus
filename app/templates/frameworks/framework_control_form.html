@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Requirement{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'frameworks:list' %}">Frameworks</a></li>
+    {% if form.instance.pk %}
+        <li class="breadcrumb-item"><a href="{% url 'frameworks:detail' form.instance.framework.pk %}">{{ form.instance.framework.name }}</a></li>
+        <li class="breadcrumb-item active">{{ form.instance.code }}</li>
+    {% else %}
+        <li class="breadcrumb-item active">New Requirement</li>
+    {% endif %}
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-7">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+            <div class="card mb-3">
+                <div class="card-header"><strong><i class="bi bi-list-check"></i> Requirement details</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Framework <span class="text-danger">*</span></label>
+                        {{ form.framework }}
+                        <div class="form-text small">{{ form.framework.help_text }}</div>
+                        {% if form.framework.errors %}<div class="text-danger small">{{ form.framework.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Code <span class="text-danger">*</span></label>
+                        {{ form.code }}
+                        <div class="form-text small">{{ form.code.help_text }}</div>
+                        {% if form.code.errors %}<div class="text-danger small">{{ form.code.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Title <span class="text-danger">*</span></label>
+                        {{ form.title }}
+                        <div class="form-text small">{{ form.title.help_text }}</div>
+                        {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-dark">{% if form.instance.pk %}Save Changes{% else %}Add Requirement{% endif %}</button>
+            {% if form.instance.pk %}
+                <a href="{% url 'frameworks:detail' form.instance.framework.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            {% else %}
+                <a href="{% url 'frameworks:list' %}" class="btn btn-outline-secondary">Cancel</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card sticky-top" style="top:1rem;">
+            <div class="card-header"><strong>About requirements</strong></div>
+            <div class="card-body small text-muted">
+                <p>A <strong>requirement</strong> is a single control objective from the framework — one clause, one
+                control statement, one annex item.</p>
+                <p class="mb-2">Give it a recognisable <strong>code</strong> so auditors and control owners can
+                reference it, for example:</p>
+                <ul class="ps-3 mb-2">
+                    <li>ISO/IEC 27001 — <code>A.5.1</code></li>
+                    <li>NIST CSF — <code>ID.AM-1</code></li>
+                    <li>SOC 2 — <code>CC6.1</code></li>
+                    <li>PCI DSS — <code>Req 8.3</code></li>
+                </ul>
+                <p class="mb-0">Once saved, map your internal controls to this requirement to build coverage.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

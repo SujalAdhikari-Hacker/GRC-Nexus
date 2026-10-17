@@ -16,13 +16,79 @@ class RiskForm(forms.ModelForm):
             'category', 'owner_dept', 'owner_user',
             'likelihood', 'impact', 'treatment_strategy', 'status',
             'assets', 'controls', 'identified_date', 'target_close_date',
+            'next_review_date', 'approved_by', 'closure_notes',
         ]
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
             'impact_description': forms.Textarea(attrs={'rows': 2}),
+            'closure_notes': forms.Textarea(attrs={'rows': 3}),
             'identified_date': forms.DateInput(attrs={'type': 'date'}),
             'target_close_date': forms.DateInput(attrs={'type': 'date'}),
+            'next_review_date': forms.DateInput(attrs={'type': 'date'}),
         }
+        help_texts = {
+            'likelihood': 'How often the event is expected: 1 Rare → 5 Almost certain.',
+            'impact': 'How bad it would be: 1 Insignificant → 5 Severe.',
+            'target_close_date': 'When this risk must be treated or accepted by. Drives overdue reporting.',
+            'next_review_date': 'When this risk should next be reviewed.',
+            'approved_by': 'A named approver is required to close a risk that breaches appetite.',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        risk = self.instance
+        # Only offer legal status transitions from the current state.
+        if risk and risk.pk:
+            allowed = risk.allowed_transitions() | {risk.status}
+            self.fields['status'].choices = [
+                (value, label)
+                for value, label in Risk.STATUS_CHOICES
+                if value in allowed
+            ]
+
+    def clean(self):
+        cleaned = super().clean()
+        status = cleaned.get('status')
+        approved_by = cleaned.get('approved_by')
+        instance = self.instance
+
+        # 1) State-machine guard — no illegal jumps.
+        if instance.pk and status and not instance.can_transition_to(status):
+            self.add_error(
+                'status',
+                f'Cannot move a risk from '
+                f'"{instance.get_status_display()}" to '
+                f'"{dict(Risk.STATUS_CHOICES).get(status, status)}".',
+            )
+
+        # 2) Sign-off required to close an over-appetite / escalated risk.
+        if status == 'closed' and (instance.appetite_breached or instance.escalated):
+            if not (approved_by or instance.approved_by_id or cleaned.get('closure_notes')):
+                self.add_error(
+                    'approved_by',
+                    'This risk breaches appetite — a named approver (or closure '
+                    'rationale) is required before it can be closed.',
+                )
+
+        # 3) Risk appetite capacity — block registering a risk beyond capacity.
+        likelihood = cleaned.get('likelihood')
+        impact = cleaned.get('impact')
+        if likelihood and impact:
+            from .services import find_applicable_appetite
+            probe = Risk(
+                owner_dept=cleaned.get('owner_dept'),
+                category=cleaned.get('category'),
+            )
+            appetite = find_applicable_appetite(probe)
+            inherent = likelihood * impact
+            if appetite and inherent > appetite.risk_capacity:
+                self.add_error(
+                    'impact',
+                    f'Inherent score {inherent} exceeds the risk capacity '
+                    f'({appetite.risk_capacity}) for this scope. Escalate or '
+                    f'raise the appetite before registering it.',
+                )
+        return cleaned
 
 
 # ============================================================

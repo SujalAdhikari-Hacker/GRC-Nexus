@@ -1,20 +1,23 @@
 from django.contrib import admin
-from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
+from django.urls import include, path
+from django.views.generic import RedirectView
+
+
+class PostOnlyLogoutView(auth_views.LogoutView):
+    """Sign-out must be a POST (CSRF-protected), never a GET.
+
+    Django 4.2 still answers GET /logout/, which lets a third-party page log
+    the user out with a bare <img>/link. Restrict it to POST.
+    """
+
+    http_method_names = ['post', 'options']
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
     # Auth
-    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
-    path('password-change/', auth_views.PasswordChangeView.as_view(
-        template_name='registration/password_change_form.html',
-        success_url='/settings/',
-    ), name='password_change'),
-    # App
     path('', include('core.urls')),
     path('assets/', include('assets.urls')),
     path('risks/', include('risks.urls')),
@@ -27,20 +30,22 @@ urlpatterns = [
     path('audits/', include('audits.urls')),
     path('threat-intel/', include('threatintel.urls')),
     path('tickets/', include('tickets.urls')),
-]
 
-# Serve static files in dev — Django's built-in runserver handler
-# sometimes fails, so we serve them explicitly through URLs.
-if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    from django.views.generic import RedirectView
-
-urlpatterns += [
     path('favicon.ico', RedirectView.as_view(url='/static/img/favicon.svg', permanent=True)),
 ]
-from django.views.generic import RedirectView
 
+# Auth URLs live here rather than in core.urls so the login/logout names stay
+# the Django defaults used by LOGIN_URL / LOGOUT_REDIRECT_URL.
 urlpatterns += [
-    path('favicon.ico', RedirectView.as_view(url='/static/img/favicon.svg', permanent=True)),
+    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
+    path('logout/', PostOnlyLogoutView.as_view(), name='logout'),
+    path('password-change/', auth_views.PasswordChangeView.as_view(
+        template_name='registration/password_change_form.html',
+        success_url='/settings/',
+    ), name='password_change'),
 ]
+
+# WhiteNoise serves STATIC_ROOT in production. Uploaded media is served only
+# through core.media.download_media, which enforces login + department scoping;
+# the raw /media/ mount is intentionally removed so it cannot be bypassed.
+

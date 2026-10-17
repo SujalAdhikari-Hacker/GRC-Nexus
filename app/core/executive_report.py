@@ -2,9 +2,9 @@
 Gathers all data + generates narratives for the executive report.
 """
 from collections import Counter
-from datetime import timedelta
 
 from django.utils import timezone
+from django.utils.html import escape
 
 from assets.models import Asset
 from risks.models import Risk
@@ -15,42 +15,46 @@ from policies.models import Policy
 from vendors.models import Vendor
 from audits.models import AuditFinding, ActionItem
 from core.correlation import get_framework_coverage
+from core.dashboard_data import iter_month_bounds
+from core.mixins import scope_queryset
 from . import report_charts as charts
 
 
 def _get_scope(user):
-    """Return whether user sees all data or just their department."""
+    """Return the department a report should be limited to, or None for org-wide.
+
+    Only superusers get an org-wide report. A user with no department gets
+    (correctly) an empty report rather than full visibility.
+    """
     if user.is_superuser:
         return None
     return getattr(user, 'department', None)
-
-
-def _filter(qs, dept, field='owner_dept'):
-    if dept is None:
-        return qs
-    return qs.filter(**{field: dept})
 
 
 def build_executive_report(user):
     """Return a dict with all data + charts + narratives."""
     dept = _get_scope(user)
 
-    # ---------- Base querysets ----------
-    risks      = _filter(Risk.objects.all(), dept)
-    controls   = _filter(Control.objects.all(), dept)
-    findings   = _filter(Finding.objects.all(), dept)
-    actions    = _filter(ActionItem.objects.all(), dept)
-    policies   = _filter(Policy.objects.all(), dept)
-    assets     = _filter(Asset.objects.filter(is_active=True), dept)
-    audit_find = _filter(AuditFinding.objects.all(), dept)
-    vendors    = _filter(Vendor.objects.filter(status='active'), dept)
+    # ---------- Base querysets (respect object-level scoping, incl. sharing) ----------
+    risks      = scope_queryset(Risk.objects.all(), user)
+    controls   = scope_queryset(Control.objects.all(), user)
+    findings   = scope_queryset(Finding.objects.all(), user)
+    actions    = scope_queryset(ActionItem.objects.all(), user)
+    policies   = scope_queryset(Policy.objects.all(), user)
+    assets     = scope_queryset(Asset.objects.filter(is_active=True), user)
+    audit_find = scope_queryset(AuditFinding.objects.all(), user)
+    vendors    = scope_queryset(Vendor.objects.filter(status='active'), user)
 
     # ---------- Counts ----------
-    total_risks       = risks.count()
-    breached_risks    = risks.filter(appetite_breached=True).count()
-    open_risks        = risks.exclude(status='closed').count()
-    critical_risks    = risks.filter(inherent_score__gte=20).count()
-    high_risks        = risks.filter(inherent_score__gte=12, inherent_score__lt=20).count()
+    # "Active" consistently means not closed — closed risks are not live
+    # exposure and must not inflate any of the metrics below.
+    active_risks      = risks.exclude(status='closed')
+    total_risks       = active_risks.count()
+    closed_risks      = risks.count() - total_risks
+    breached_risks    = active_risks.filter(appetite_breached=True).count()
+    open_risks        = total_risks
+    critical_risks    = active_risks.filter(inherent_score__gte=20).count()
+    high_risks        = active_risks.filter(inherent_score__gte=12, inherent_score__lt=20).count()
 
     total_controls    = controls.count()
     implemented       = controls.filter(status='implemented').count()
@@ -79,51 +83,54 @@ def build_executive_report(user):
 
     # ---------- Averages ----------
     avg_inherent = (
-        round(sum(r.inherent_score for r in risks) / total_risks, 1) if total_risks else 0
+        round(sum(r.inherent_score for r in active_risks) / total_risks, 1) if total_risks else 0
     )
     avg_residual = (
-        round(sum(r.residual_score for r in risks) / total_risks, 1) if total_risks else 0
+        round(sum(r.residual_score for r in active_risks) / total_risks, 1) if total_risks else 0
     )
     control_effectiveness_pct = round(effective / total_controls * 100) if total_controls else 0
 
     # ---------- Heatmap data ----------
     heatmap_cells = {}
-    for r in risks:
+    for r in active_risks:
         key = (r.likelihood, r.impact)
         heatmap_cells[key] = heatmap_cells.get(key, 0) + 1
 
     # ---------- Category distribution ----------
-    category_counts = Counter(r.category.name for r in risks)
+    category_counts = Counter(r.category.name for r in active_risks)
     cat_labels = list(category_counts.keys())
     cat_values = list(category_counts.values())
 
     # ---------- Trend data ----------
+    # Cohort averages per real calendar month (see core.dashboard_data for why
+    # 30-day arithmetic and cumulative snapshots were wrong).
     today = timezone.now().date()
     trend_labels = []
     inherent_trend = []
     residual_trend = []
-    for i in range(5, -1, -1):
-        target = (today.replace(day=1) - timedelta(days=i * 30)).replace(day=1)
-        next_month = (target + timedelta(days=32)).replace(day=1)
-        month_risks = [r for r in risks
-                       if r.created_at.date() < next_month and r.created_at.date() >= target]
-        # For a proper snapshot we'd use historical records; approximate with current
-        month_risks = list(risks.filter(created_at__date__lt=next_month).exclude(status='closed'))
+    for start, end in iter_month_bounds(today, 6):
+        month_risks = list(
+            risks.filter(created_at__date__gte=start, created_at__date__lt=end)
+        )
+        trend_labels.append(start.strftime('%b'))
         if month_risks:
-            inherent_trend.append(round(sum(r.inherent_score for r in month_risks) / len(month_risks), 1))
-            residual_trend.append(round(sum(r.residual_score for r in month_risks) / len(month_risks), 1))
+            inherent_trend.append(
+                round(sum(r.inherent_score for r in month_risks) / len(month_risks), 1)
+            )
+            residual_trend.append(
+                round(sum(r.residual_score for r in month_risks) / len(month_risks), 1)
+            )
         else:
             inherent_trend.append(0)
             residual_trend.append(0)
-        trend_labels.append(target.strftime('%b'))
 
     # ---------- Top risks ----------
-    top_risks = list(risks.order_by('-residual_score')[:10])
+    top_risks = list(active_risks.order_by('-residual_score')[:10])
 
     # ---------- Top risky assets ----------
     asset_rows = []
     for asset in assets.select_related('owner_dept'):
-        asset_risks = list(asset.risks.all())
+        asset_risks = [r for r in asset.risks.all() if r.status != 'closed']
         if not asset_risks:
             continue
         max_residual = max((r.residual_score or 0) for r in asset_risks)
@@ -163,18 +170,38 @@ def build_executive_report(user):
         'public':       sum(1 for a in assets if a.classification == 'public'),
     }
 
-    # Financial exposure: for each risk, take the max asset value it touches
-    # weighted by the residual score as a fraction of the max (25)
+    # Financial exposure is computed per asset (each asset counted once) using
+    # the worst active risk on that asset. The previous per-risk sum counted an
+    # asset once per linked risk, inflating exposure for shared assets.
     def _risk_exposure(r, residual=True):
-        linked_assets = list(r.assets.all())
+        linked_assets = [
+            a for a in r.assets.all()
+            if a.owner_dept_id == r.owner_dept_id
+        ]
         if not linked_assets:
             return Decimal('0')
         max_val = max((a.value or Decimal('0')) for a in linked_assets)
         score = r.residual_score if residual else r.inherent_score
         return max_val * Decimal(score) / Decimal('25')
 
-    total_inherent_exposure = sum(_risk_exposure(r, residual=False) for r in risks)
-    total_residual_exposure = sum(_risk_exposure(r, residual=True) for r in risks)
+    def _portfolio_exposure(residual=True):
+        total = Decimal('0')
+        for asset in assets:
+            asset_risks = [
+                r for r in asset.risks.all()
+                if r.status != 'closed' and r.owner_dept_id == asset.owner_dept_id
+            ]
+            if not asset_risks:
+                continue
+            score = max(
+                ((r.residual_score if residual else r.inherent_score) or 0)
+                for r in asset_risks
+            )
+            total += (asset.value or Decimal('0')) * Decimal(score) / Decimal('25')
+        return total
+
+    total_inherent_exposure = _portfolio_exposure(residual=False)
+    total_residual_exposure = _portfolio_exposure(residual=True)
     risk_reduction = total_inherent_exposure - total_residual_exposure
     risk_reduction_pct = (
         round(float(risk_reduction / total_inherent_exposure) * 100)
@@ -183,7 +210,7 @@ def build_executive_report(user):
 
     # Top 3 risks in plain English
     top_business_risks = []
-    for r in risks.order_by('-residual_score')[:3]:
+    for r in active_risks.order_by('-residual_score')[:3]:
         top_business_risks.append({
             'title': r.title,
             'exposure': _risk_exposure(r, residual=True),
@@ -240,11 +267,14 @@ def build_executive_report(user):
     chart_frameworks = charts.framework_coverage_png(fw_names, fw_percents)
 
     # ---------- NARRATIVES ----------
-    org_label = dept.name if dept else 'the organization'
+    # Executive summary paragraph. org_label is interpolated into HTML that the
+    # template renders with |safe, so it must be escaped here. Capitalisation is
+    # resolved before escaping so entities such as "&amp;" survive intact.
+    org_label = escape(dept.name) if dept else 'The organization'
 
     # Executive summary paragraph
     risk_line = (
-        f"{org_label.capitalize()} maintains <strong>{total_risks} active risk"
+        f"{org_label} maintains <strong>{total_risks} active risk"
         f"{'s' if total_risks != 1 else ''}</strong> across {len(cat_labels)} "
         f"categor{'ies' if len(cat_labels) != 1 else 'y'}, with an average inherent score "
         f"of {avg_inherent}/25 and residual score of {avg_residual}/25."
