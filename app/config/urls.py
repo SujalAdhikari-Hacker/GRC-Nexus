@@ -49,3 +49,30 @@ urlpatterns += [
 # through core.media.download_media, which enforces login + department scoping;
 # the raw /media/ mount is intentionally removed so it cannot be bypassed.
 
+
+# ---------------------------------------------------------------------------
+# Custom error handlers
+#
+# With DEBUG=False Django already renders 404.html / 403.html / 500.html
+# automatically. These handlers add the attempted path (and any permission
+# message) to the context so the pages can explain *why* access was denied —
+# most denials in GRC Nexus are cross-department access attempts.
+# ---------------------------------------------------------------------------
+
+def handler403(request, exception=None):
+    from django.shortcuts import render
+    return render(request, '403.html', {
+        'message': str(exception) if exception else '',
+        'request_path': request.path,
+    }, status=403)
+
+
+def handler404(request, exception=None):
+    from django.shortcuts import render
+    return render(request, '404.html', {'request_path': request.path}, status=404)
+
+
+def handler500(request):
+    from django.shortcuts import render
+    return render(request, '500.html', status=500)
+

@@ -25,7 +25,7 @@
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label">Assessment ID</label>
-                                    <div class="form-control" style="background: var(--surface-2); font-family: monospace; display: flex; align-items: center; gap: 8px;">
+                                    <div class="form-control inline-bar-mono">
                                         <i class="bi bi-hash text-token-info"></i>
                                         <strong>{{ form.instance.assessment_id|default:"Auto-generated" }}</strong>
                                     </div>
@@ -169,7 +169,7 @@
                 <p class="mb-2"><strong>Each dimension scored 0–25:</strong></p>
                 <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-success">0-5</span> Low</span><span>Minimal risk</span></div>
                 <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-warning text-dark">6-12</span> Medium</span><span>Manageable</span></div>
-                <div class="d-flex justify-content-between mb-1"><span><span class="badge" style="background:#EA580C;">13-19</span> High</span><span>Needs action</span></div>
+                <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-orange">13-19</span> High</span><span>Needs action</span></div>
                 <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-danger">20-25</span> Critical</span><span>Urgent</span></div>
 
                 <hr>
@@ -177,7 +177,7 @@
                 <div class="small text-muted">
                     <div>Total 0–25 → <span class="badge bg-success">Low</span></div>
                     <div>Total 26–50 → <span class="badge bg-warning text-dark">Medium</span></div>
-                    <div>Total 51–75 → <span class="badge" style="background:#EA580C;">High</span></div>
+                    <div>Total 51–75 → <span class="badge bg-orange">High</span></div>
                     <div>Total 76–100 → <span class="badge bg-danger">Critical</span></div>
                 </div>
             </div>

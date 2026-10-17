@@ -59,7 +59,7 @@
 {% if unassessed_count and not show_only_assessed %}
 <div class="alert alert-warning d-flex align-items-start gap-2 mb-3" style="border-radius:6px;">
     <i class="bi bi-exclamation-triangle-fill mt-1"></i>
-    <div style="flex:1;">
+    <div class="grow-1">
         <strong>{{ unassessed_count }} risk{{ unassessed_count|pluralize }} not yet assessed.</strong>
         These appear in the matrix with their default score. To properly reflect the risk,
         <a href="{% url 'risks:list' %}?assessed=0"><strong>open them</strong></a> and confirm likelihood, impact, and linked controls.
@@ -79,7 +79,7 @@
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_risks }}</div><div class="label"><i class="bi bi-exclamation-triangle"></i> Total risks</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value text-success">{{ assessed_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Assessed</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value text-warning">{{ unassessed_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> Awaiting assessment</div></div></div>
-    <div class="col-md-3"><div class="stat-card" {% if breached_count %}style="border-color:#dc3545;"{% endif %}><div class="value text-danger">{{ breached_count }}</div><div class="label"><i class="bi bi-shield-exclamation"></i> Breaching appetite</div></div></div>
+    <div class="col-md-3"><div class="stat-card{% if breached_count %} stat-alert-danger{% endif %}"><div class="value text-danger">{{ breached_count }}</div><div class="label"><i class="bi bi-shield-exclamation"></i> Breaching appetite</div></div></div>
 </div>
 
 <div class="row g-3">
@@ -100,7 +100,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <table class="table table-bordered mb-0" style="table-layout:fixed;">
+                <table class="table table-bordered mb-0 table-fixed">
                     <tbody>
                     {% for row in inherent_grid %}
                         <tr>
@@ -165,7 +165,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <table class="table table-bordered mb-0" style="table-layout:fixed;">
+                <table class="table table-bordered mb-0 table-fixed">
                     <tbody>
                     {% for row in residual_grid %}
                         <tr>

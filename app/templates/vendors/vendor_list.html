@@ -6,7 +6,7 @@
 <div class="row g-3 mb-4">
     <div class="col-md-4"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-truck"></i> Total vendors</div></div></div>
     <div class="col-md-4"><div class="stat-card"><div class="value text-token-success">{{ active_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Active</div></div></div>
-    <div class="col-md-4"><div class="stat-card" {% if critical_count %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ critical_count }}</div><div class="label"><i class="bi bi-shield-exclamation"></i> Tier 1 — Critical</div></div></div>
+    <div class="col-md-4"><div class="stat-card{% if critical_count %} stat-alert-danger{% endif %}"><div class="value text-danger">{{ critical_count }}</div><div class="label"><i class="bi bi-shield-exclamation"></i> Tier 1 — Critical</div></div></div>
 </div>
 
 <div class="card">
@@ -70,12 +70,18 @@
                         {% elif v.status == 'under_review' %}<span class="badge bg-warning text-dark">Under Review</span>
                         {% elif v.status == 'suspended' %}<span class="badge bg-secondary">Suspended</span>
                         {% else %}<span class="badge bg-dark">Terminated</span>{% endif %}
+                        {% if v.is_contract_expired %}<span class="badge bg-danger d-block mt-1"><i class="bi bi-exclamation-triangle"></i> Contract expired</span>
+                        {% elif v.is_renewal_due_soon %}<span class="badge bg-warning text-dark d-block mt-1">Renewal due</span>{% endif %}
                     </td>
-                    <td><small>{{ v.contract_renewal_date|default:"—" }}</small></td>
+                    <td>
+                        <small>{{ v.contract_renewal_date|default:"—" }}</small>
+                        {% if v.is_contract_expired %}<br><small class="text-danger">{{ v.days_to_renewal }} days overdue</small>
+                        {% elif v.is_renewal_due_soon %}<br><small class="text-warning-emphasis">in {{ v.days_to_renewal }} days</small>{% endif %}
+                    </td>
                     <td class="text-center">
                         {% if v.latest_score is not None %}
                             {% if v.latest_score >= 4.5 %}<span class="badge bg-danger">{{ v.latest_score }}</span>
-                            {% elif v.latest_score >= 3.5 %}<span class="badge" style="background:#EA580C;">{{ v.latest_score }}</span>
+                            {% elif v.latest_score >= 3.5 %}<span class="badge bg-orange">{{ v.latest_score }}</span>
                             {% elif v.latest_score >= 2.5 %}<span class="badge bg-warning text-dark">{{ v.latest_score }}</span>
                             {% else %}<span class="badge bg-success">{{ v.latest_score }}</span>{% endif %}
                         {% else %}<small class="text-muted">—</small>{% endif %}

@@ -135,7 +135,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <table class="table table-bordered mb-0" style="table-layout:fixed;">
+                <table class="table table-bordered mb-0 table-fixed">
                     <tbody>
                     {% for row in heatmap %}
                         <tr>
@@ -150,7 +150,7 @@
                                     {% else %}hm-low{% endif %}"
                                     style="height:60px;">
                                     {% if cell.count %}
-                                        <div style="font-size:1.4rem; font-weight:700;">{{ cell.count }}</div>
+                                        <div class="stat-value-lg">{{ cell.count }}</div>
                                         <div style="font-size:.7rem; opacity:.8;">score {{ cell.score }}</div>
                                     {% else %}
                                         <div class="text-muted" style="font-size:.75rem;">{{ cell.score }}</div>
@@ -233,7 +233,7 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header bg-white"><strong>Risks by category</strong></div>
-            <div class="card-body" style="height:280px;">
+            <div class="card-body h-280px">
                 <canvas id="categoryChart"></canvas>
             </div>
         </div>
@@ -241,7 +241,7 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header bg-white"><strong>Control implementation status</strong></div>
-            <div class="card-body" style="height:280px;">
+            <div class="card-body h-280px">
                 <canvas id="controlChart"></canvas>
             </div>
         </div>
@@ -275,7 +275,7 @@
                 <table class="table mb-0 align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th style="width:110px;">Asset ID</th>
+                            <th class="w-110px">Asset ID</th>
                             <th>Name</th>
                             <th>Department</th>
                             <th class="text-center">Criticality</th>
@@ -389,7 +389,7 @@
                 <strong>Risk posture trend</strong>
                 <small class="text-muted d-block">Average inherent vs residual score over the last 6 months</small>
             </div>
-            <div class="card-body" style="height:280px;">
+            <div class="card-body h-280px">
                 <canvas id="riskPostureChart"></canvas>
             </div>
         </div>
@@ -401,7 +401,7 @@
                 <strong>Remediation velocity</strong>
                 <small class="text-muted d-block">Findings remediated and action items completed per month</small>
             </div>
-            <div class="card-body" style="height:280px;">
+            <div class="card-body h-280px">
                 <canvas id="remediationChart"></canvas>
             </div>
         </div>

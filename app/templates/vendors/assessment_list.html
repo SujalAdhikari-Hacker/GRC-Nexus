@@ -5,7 +5,7 @@
 {% block content %}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-clipboard-check"></i> Total assessments</div></div></div>
-    <div class="col-md-3"><div class="stat-card" {% if high_risk_count %}style="border-color:#dc3545;"{% endif %}><div class="value text-danger">{{ high_risk_count }}</div><div class="label"><i class="bi bi-exclamation-triangle"></i> High / Critical</div></div></div>
+    <div class="col-md-3"><div class="stat-card{% if high_risk_count %} stat-alert-danger{% endif %}"><div class="value text-danger">{{ high_risk_count }}</div><div class="label"><i class="bi bi-exclamation-triangle"></i> High / Critical</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ pending_count }}</div><div class="label"><i class="bi bi-hourglass"></i> Pending</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ overdue_count }}</div><div class="label"><i class="bi bi-clock-history"></i> Overdue reassessment</div></div></div>
 </div>

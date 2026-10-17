@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.contrib import messages
 from django.db.models import Q
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
 from core.correlation import get_full_asset_context, get_policies_for_asset
 from core.mixins import (
@@ -11,6 +11,7 @@ from core.mixins import (
     CsvExportMixin,
     DepartmentCreateMixin,
     DepartmentScopedMixin,
+    HODOrSuperuserMixin,
     SavedViewsMixin,
     scope_queryset,
 )
@@ -58,6 +59,32 @@ class AssetUpdateView(DepartmentScopedMixin, UpdateView):
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         messages.success(self.request, f'Asset {self.object.asset_id} updated.')
+        return response
+
+
+class AssetDeleteView(HODOrSuperuserMixin, DepartmentScopedMixin, DeleteView):
+    """Delete an asset (HOD or superuser). Cascade-linked records follow the
+    model's FK rules; the confirmation page warns before committing."""
+    model = Asset
+    template_name = 'core/confirm_delete.html'
+    success_url = reverse_lazy('assets:list')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['object_verbose_name'] = 'asset'
+        ctx['cancel_url'] = reverse_lazy('assets:detail', kwargs={'pk': self.object.pk})
+        related = self.object.risks.count()
+        if related:
+            ctx['related_warning'] = (
+                f'{related} risk(s) are linked to this asset. They will keep '
+                'existing but the link is removed.'
+            )
+        return ctx
+
+    def form_valid(self, form):
+        label = self.object.asset_id
+        response = super().form_valid(form)
+        messages.success(self.request, f'Asset {label} deleted.')
         return response
 
 

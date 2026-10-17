@@ -71,7 +71,7 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card" {% if exception.is_expiring_soon %}style="border-color:#D97706;"{% elif exception.is_expired %}style="border-color:#DC2626;"{% endif %}>
+        <div class="stat-card{% if exception.is_expiring_soon %} stat-alert-warning{% elif exception.is_expired %} stat-alert-danger{% endif %}">
             <div class="value fs-1-1">{{ exception.expiry_date }}</div>
             <div class="label">
                 <i class="bi bi-clock-history"></i> Expires
@@ -139,7 +139,7 @@
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Residual</span><span><strong>{{ exception.risk.residual_score }}</strong></span></li>
                 <li class="list-group-item d-flex justify-content-between">
                     <span class="text-muted">Appetite</span>
-                    {% if exception.risk.appetite_breached %}<span class="badge bg-danger">Breach</span>{% else %}<span class="badge bg-success">OK</span>{% endif %}
+                    {% if exception.risk.appetite_state == 'breach' %}<span class="badge bg-danger">Breach</span>{% elif exception.risk.appetite_state == 'within' %}<span class="badge bg-success">OK</span>{% else %}<span class="badge bg-secondary">No appetite set</span>{% endif %}
                 </li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ exception.risk.owner_dept.name }}</span></li>
             </ul>

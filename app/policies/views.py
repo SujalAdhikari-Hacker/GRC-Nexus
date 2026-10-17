@@ -1,10 +1,16 @@
 from django.contrib import messages
 from django.db.models import Q
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from core.correlation import get_full_policy_context
-from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, SavedViewsMixin
+from core.mixins import (
+    CsvExportMixin,
+    DepartmentCreateMixin,
+    DepartmentScopedMixin,
+    HODOrSuperuserMixin,
+    SavedViewsMixin,
+)
 
 from .forms import PolicyForm
 from .models import Policy, PolicyCategory
@@ -105,4 +111,22 @@ class PolicyUpdateView(DepartmentScopedMixin, UpdateView):
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         messages.success(self.request, f'Policy {self.object.code} updated.')
+        return response
+
+
+class PolicyDeleteView(HODOrSuperuserMixin, DepartmentScopedMixin, DeleteView):
+    model = Policy
+    template_name = 'core/confirm_delete.html'
+    success_url = reverse_lazy('policies:list')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['object_verbose_name'] = 'policy'
+        ctx['cancel_url'] = reverse_lazy('policies:detail', kwargs={'pk': self.object.pk})
+        return ctx
+
+    def form_valid(self, form):
+        label = self.object.code
+        response = super().form_valid(form)
+        messages.success(self.request, f'Policy {label} deleted.')
         return response

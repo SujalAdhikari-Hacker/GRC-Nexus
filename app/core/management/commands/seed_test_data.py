@@ -105,7 +105,7 @@ class Command(BaseCommand):
         test_user, created = User.objects.get_or_create(
             username='test_user',
             defaults={
-                'email': 'test_user@aegis.local',
+                'email': 'test_user@grcnexus.local',
                 'first_name': 'Test',
                 'last_name': 'User',
                 'department': it,

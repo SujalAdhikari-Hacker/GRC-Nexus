@@ -14,7 +14,7 @@
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-ticket-detailed"></i> Total tickets</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value text-danger">{{ open_count }}</div><div class="label"><i class="bi bi-exclamation-circle"></i> Open</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value text-token-warning">{{ unassigned_count }}</div><div class="label"><i class="bi bi-person-dash"></i> Unassigned</div></div></div>
-    <div class="col-md-3"><div class="stat-card" {% if overdue_count %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ overdue_count }}</div><div class="label"><i class="bi bi-clock-history"></i> Overdue</div></div></div>
+    <div class="col-md-3"><div class="stat-card{% if overdue_count %} stat-alert-danger{% endif %}"><div class="value text-danger">{{ overdue_count }}</div><div class="label"><i class="bi bi-clock-history"></i> Overdue</div></div></div>
 </div>
 
 <div class="card">
@@ -51,7 +51,7 @@
         <table class="table mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th style="width:100px;">ID</th>
+                    <th class="w-100px">ID</th>
                     <th>Title</th>
                     <th class="text-center">Priority</th>
                     <th class="text-center">Status</th>

@@ -37,7 +37,7 @@
                 </div>
                 <span class="badge bg-primary">{{ row.perm_count }} perms</span>
             </div>
-            <div class="card-body" style="max-height:400px; overflow-y:auto;">
+            <div class="card-body scroll-y-400">
                 {% for app, perms in row.by_app.items %}
                     <div class="mb-2">
                         <div class="small fw-bold text-uppercase" style="letter-spacing:.05em; color:var(--text-muted);">{{ app }}</div>

@@ -13,7 +13,7 @@
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-list-task"></i> Total action items</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value text-token-info">{{ in_progress_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> In Progress</div></div></div>
-    <div class="col-md-3"><div class="stat-card" {% if overdue_count %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ overdue_count }}</div><div class="label"><i class="bi bi-clock-history"></i> Overdue</div></div></div>
+    <div class="col-md-3"><div class="stat-card{% if overdue_count %} stat-alert-danger{% endif %}"><div class="value text-danger">{{ overdue_count }}</div><div class="label"><i class="bi bi-clock-history"></i> Overdue</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value text-token-success">{{ completed_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Completed</div></div></div>
 </div>
 

@@ -29,5 +29,6 @@ def settings_view(request):
         'timezone_now': timezone.now(),
         'today_preview': timezone.now().date(),
         'user_timezone': timezone.get_current_timezone(),
+        'server_timezone': timezone.get_default_timezone(),
     }
     return render(request, 'core/settings.html', ctx)

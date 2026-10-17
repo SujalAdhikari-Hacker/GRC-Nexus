@@ -41,10 +41,10 @@
             <div class="card-header bg-white"><strong>Threats by category</strong></div>
             <div class="card-body">
                 {% for row in by_threat %}
-                <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid var(--border-soft);">
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom-soft">
                     <span>
                         {% if row.threat_type == 'ransomware' %}<span class="badge bg-danger">Ransomware</span>
-                        {% elif row.threat_type == 'malware' %}<span class="badge" style="background:#EA580C; color:#fff;">Malware</span>
+                        {% elif row.threat_type == 'malware' %}<span class="badge badge-orange">Malware</span>
                         {% elif row.threat_type == 'c2' %}<span class="badge" style="background:#7C3AED; color:#fff;">C2</span>
                         {% elif row.threat_type == 'phishing' %}<span class="badge bg-warning text-dark">Phishing</span>
                         {% elif row.threat_type == 'botnet' %}<span class="badge bg-info text-dark">Botnet</span>
@@ -70,9 +70,9 @@
                 <strong>ATT&CK coverage</strong>
                 <a href="{% url 'threatintel:attack_matrix' %}" class="btn btn-sm btn-outline-dark">View matrix</a>
             </div>
-            <div class="card-body" style="max-height:400px; overflow-y:auto;">
+            <div class="card-body scroll-y-400">
                 {% for row in tactic_rows %}
-                <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid var(--border-soft);">
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom-soft">
                     <div>
                         <strong>{{ row.tactic.name }}</strong>
                         <div class="small text-muted"><code>{{ row.tactic.attack_id }}</code></div>
@@ -93,9 +93,9 @@
                 <strong>Top malware families</strong>
                 <a href="{% url 'threatintel:ioc_feed' %}" class="btn btn-sm btn-outline-dark">Feed</a>
             </div>
-            <div class="card-body" style="max-height:400px; overflow-y:auto;">
+            <div class="card-body scroll-y-400">
                 {% for row in top_malware %}
-                <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid var(--border-soft);">
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom-soft">
                     <code>{{ row.malware_family }}</code>
                     <strong>{{ row.c }} IOCs</strong>
                 </div>
@@ -115,7 +115,7 @@
                 <a href="{% url 'threatintel:ioc_feed' %}" class="btn btn-sm btn-outline-dark">View all</a>
             </div>
             <div class="table-responsive">
-                <table class="table mb-0 align-middle" style="font-size:12.5px;">
+                <table class="table mb-0 align-middle fs-12-5">
                     <thead class="table-light">
                         <tr><th>Type</th><th>Value</th><th class="text-center">Threat</th><th>Malware</th><th>Source</th><th class="text-center">Seen</th></tr>
                     </thead>

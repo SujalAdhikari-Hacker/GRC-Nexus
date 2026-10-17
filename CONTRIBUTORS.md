@@ -1,6 +1,6 @@
 ﻿# Contributors
 
-Thank you to everyone who has contributed to Aegis.
+Thank you to everyone who has contributed to **GRC Nexus**.
 
 ## Lead Developer
 
@@ -10,12 +10,12 @@ Thank you to everyone who has contributed to Aegis.
 - Role: Founder, Architect, Lead Developer
 - Contributions:
   - Full-stack development (Django backend, templates, HTMX, Chart.js)
-  - Data model design (11 apps, 30+ models)
+  - Data model design (12 apps, 30+ models)
   - Cascade engine and correlation engine
-  - Department-scoped RBAC and audit trail
+  - Department-scoped RBAC, object-level permissions (django-guardian) and audit trail
   - Executive PDF report generator with embedded charts
   - Threat intelligence integration (MITRE ATT&CK, NVD, CISA KEV, EPSS)
-  - Aegis brand identity and design system
+  - GRC Nexus brand identity and design system
 
 ## Contributing
 

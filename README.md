@@ -12,7 +12,7 @@
 [![Django](https://img.shields.io/badge/django-4.2-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
-[![Tests](https://img.shields.io/badge/tests-65%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-83%20passing-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
@@ -61,6 +61,8 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - **Classification & owner views** — grouped by Public/Internal/Confidential/Restricted, and by
   department or individual.
 - **Vendor register** — `VEN-XXXX` IDs, service type, tier and compliance attestations.
+  Contract expiry is derived from the renewal date, so a vendor left "active" whose contract has
+  lapsed is surfaced as **contract expired** (with days overdue) in the list and detail views.
 - **Vendor risk assessment** — 5-dimension scoring (Security, Compliance, Financial,
   Reputation, Operational) with an auto-computed overall rating.
 - **Policy library** — versioning, an approval workflow (Draft → Review → Approved, named
@@ -69,11 +71,17 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 ### Risk & controls
 - **Risk register** — inherent/residual scoring, appetite-breach flagging, treatment plans.
 - **Risk appetite** — appetite level (Averse → Hungry), statements, board approval and
-  thresholds; registration beyond capacity is blocked.
+  thresholds; registration beyond capacity is blocked. Breach detection is **residual-governed**:
+  an untreated risk is also checked against the inherent ceiling, then re-evaluated purely on
+  residual once effective controls are in place — so linking real mitigation clears the breach,
+  and "no appetite configured" is shown distinctly from "within appetite".
 - **Risk matrix** — side-by-side inherent vs residual 5×5 grids, clickable cells, quick-add.
 - **Workflow state machine** — risks move through legal transitions only; closing a risk that
-  breaches appetite requires a named approver.
-- **Risk exceptions** — formal risk acceptance with approver, expiry and auto-expiration.
+  breaches appetite requires a named approver. **Completing a treatment closes its risk** and
+  promotes the treatment's controls onto the risk (so the residual score actually moves).
+- **Risk exceptions** — formal risk acceptance with approver, expiry and auto-expiration. The
+  named approver is notified and is the **only** person who can accept the risk (superuser can
+  break-glass) — the approver is never silently overwritten.
 - **Controls** — lifecycle, effectiveness rating (evidence-gated: no test date, no rating),
   frequency and primary framework.
 - **Framework matrix** — Control × Framework grid with relationship types and coverage %.
@@ -96,7 +104,8 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - **Evidence library** — screenshots, exports, configs and logs linked to controls.
 - **Evidence scoring** — 5-dimension evaluation (Relevance, Completeness, Timeliness,
   Reliability, Sufficiency) → 0–100 score with rating bands.
-- **Control testing** — 8 result types (Pass, Partial, Fail, Self Audit, Continuous Monitoring…).
+- **Control testing** — 8 result types (Pass, Partial, Fail, Self Audit, Continuous Monitoring…),
+  with the tester recorded from the user list.
 - **Audit findings** — severity, source, owner, due date, recommendation, overdue tracking.
 - **Verification loop** — a finding moves Resolved → Verified → Closed; it cannot be closed
   until a HOD or superuser verifies the fix (rejection sends it back for remediation).
@@ -128,6 +137,12 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - **Bulk actions** — select rows on a register and apply a server-approved change (e.g. set
   severity, set classification) in one step, scoped to what you can see.
 - **Saved views** — name the filters you use most and recall them from a dropdown on the list.
+- **Tickets** — a work item can be linked to a specific asset, risk, control or policy (pick at
+  most one), so tickets can be raised *for* a given record.
+- **Delete actions** — HOD/superuser-only and department-scoped, with a confirmation page that
+  warns about linked records before anything is removed.
+- **Custom error pages** — 403 and 404 pages explain cross-department access denials and offer a
+  route back, instead of a bare framework error.
 - **Authorised media downloads** — evidence and policy documents are served through a login- and
   department-scoped view (`core/media.py`), never raw `/media/`.
 - **Accessibility & responsive** — skip link, live regions, visible focus states, print
@@ -340,14 +355,16 @@ docker compose down -v                                           # stop and wipe
 ## Testing
 
 The suite covers the invariants the product depends on: risk-scoring maths and the non-zero
-residual floor, severity banding, the risk/policy state machines, control evidence gating, the
-vulnerability→risk cascade, object-level sharing (django-guardian) and department scoping, the
-finding verification loop, bulk actions and saved views, the authenticated media view,
-CSV-injection guarding, export fidelity and the PDF watermark.
+residual floor, residual-governed appetite breach detection, the treatment→risk sync, severity
+banding, the risk/policy state machines, control evidence gating, the vulnerability→risk cascade,
+vendor contract expiry derivation, object-level sharing (django-guardian) and department scoping,
+the finding verification loop, approver-gated risk-exception approval, ticket linking, delete
+authorization, the custom 403/404 pages, bulk actions and saved views, the authenticated media
+view, CSV-injection guarding, export fidelity and the PDF watermark.
 
 ```bash
 docker compose exec web python manage.py test
-# Ran 65 tests — OK
+# Ran 83 tests — OK
 ```
 
 ---
@@ -418,6 +435,9 @@ The platform is under active development.
 - [x] Audit finding → verification loop (a finding cannot be closed until it is verified)
 - [x] Bulk actions on registers and per-user saved list views
 - [x] Design-system cleanup — recurring inline styles moved to tokens/utility classes
+- [x] Residual-governed appetite breach detection; treatment completes → risk closes
+- [x] Vendor contract-expiry derivation; ticket linking; approver-gated risk exceptions
+- [x] Custom 403/404 pages; delete actions; stray duplicate tree removed
 
 **Planned**
 

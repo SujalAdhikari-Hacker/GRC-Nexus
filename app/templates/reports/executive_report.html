@@ -565,8 +565,8 @@
                 <th style="width:35px;">#</th>
                 <th>Business Risk</th>
                 <th class="text-right" style="width:120px;">Exposure (£)</th>
-                <th class="text-center" style="width:100px;">Status</th>
-                <th class="text-center" style="width:110px;">Within Tolerance</th>
+                <th class="text-center w-100px">Status</th>
+                <th class="text-center w-110px">Within Tolerance</th>
             </tr>
         </thead>
         <tbody>
@@ -719,8 +719,8 @@
                 <th>Risk</th>
                 <th class="w-80">Category</th>
                 <th class="text-center" style="width:45px;">L×I</th>
-                <th class="text-center" style="width:55px;">Inherent</th>
-                <th class="text-center" style="width:55px;">Residual</th>
+                <th class="text-center w-55px">Inherent</th>
+                <th class="text-center w-55px">Residual</th>
                 <th class="text-center w-60">Appetite</th>
                 <th class="w-70">Treatment</th>
             </tr>
@@ -819,13 +819,13 @@
 
     <div style="display:flex; gap:20px; margin-top:20px;">
         {% if chart_vuln_sev %}
-        <div style="flex:1;">
+        <div class="grow-1">
             <div class="chart-title">Findings by Severity</div>
             <img src="{{ chart_vuln_sev }}" class="chart-img" alt="Severity distribution">
         </div>
         {% endif %}
         {% if chart_sla %}
-        <div style="flex:1;">
+        <div class="grow-1">
             <div class="chart-title">SLA Compliance</div>
             <img src="{{ chart_sla }}" class="chart-img" alt="SLA compliance">
         </div>
@@ -920,7 +920,7 @@
                 <th>Name</th>
                 <th class="w-80">Dept</th>
                 <th class="text-center w-60">Crit.</th>
-                <th class="text-center" style="width:55px;">Risks</th>
+                <th class="text-center w-55px">Risks</th>
                 <th class="text-center w-70">Max residual</th>
                 <th class="text-center w-70">Exposure</th>
             </tr>

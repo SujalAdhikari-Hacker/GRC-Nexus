@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    RiskListView, RiskDetailView, RiskCreateView, RiskUpdateView,
+    RiskListView, RiskDetailView, RiskCreateView, RiskUpdateView, RiskDeleteView,
     risk_score_preview, RiskMatrixView,
     RiskTreatmentCreateView, RiskTreatmentUpdateView, TreatmentListView,
     RiskAppetiteListView, RiskAppetiteCreateView, RiskAppetiteUpdateView,
@@ -34,4 +34,5 @@ urlpatterns = [
 
     path('<int:pk>/', RiskDetailView.as_view(), name='detail'),
     path('<int:pk>/edit/', RiskUpdateView.as_view(), name='update'),
+    path('<int:pk>/delete/', RiskDeleteView.as_view(), name='delete'),
 ]

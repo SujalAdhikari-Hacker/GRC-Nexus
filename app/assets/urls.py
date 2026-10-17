@@ -3,7 +3,7 @@ from .views import (
     AssetListView, AssetDetailView,
     AssetClassificationView, AssetOwnersView,
     AssetExplorerPickerView, AssetExplorerView,
-    AssetCreateView, AssetUpdateView,
+    AssetCreateView, AssetUpdateView, AssetDeleteView,
 )
 
 app_name = 'assets'
@@ -16,5 +16,6 @@ urlpatterns = [
     path('explorer/', AssetExplorerPickerView.as_view(), name='explorer_picker'),
     path('<int:pk>/', AssetDetailView.as_view(), name='detail'),
     path('<int:pk>/edit/', AssetUpdateView.as_view(), name='update'),
+    path('<int:pk>/delete/', AssetDeleteView.as_view(), name='delete'),
     path('<int:pk>/explorer/', AssetExplorerView.as_view(), name='explorer'),
 ]

@@ -78,5 +78,5 @@
         if (overlay && e.target === overlay) closePalette();
     });
 
-    window.AegisPalette = { open: openPalette, close: closePalette, toggle: togglePalette };
+    window.GRCNexusPalette = { open: openPalette, close: closePalette, toggle: togglePalette };
 })();

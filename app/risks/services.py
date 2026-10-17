@@ -166,12 +166,24 @@ def find_applicable_appetite(risk):
 
 
 def _breached_for(risk, appetite):
-    """True if the risk exceeds either tolerance of the given appetite."""
+    """True if the risk exceeds the given appetite.
+
+    The *governing* tolerance is the residual ceiling: once a risk has been
+    treated, only the residual score should decide whether it is acceptable.
+    An **untreated** risk — one whose residual still equals its inherent score
+    because no effective control is reducing it — is *also* measured against
+    the inherent ceiling, so a fundamentally unacceptable risk stays flagged
+    until real mitigation brings the residual down. This is what lets a
+    Finance appetite (max_residual=6, max_inherent=10) flag an untreated
+    inherent=16 risk and then *clear* it once effective controls drop the
+    residual below 6.
+    """
     if risk.status == 'closed':
         return False
     if risk.residual_score > appetite.max_residual_score:
         return True
-    if risk.inherent_score > appetite.max_inherent_score:
+    untreated = risk.residual_score >= risk.inherent_score
+    if untreated and risk.inherent_score > appetite.max_inherent_score:
         return True
     return False
 
@@ -209,6 +221,10 @@ def recalculate_risk(risk):
     from .models import Risk
 
     residual = calculate_residual_score(risk)
+    # Make the freshly-computed residual visible to _breached_for, which reads
+    # risk.residual_score. On create/update the in-memory value is still the
+    # pre-save default (0), which would otherwise mask a real breach.
+    risk.residual_score = residual
     appetite = find_applicable_appetite(risk)
     breached = _breached_for(risk, appetite) if appetite else False
     escalated = bool(
@@ -238,6 +254,33 @@ def recalculate_residual_for_control(control):
     """Recompute residual for every risk linked to a saved control."""
     for risk in control.risks.all().prefetch_related('controls'):
         recalculate_risk(risk)
+
+
+def sync_risk_from_treatment(treatment):
+    """Keep the parent risk consistent with a saved treatment.
+
+    Two long-standing gaps this closes:
+
+    * **Residual recompute** — residual risk is computed from
+      ``Risk.controls``, but controls are usually chosen on the *treatment*.
+      Without promoting them onto the risk the residual score never moves
+      (``Risk.controls.add`` fires the m2m signal that recalculates).
+    * **Status sync** — completing the treatment closes the risk, so the
+      status no longer has to be updated in two places.
+    """
+    risk = treatment.risk
+
+    controls = list(treatment.controls.all())
+    if controls:
+        risk.controls.add(*controls)
+
+    if treatment.status == 'completed' and risk.status != 'closed':
+        if risk.can_transition_to('closed'):
+            risk.status = 'closed'
+            risk.save()
+
+    recalculate_risk(risk)
+    return risk
 
 
 def recalculate_breaches_for_appetite(appetite):

@@ -129,6 +129,41 @@ class Vendor(models.Model):
             self.vendor_id = f'VEN-{next_num:04d}'
         super().save(*args, **kwargs)
 
+    # ---- contract lifecycle (derived) ----
+    #
+    # The stored ``status`` is the *relationship* status (active/suspended/…).
+    # Contract expiry is derived from the renewal date so it can never go
+    # stale: a vendor left as "active" whose contract renewal date has passed
+    # is surfaced as "contract expired" everywhere it is displayed.
+
+    @property
+    def days_to_renewal(self):
+        if not self.contract_renewal_date:
+            return None
+        from django.utils import timezone
+        return (self.contract_renewal_date - timezone.localdate()).days
+
+    @property
+    def is_contract_expired(self):
+        d = self.days_to_renewal
+        return d is not None and d < 0
+
+    @property
+    def is_renewal_due_soon(self):
+        d = self.days_to_renewal
+        return d is not None and 0 <= d <= 30
+
+    @property
+    def contract_state(self):
+        """'expired' | 'due_soon' | 'current' | 'none'."""
+        if not self.contract_renewal_date:
+            return 'none'
+        if self.is_contract_expired:
+            return 'expired'
+        if self.is_renewal_due_soon:
+            return 'due_soon'
+        return 'current'
+
     def clean(self):
         errors = {}
         if not self.name or len(self.name.strip()) < 3:

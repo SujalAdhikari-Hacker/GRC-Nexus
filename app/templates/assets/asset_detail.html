@@ -21,7 +21,8 @@
         <a href="{% url 'assets:explorer' asset.pk %}" class="btn btn-sm btn-primary">
             <i class="bi bi-diagram-2"></i> Explore connections
         </a>
-        <a href="{% url 'assets:update' asset.pk %}" class="btn btn-sm btn-outline-dark">Edit in admin</a>
+        <a href="{% url 'assets:update' asset.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        <a href="{% url 'assets:delete' asset.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
     </div>
 </div>
 

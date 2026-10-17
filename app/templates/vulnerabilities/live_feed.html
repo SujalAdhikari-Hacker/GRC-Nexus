@@ -29,8 +29,8 @@
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_synced }}</div><div class="label"><i class="bi bi-database"></i> Total synced CVEs</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value text-token-info">{{ last_7_days }}</div><div class="label"><i class="bi bi-calendar-week"></i> Last 7 days</div></div></div>
-    <div class="col-md-3"><div class="stat-card" {% if critical_7d %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ critical_7d }}</div><div class="label"><i class="bi bi-exclamation-octagon"></i> Critical (7d)</div></div></div>
-    <div class="col-md-3"><div class="stat-card" {% if kev_7d %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ kev_7d }}</div><div class="label"><i class="bi bi-fire"></i> KEV in last 7d</div></div></div>
+    <div class="col-md-3"><div class="stat-card{% if critical_7d %} stat-alert-danger{% endif %}"><div class="value text-danger">{{ critical_7d }}</div><div class="label"><i class="bi bi-exclamation-octagon"></i> Critical (7d)</div></div></div>
+    <div class="col-md-3"><div class="stat-card{% if kev_7d %} stat-alert-danger{% endif %}"><div class="value text-danger">{{ kev_7d }}</div><div class="label"><i class="bi bi-fire"></i> KEV in last 7d</div></div></div>
 </div>
 
 {# ---------- Filters ---------- #}
@@ -71,8 +71,8 @@
                     <th>Description</th>
                     <th class="text-center w-80">CVSS</th>
                     <th class="text-center w-60">KEV</th>
-                    <th class="text-center" style="width:110px;">Published</th>
-                    <th style="width:100px;"></th>
+                    <th class="text-center w-110px">Published</th>
+                    <th class="w-100px"></th>
                 </tr>
             </thead>
             <tbody>
@@ -91,7 +91,7 @@
                     </td>
                     <td class="text-center">
                         {% if c.cvss_severity == 'critical' %}<span class="badge bg-danger">{{ c.cvss_score }}</span>
-                        {% elif c.cvss_severity == 'high' %}<span class="badge" style="background:#EA580C;">{{ c.cvss_score }}</span>
+                        {% elif c.cvss_severity == 'high' %}<span class="badge bg-orange">{{ c.cvss_score }}</span>
                         {% elif c.cvss_severity == 'medium' %}<span class="badge bg-warning text-dark">{{ c.cvss_score }}</span>
                         {% elif c.cvss_severity == 'low' %}<span class="badge bg-success">{{ c.cvss_score }}</span>
                         {% else %}<span class="badge bg-secondary">—</span>{% endif %}

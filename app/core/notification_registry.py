@@ -130,11 +130,14 @@ def unread_count_for(user):
     """Return the number of unread, uncleared notifications visible to this user."""
     if not user.is_authenticated:
         return 0
+    from django.db.models import Q
+
     qs = Notification.objects.filter(is_read=False, is_cleared=False)
     if not user.is_superuser:
-        if not user.department_id:
-            return 0
-        qs = qs.filter(owner_dept_id=user.department_id)
+        cond = Q(recipient=user)
+        if user.department_id:
+            cond |= Q(owner_dept_id=user.department_id)
+        qs = qs.filter(cond)
     return qs.count()
 
 

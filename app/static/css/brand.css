@@ -1319,7 +1319,64 @@ td:hover > .mx-add-btn {
 
 .border-left-amber { border-left: 4px solid #F59E0B; }
 
+/* ============================================================
+   UTILITIES — second pass (replaces repeated inline styles)
+   ============================================================ */
+.stat-alert-danger  { border-color: var(--danger, #DC2626); }
+.stat-alert-warning { border-color: var(--warning, #D97706); }
+
+.fs-12-5 { font-size: 12.5px; }
+.grow-1 { flex: 1; }
+.w-100px { width: 100px; }
+.w-90px { width: 90px; }
+.w-110px { width: 110px; }
+.w-55px { width: 55px; }
+.w-10pct { width: 10%; }
+
+.stat-value-lg { font-size: 1.4rem; font-weight: 700; }
+.h-280px { height: 280px; }
+
+.scroll-y-400 { max-height: 400px; overflow-y: auto; }
+.border-bottom-soft { border-bottom: 1px solid var(--border-soft); }
+.table-fixed { table-layout: fixed; }
+
+.bg-orange { background: #EA580C; }
+.badge-orange { background: #EA580C; color: #fff; }
+.inline-bar-mono {
+    background: var(--surface-2);
+    font-family: monospace;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .pdf-heading { font-size: 11pt; font-weight: 600; color: #0B1220; margin-top: 24px; }
+
+/* ============================================================
+   ERROR PAGES (403 / 404 / 500)
+   Standalone, base-less pages — theme-aware.
+   ============================================================ */
+.error-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--page-bg, #F8FAFC);
+}
+.error-card { max-width: 540px; text-align: center; }
+.error-logo { width: 48px; height: 48px; margin-bottom: 24px; }
+.error-code {
+    font-size: 72px; font-weight: 700; letter-spacing: -0.04em;
+    line-height: 1; color: var(--text, #0B1220);
+}
+.error-title { font-size: 22px; font-weight: 600; margin: 16px 0 8px; color: var(--text, #0B1220); }
+.error-text {
+    color: var(--text-muted, #475569); font-size: 14px; line-height: 1.6; margin-bottom: 12px;
+}
+.error-path { margin-bottom: 20px; color: var(--text-faint, #94A3B8); font-size: 12px; }
+.error-actions { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+.error-footer { margin-top: 40px; font-size: 12px; color: var(--text-faint, #94A3B8); }
 
 /* ============================================================
    PRINT

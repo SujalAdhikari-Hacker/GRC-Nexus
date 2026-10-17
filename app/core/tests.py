@@ -21,7 +21,11 @@ from controls.models import Control
 from core.mixins import csv_safe, scope_queryset, user_can_access
 from core.models import Department, User
 from core.dashboard_data import iter_month_bounds
+from risks.models import Risk, RiskAppetite, RiskCategory, RiskException, RiskTreatment
 from risks.services import calculate_residual_from_controls
+from tickets.forms import TicketForm
+from vendors.models import Vendor
+from django.utils import timezone
 
 
 class _StubControl:
@@ -877,3 +881,310 @@ class FindingVerificationTests(TestCase):
         self.client.force_login(self.hod)
         response = self.client.get(f'/audits/findings/{finding.pk}/')
         self.assertContains(response, 'Verify &amp; close')
+
+
+class RiskAppetiteBreachTests(TestCase):
+    """Appetite is governed by *residual* risk once a risk is treated.
+
+    Regression: an untreated inherent=16 risk used to stay flagged as breaching
+    even after effective controls dropped its residual below the tolerance,
+    because the inherent ceiling was always ANDed in.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Appetite Dept')
+        cls.category = RiskCategory.objects.create(name='Appetite Cat')
+        RiskAppetite.objects.create(
+            department=cls.dept, category=cls.category,
+            max_inherent_score=10, max_residual_score=6, risk_capacity=20,
+        )
+
+    def _risk(self, dept=None, **kw):
+        defaults = dict(
+            title='Untreated risk', category=self.category,
+            owner_dept=dept or self.dept, likelihood=4, impact=4,  # inherent 16
+        )
+        defaults.update(kw)
+        return Risk.objects.create(**defaults)
+
+    def test_untreated_risk_breaches(self):
+        risk = self._risk()
+        self.assertEqual(risk.inherent_score, 16)
+        self.assertEqual(risk.residual_score, 16)
+        self.assertTrue(risk.appetite_breached)
+
+    def test_effective_control_clears_breach(self):
+        risk = self._risk()
+        ctl = Control.objects.create(
+            code='AP-1', name='Perfect preventive', owner_dept=self.dept,
+            status='implemented', lifecycle_status='operational',
+            effectiveness_rating='effective', control_type='preventive',
+        )
+        risk.controls.add(ctl)
+        risk.refresh_from_db()
+        self.assertLess(risk.residual_score, 6)
+        self.assertFalse(risk.appetite_breached)
+        self.assertEqual(risk.appetite_state, 'within')
+
+    def test_state_is_none_without_applicable_appetite(self):
+        other = Department.objects.create(name='No Appetite Dept')
+        risk = self._risk(dept=other, title='No appetite', likelihood=1, impact=1)
+        self.assertFalse(risk.appetite_breached)
+        self.assertEqual(risk.appetite_state, 'none')
+
+
+class TreatmentRiskSyncTests(TestCase):
+    """A treatment carries its controls onto the risk and closes it on completion."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Treat Dept')
+        cls.category = RiskCategory.objects.create(name='Treat Cat')
+
+    def _risk(self, **kw):
+        defaults = dict(
+            title='Treat risk', category=self.category, owner_dept=self.dept,
+            likelihood=3, impact=3, status='treating',
+        )
+        defaults.update(kw)
+        return Risk.objects.create(**defaults)
+
+    def test_completing_treatment_closes_risk(self):
+        from risks.services import sync_risk_from_treatment
+
+        risk = self._risk()
+        treatment = RiskTreatment.objects.create(
+            risk=risk, action_plan='Do the thing', status='planned',
+        )
+        treatment.status = 'completed'
+        treatment.save()
+        sync_risk_from_treatment(treatment)
+        risk.refresh_from_db()
+        self.assertEqual(risk.status, 'closed')
+
+    def test_treatment_controls_reach_the_risk(self):
+        from risks.services import sync_risk_from_treatment
+
+        risk = self._risk()
+        treatment = RiskTreatment.objects.create(risk=risk, action_plan='Add control')
+        ctl = Control.objects.create(
+            code='TR-1', name='Detective', owner_dept=self.dept,
+            status='implemented', lifecycle_status='operational',
+            effectiveness_rating='effective', control_type='detective',
+        )
+        treatment.controls.add(ctl)
+        sync_risk_from_treatment(treatment)
+        self.assertIn(ctl, risk.controls.all())
+        risk.refresh_from_db()
+        self.assertLess(risk.residual_score, risk.inherent_score)
+
+
+class VendorContractExpiryTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Vendor Expiry Dept')
+
+    def _vendor(self, **kw):
+        defaults = dict(name='V', owner_dept=self.dept)
+        defaults.update(kw)
+        return Vendor.objects.create(**defaults)
+
+    def test_expired_contract_is_derived(self):
+        today = timezone.localdate()
+        vendor = self._vendor(
+            name='Expired', status='active',
+            contract_renewal_date=today - _dt.timedelta(days=5),
+        )
+        self.assertTrue(vendor.is_contract_expired)
+        self.assertEqual(vendor.contract_state, 'expired')
+        self.assertEqual(vendor.days_to_renewal, -5)
+
+    def test_due_soon_and_current(self):
+        today = timezone.localdate()
+        soon = self._vendor(
+            name='Soon', contract_renewal_date=today + _dt.timedelta(days=10),
+        )
+        self.assertTrue(soon.is_renewal_due_soon)
+        self.assertEqual(soon.contract_state, 'due_soon')
+
+        far = self._vendor(
+            name='Far', contract_renewal_date=today + _dt.timedelta(days=200),
+        )
+        self.assertEqual(far.contract_state, 'current')
+        self.assertFalse(far.is_contract_expired)
+
+    def test_no_renewal_date(self):
+        vendor = self._vendor(name='No date')
+        self.assertEqual(vendor.contract_state, 'none')
+        self.assertIsNone(vendor.days_to_renewal)
+        self.assertFalse(vendor.is_contract_expired)
+
+
+class DeleteViewTests(TestCase):
+    """Destructive actions are HOD/superuser-only and department-scoped."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Del Dept')
+        cls.other = Department.objects.create(name='Other Del Dept')
+        cls.hod = User.objects.create_user(
+            'del_hod', 'dh@e.com', 'pw', department=cls.dept, is_hod=True,
+        )
+        cls.plain = User.objects.create_user(
+            'del_plain', 'dp@e.com', 'pw', department=cls.dept,
+        )
+        cls.outsider = User.objects.create_user(
+            'del_out', 'do@e.com', 'pw', department=cls.other, is_hod=True,
+        )
+
+    def _asset(self):
+        return Asset.objects.create(
+            asset_id='DEL-1', name='Delete me', owner_dept=self.dept,
+        )
+
+    def test_hod_can_delete_own_asset(self):
+        asset = self._asset()
+        self.client.force_login(self.hod)
+        response = self.client.post(f'/assets/{asset.pk}/delete/')
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Asset.objects.filter(pk=asset.pk).exists())
+
+    def test_plain_user_cannot_delete(self):
+        asset = self._asset()
+        self.client.force_login(self.plain)
+        response = self.client.post(f'/assets/{asset.pk}/delete/')
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Asset.objects.filter(pk=asset.pk).exists())
+
+    def test_cross_department_delete_is_404(self):
+        asset = self._asset()
+        self.client.force_login(self.outsider)
+        response = self.client.post(f'/assets/{asset.pk}/delete/')
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Asset.objects.filter(pk=asset.pk).exists())
+
+
+class TicketLinkTests(TestCase):
+    """A ticket can be linked to a specific asset/risk/control/policy."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Ticket Link Dept')
+        cls.category = RiskCategory.objects.create(name='Ticket Link Cat')
+        cls.hod = User.objects.create_user(
+            'tl_hod', 'tl@e.com', 'pw', department=cls.dept, is_hod=True,
+        )
+        cls.asset = Asset.objects.create(
+            asset_id='TL-1', name='Linkable asset', owner_dept=cls.dept,
+        )
+        cls.risk = Risk.objects.create(
+            title='Linkable risk', category=cls.category, owner_dept=cls.dept,
+        )
+
+    def test_form_links_an_asset(self):
+        from django.contrib.contenttypes.models import ContentType
+
+        form = TicketForm(user=self.hod, data={
+            'title': 'Link a ticket', 'priority': 2, 'status': 'open',
+            'owner_dept': self.dept.pk, 'link_asset': self.asset.pk,
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+        ticket = form.save(commit=False)
+        form.apply_link(ticket)
+        ticket.created_by = self.hod
+        ticket.save()
+        self.assertEqual(
+            ticket.content_type, ContentType.objects.get_for_model(Asset)
+        )
+        self.assertEqual(ticket.object_id, self.asset.pk)
+
+    def test_two_links_are_rejected(self):
+        form = TicketForm(user=self.hod, data={
+            'title': 'Two links', 'priority': 2, 'status': 'open',
+            'owner_dept': self.dept.pk,
+            'link_asset': self.asset.pk, 'link_risk': self.risk.pk,
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('at most one', str(form.errors))
+
+
+class ExceptionApprovalTests(TestCase):
+    """Only the person named as approver may accept a risk exception."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Exc Dept')
+        cls.category = RiskCategory.objects.create(name='Exc Cat')
+        cls.approver = User.objects.create_user(
+            'exc_app', 'ea@e.com', 'pw', department=cls.dept, is_hod=True,
+        )
+        cls.other_hod = User.objects.create_user(
+            'exc_other', 'eo@e.com', 'pw', department=cls.dept, is_hod=True,
+        )
+        cls.risk = Risk.objects.create(
+            title='Exc risk', category=cls.category, owner_dept=cls.dept,
+        )
+
+    def _exception(self, **kw):
+        defaults = dict(
+            risk=self.risk, title='Accept this risk',
+            justification='Because mitigation is not feasible right now.',
+            approver=self.approver,
+            expiry_date=timezone.localdate() + _dt.timedelta(days=30),
+        )
+        defaults.update(kw)
+        return RiskException.objects.create(**defaults)
+
+    def test_other_hod_cannot_approve(self):
+        exception = self._exception()
+        self.client.force_login(self.other_hod)
+        response = self.client.post(
+            f'/risks/exceptions/{exception.pk}/approve/'
+        )
+        self.assertEqual(response.status_code, 302)
+        exception.refresh_from_db()
+        self.assertEqual(exception.status, 'pending')
+        self.assertEqual(exception.approver, self.approver)
+
+    def test_approver_can_approve(self):
+        exception = self._exception()
+        self.client.force_login(self.approver)
+        self.client.post(f'/risks/exceptions/{exception.pk}/approve/')
+        exception.refresh_from_db()
+        self.assertEqual(exception.status, 'active')
+        self.assertEqual(exception.approver, self.approver)
+        self.assertIsNotNone(exception.approval_date)
+
+    def test_helper_notifies_the_approver(self):
+        from core.notifications import Notification
+        from risks.views import _notify_exception_approver
+
+        exception = self._exception()
+        _notify_exception_approver(exception)
+        note = Notification.objects.get(kind='exception_approval_needed')
+        self.assertEqual(note.recipient, self.approver)
+        self.assertEqual(note.ref_id, exception.pk)
+
+
+class ErrorPageTests(TestCase):
+    """Custom 404/403 pages explain cross-department access denials."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Err Dept')
+        cls.user = User.objects.create_user(
+            'err_user', 'e@e.com', 'pw', department=cls.dept,
+        )
+
+    def test_missing_record_uses_custom_404(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/assets/999999/')
+        self.assertEqual(response.status_code, 404)
+        self.assertContains(response, 'error-card', status_code=404)
+
+    def test_forbidden_uses_custom_403(self):
+        self.client.force_login(self.user)
+        response = self.client.post('/assets/1/delete/')
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, 'error-card', status_code=403)

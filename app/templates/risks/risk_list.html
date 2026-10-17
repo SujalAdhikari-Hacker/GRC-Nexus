@@ -3,6 +3,18 @@
 {% block breadcrumb %}<h5 class="mb-0">Risk Register</h5>{% endblock %}
 
 {% block content %}
+{% if not has_appetites %}
+<div class="alert alert-info d-flex align-items-start gap-2 mb-3">
+    <i class="bi bi-info-circle mt-1"></i>
+    <div>
+        No risk appetite thresholds are configured yet, so every risk below shows
+        <span class="badge bg-success">OK</span> by default — that is <em>not</em> a
+        statement that the risk is acceptable.
+        Set tolerances under <a href="{% url 'risks:appetite_list' %}" class="alert-link">Risk Appetite</a>
+        to enable real breach detection.
+    </div>
+</div>
+{% endif %}
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
@@ -77,6 +89,8 @@
                     <td class="text-center">
                         {% if r.appetite_breached %}
                             <span class="badge bg-danger">Breach</span>
+                        {% elif not has_appetites %}
+                            <span class="badge bg-secondary">n/a</span>
                         {% else %}
                             <span class="badge bg-success">OK</span>
                         {% endif %}

@@ -2,16 +2,30 @@ from django.db.models import Q
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-from core.mixins import DepartmentCreateMixin, DepartmentScopedMixin
+from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, SavedViewsMixin
 from .models import KRI
 
 
-class KRIListView(DepartmentScopedMixin, ListView):
+class KRIListView(CsvExportMixin, SavedViewsMixin, DepartmentScopedMixin, ListView):
     model = KRI
     template_name = 'kris/kri_list.html'
     context_object_name = 'kris'
     paginate_by = 25
     department_field = 'owner_dept'
+
+    csv_filename = 'key_risk_indicators.csv'
+    csv_fields = [
+        ('KRI', 'name'),
+        ('Category', 'get_category_display'),
+        ('Type', 'get_kri_type_display'),
+        ('Current', 'current_value'),
+        ('Unit', 'unit'),
+        ('Amber threshold', 'amber_threshold'),
+        ('Red threshold', 'red_threshold'),
+        ('Trend', 'get_trend_display'),
+        ('RAG', 'rag_status'),
+        ('Owner dept', lambda k: k.owner_dept.name if k.owner_dept else ''),
+    ]
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('owner_dept', 'owner_user')

@@ -44,6 +44,8 @@
                         {% elif vendor.status == 'under_review' %}<span class="badge bg-warning text-dark">Under Review</span>
                         {% elif vendor.status == 'suspended' %}<span class="badge bg-secondary">Suspended</span>
                         {% else %}<span class="badge bg-dark">Terminated</span>{% endif %}
+                        {% if vendor.is_contract_expired %}<span class="badge bg-danger ms-1"><i class="bi bi-exclamation-triangle"></i> Contract expired</span>
+                        {% elif vendor.is_renewal_due_soon %}<span class="badge bg-warning text-dark ms-1">Renewal due</span>{% endif %}
                     </span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner dept</span><span>{{ vendor.owner_dept.name }}</span></li>

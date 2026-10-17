@@ -20,6 +20,13 @@
                 <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit{% else %}Create{% endif %} ticket</strong></div>
                 <div class="card-body">
                     {% for field in form %}
+                        {% if field.name == 'link_asset' %}
+                            <hr>
+                            <p class="text-muted small mb-2">
+                                <i class="bi bi-link-45deg"></i>
+                                Link this ticket to a record — optional, pick at most one.
+                            </p>
+                        {% endif %}
                         <div class="mb-3">
                             <label class="form-label">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
                             {{ field }}

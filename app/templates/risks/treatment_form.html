@@ -145,7 +145,7 @@
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Residual</span><span><strong>{{ risk.residual_score }}</strong></span></li>
                 <li class="list-group-item d-flex justify-content-between">
                     <span class="text-muted">Appetite</span>
-                    <span>{% if risk.appetite_breached %}<span class="badge bg-danger">Breach</span>{% else %}<span class="badge bg-success">OK</span>{% endif %}</span>
+                    <span>{% if risk.appetite_state == 'breach' %}<span class="badge bg-danger">Breach</span>{% elif risk.appetite_state == 'within' %}<span class="badge bg-success">OK</span>{% else %}<span class="badge bg-secondary">No appetite set</span>{% endif %}</span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Strategy</span><span>{{ risk.get_treatment_strategy_display }}</span></li>
             </ul>

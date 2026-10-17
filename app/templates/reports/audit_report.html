@@ -522,11 +522,11 @@
     <table class="data">
         <thead>
             <tr>
-                <th style="width:90px;">Control</th>
+                <th class="w-90px">Control</th>
                 <th>Name</th>
                 <th class="text-center w-80">Test Date</th>
-                <th class="text-center" style="width:90px;">Result</th>
-                <th style="width:90px;">Tester</th>
+                <th class="text-center w-90px">Result</th>
+                <th class="w-90px">Tester</th>
                 <th>Procedure / Notes</th>
             </tr>
         </thead>
@@ -630,13 +630,13 @@
     {% endif %}
 
     <div style="margin-top:60px; display:flex; gap:60px;">
-        <div style="flex:1;">
+        <div class="grow-1">
             <div style="border-top:1px solid #111827; padding-top:6px; font-size:9pt;">
                 <strong>Audit Lead</strong><br>
                 <span class="text-token-muted">{{ audit.auditor_lead.username|default:"—" }}</span>
             </div>
         </div>
-        <div style="flex:1;">
+        <div class="grow-1">
             <div style="border-top:1px solid #111827; padding-top:6px; font-size:9pt;">
                 <strong>Department Head</strong><br>
                 <span class="text-token-muted">{{ audit.owner_dept.name }}</span>

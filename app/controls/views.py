@@ -8,6 +8,7 @@ from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
 from django.views.generic import (
     CreateView,
+    DeleteView,
     DetailView,
     ListView,
     TemplateView,
@@ -15,7 +16,15 @@ from django.views.generic import (
 )
 
 from core.correlation import get_framework_coverage, get_full_control_context
-from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, SavedViewsMixin, scope_queryset, user_can_access
+from core.mixins import (
+    CsvExportMixin,
+    DepartmentCreateMixin,
+    DepartmentScopedMixin,
+    HODOrSuperuserMixin,
+    SavedViewsMixin,
+    scope_queryset,
+    user_can_access,
+)
 
 from .forms import ControlEvidenceForm, ControlForm, ControlFrameworkMappingForm
 from .models import Control, ControlEvidence, ControlFrameworkMapping
@@ -138,6 +147,30 @@ class ControlUpdateView(DepartmentScopedMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         return _framework_context(self, super().get_context_data(**kwargs))
+
+
+class ControlDeleteView(HODOrSuperuserMixin, DepartmentScopedMixin, DeleteView):
+    model = Control
+    template_name = 'core/confirm_delete.html'
+    success_url = reverse_lazy('controls:list')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['object_verbose_name'] = 'control'
+        ctx['cancel_url'] = reverse_lazy('controls:detail', kwargs={'pk': self.object.pk})
+        linked = self.object.risks.count()
+        if linked:
+            ctx['related_warning'] = (
+                f'This control mitigates {linked} risk(s). Removing it will '
+                'recompute those risks (their residual score may rise).'
+            )
+        return ctx
+
+    def form_valid(self, form):
+        label = self.object.code
+        response = super().form_valid(form)
+        messages.success(self.request, f'Control {label} deleted.')
+        return response
 
 
 class ControlEvidenceCreateView(LoginRequiredMixin, CreateView):

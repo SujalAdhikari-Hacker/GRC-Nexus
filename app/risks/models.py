@@ -325,6 +325,26 @@ class Risk(models.Model):
         from .services import severity_band
         return severity_band(self.residual_score)
 
+    @property
+    def applicable_appetite(self):
+        """Most specific RiskAppetite governing this risk (cached per instance)."""
+        if not hasattr(self, '_applicable_appetite'):
+            from .services import find_applicable_appetite
+            self._applicable_appetite = find_applicable_appetite(self)
+        return self._applicable_appetite
+
+    @property
+    def appetite_state(self):
+        """'breach' | 'within' | 'none'.
+
+        Distinguishes a risk that is *within* a configured appetite from one
+        that simply has **no appetite defined** for it (which otherwise looked
+        identical — both showed "OK").
+        """
+        if self.appetite_breached:
+            return 'breach'
+        return 'within' if self.applicable_appetite else 'none'
+
     # ---- workflow helpers ----
 
     def allowed_transitions(self):

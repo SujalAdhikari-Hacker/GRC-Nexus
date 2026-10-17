@@ -41,7 +41,7 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card" {% if uncovered_count %}style="border-color:#DC2626;"{% endif %}>
+        <div class="stat-card{% if uncovered_count %} stat-alert-danger{% endif %}">
             <div class="value text-danger">{{ uncovered_count }}</div>
             <div class="label"><i class="bi bi-exclamation-triangle"></i> Uncovered requirements</div>
         </div>

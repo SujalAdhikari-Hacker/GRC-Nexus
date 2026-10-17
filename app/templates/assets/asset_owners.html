@@ -35,7 +35,7 @@
                 </div>
                 <span class="badge bg-dark">{{ group.count }}</span>
             </div>
-            <ul class="list-group list-group-flush" style="max-height:400px; overflow-y:auto;">
+            <ul class="list-group list-group-flush scroll-y-400">
                 {% for a in group.assets %}
                     <li class="list-group-item">
                         <a href="{% url 'assets:detail' a.pk %}" class="d-block">

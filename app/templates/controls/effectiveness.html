@@ -33,13 +33,13 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card" {% if ineffective_count %}style="border-color:#DC2626;"{% endif %}>
+        <div class="stat-card{% if ineffective_count %} stat-alert-danger{% endif %}">
             <div class="value text-danger">{{ ineffective_count }}</div>
             <div class="label"><i class="bi bi-x-circle"></i> Ineffective</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card" {% if not_tested_count %}style="border-color:#D97706;"{% endif %}>
+        <div class="stat-card{% if not_tested_count %} stat-alert-warning{% endif %}">
             <div class="value text-token-warning">{{ not_tested_count }}</div>
             <div class="label"><i class="bi bi-question-circle"></i> Not tested</div>
         </div>
@@ -113,7 +113,7 @@
             <div class="card-header bg-white"><strong>Effectiveness by lifecycle stage</strong></div>
             <div class="card-body">
                 {% for lc in lifecycles %}
-                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid var(--border-soft);">
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom-soft">
                         <span>{{ lc.label }}</span>
                         <span>
                             <span class="badge bg-dark">{{ lc.total }}</span>

@@ -52,7 +52,7 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card" {% if assessment.non_compliant_count %}style="border-color:#DC2626;"{% endif %}>
+        <div class="stat-card{% if assessment.non_compliant_count %} stat-alert-danger{% endif %}">
             <div class="value text-danger">{{ assessment.non_compliant_count }}</div>
             <div class="label"><i class="bi bi-x-circle"></i> Non-compliant</div>
         </div>

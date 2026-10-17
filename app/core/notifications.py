@@ -26,11 +26,20 @@ class Notification(models.Model):
         ('finding_needs_actions',   'Finding needs remediation actions'),
         ('action_needs_owner',      'Action item needs an owner'),
         ('ticket_unassigned',       'Ticket is unassigned'),
+        ('exception_approval_needed', 'Risk exception awaiting your approval'),
     ]
 
     owner_dept = models.ForeignKey(
         'core.Department', on_delete=models.CASCADE,
         related_name='notifications'
+    )
+    # Optional single-user target. When set, the notification is delivered to
+    # that one person (e.g. the named approver on a risk exception) in addition
+    # to its owning department.
+    recipient = models.ForeignKey(
+        'core.User', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='targeted_notifications',
+        help_text='If set, this notification is for one specific user.'
     )
     kind = models.CharField(max_length=50, choices=KIND_CHOICES)
     title = models.CharField(max_length=300)
@@ -80,6 +89,7 @@ class Notification(models.Model):
             'finding_needs_actions':   'bi-list-task',
             'action_needs_owner':      'bi-person-check',
             'ticket_unassigned':       'bi-ticket-detailed',
+            'exception_approval_needed': 'bi-patch-check',
         }
         return icons.get(self.kind, 'bi-bell')
 
@@ -96,9 +106,12 @@ class Notification(models.Model):
             self.save(update_fields=['is_cleared', 'cleared_at'])
 
 
-def create_notification(kind, title, action_url, owner_dept, ref_obj=None):
-    """Create a notification, skipping if an identical active one already exists."""
-    if owner_dept is None:
+def create_notification(kind, title, action_url, owner_dept, ref_obj=None, recipient=None):
+    """Create a notification, skipping if an identical active one already exists.
+
+    ``recipient`` targets a single user (in addition to the owning department).
+    """
+    if owner_dept is None and recipient is None:
         return None
 
     ref_model = ''
@@ -111,6 +124,7 @@ def create_notification(kind, title, action_url, owner_dept, ref_obj=None):
     if Notification.objects.filter(
         kind=kind,
         owner_dept=owner_dept,
+        recipient=recipient,
         ref_model=ref_model,
         ref_id=ref_id,
         is_cleared=False,
@@ -119,6 +133,7 @@ def create_notification(kind, title, action_url, owner_dept, ref_obj=None):
 
     return Notification.objects.create(
         owner_dept=owner_dept,
+        recipient=recipient,
         kind=kind,
         title=title,
         action_url=action_url,

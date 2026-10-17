@@ -80,13 +80,21 @@ class ControlTestForm(forms.ModelForm):
     class Meta:
         model = ControlTest
         fields = [
-            'control', 'test_date', 'result',
-            'procedure_notes', 'owner_dept', 'audit'
+            'control', 'test_date', 'result', 'tester',
+            'procedure_notes', 'owner_dept', 'audit',
         ]
         widgets = {
             'test_date': forms.DateInput(attrs={'type': 'date'}),
             'procedure_notes': forms.Textarea(attrs={'rows': 4}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Who performed the test must be a real, active user.
+        self.fields['tester'].queryset = (
+            self.fields['tester'].queryset.filter(is_active=True).order_by('username')
+        )
+        self.fields['tester'].required = False
 
 
 # ============================================================

@@ -20,6 +20,7 @@
     </div>
     <div class="d-flex gap-2">
         <a href="{% url 'risks:update' risk.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        <a href="{% url 'risks:delete' risk.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
         <a href="{% url 'risks:exception_create' %}?risk={{ risk.pk }}" class="btn btn-sm btn-outline-dark">
             <i class="bi bi-shield-check"></i> Request exception
         </a>
@@ -43,12 +44,14 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card" {% if risk.appetite_breached %}style="border-color:#dc3545"{% endif %}>
+        <div class="stat-card {% if risk.appetite_state == 'breach' %}border-token-danger{% endif %}">
             <div class="value">
-                {% if risk.appetite_breached %}
+                {% if risk.appetite_state == 'breach' %}
                     <span class="text-danger">Breach</span>
-                {% else %}
+                {% elif risk.appetite_state == 'within' %}
                     <span class="text-success">In appetite</span>
+                {% else %}
+                    <span class="text-muted">No appetite set</span>
                 {% endif %}
             </div>
             <div class="label">Appetite status</div>
@@ -133,9 +136,9 @@
                             <th style="width:15%;">Strategy</th>
                             <th style="width:35%;">Plan</th>
                             <th style="width:20%;">Controls used</th>
-                            <th style="width:10%;">Owner</th>
-                            <th style="width:10%;">Target date</th>
-                            <th style="width:10%;">Status</th>
+                            <th class="w-10pct">Owner</th>
+                            <th class="w-10pct">Target date</th>
+                            <th class="w-10pct">Status</th>
                             <th></th>
                         </tr>
                     </thead>

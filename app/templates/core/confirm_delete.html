@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ object_verbose_name|default:"record" }}{% endblock %}
+{% block breadcrumb %}<h5 class="mb-0">Confirm deletion</h5>{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card border-token-danger">
+            <div class="card-header bg-white">
+                <strong class="text-token-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Delete {{ object_verbose_name|default:"record" }}
+                </strong>
+            </div>
+            <div class="card-body">
+                <p class="mb-3">
+                    Are you sure you want to delete
+                    <strong>{{ object }}</strong>?
+                    This action <strong>cannot be undone</strong>.
+                </p>
+
+                {% if related_warning %}
+                <div class="alert alert-warning small mb-3">
+                    <i class="bi bi-info-circle"></i> {{ related_warning }}
+                </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Yes, delete
+                    </button>
+                    <a href="{{ cancel_url|default:'/' }}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

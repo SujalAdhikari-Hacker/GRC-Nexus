@@ -23,7 +23,7 @@
         syncIcons(theme);
     }
 
-    window.AegisTheme = {
+    window.GRCNexusTheme = {
         toggle: function () {
             const current = document.documentElement.getAttribute('data-bs-theme') || 'light';
             apply(current === 'dark' ? 'light' : 'dark', true);
@@ -33,15 +33,15 @@
             document.querySelectorAll('[data-theme-toggle]').forEach(el => {
                 el.addEventListener('click', function (e) {
                     e.preventDefault();
-                    window.AegisTheme.toggle();
+                    window.GRCNexusTheme.toggle();
                 });
             });
         }
     };
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', window.AegisTheme.init);
+        document.addEventListener('DOMContentLoaded', window.GRCNexusTheme.init);
     } else {
-        window.AegisTheme.init();
+        window.GRCNexusTheme.init();
     }
 })();

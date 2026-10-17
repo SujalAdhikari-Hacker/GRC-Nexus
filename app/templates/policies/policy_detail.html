@@ -22,6 +22,7 @@
             </a>
         {% endif %}
         <a href="{% url 'policies:update' policy.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        <a href="{% url 'policies:delete' policy.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
     </div>
 </div>
 

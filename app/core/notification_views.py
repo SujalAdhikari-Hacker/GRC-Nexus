@@ -11,12 +11,19 @@ from .notification_registry import refresh_notifications_throttled
 
 
 def _scoped(qs, user):
-    """Limit notifications to what ``user`` may see (no-dept sees nothing)."""
+    """Limit notifications to what ``user`` may see.
+
+    A user sees their department's notifications plus anything addressed to
+    them directly (a department-less user still sees their own targeted items).
+    """
+    from django.db.models import Q
+
     if user.is_superuser:
         return qs
-    if not user.department_id:
-        return qs.none()
-    return qs.filter(owner_dept=user.department)
+    cond = Q(recipient=user)
+    if user.department_id:
+        cond |= Q(owner_dept_id=user.department_id)
+    return qs.filter(cond)
 
 
 class NotificationListView(LoginRequiredMixin, ListView):
@@ -73,7 +80,7 @@ class NotificationListView(LoginRequiredMixin, ListView):
 def notification_dismiss(request, pk):
     n = get_object_or_404(Notification, pk=pk)
     user = request.user
-    if not user.is_superuser and n.owner_dept_id != user.department_id:
+    if not user.is_superuser and n.recipient_id != user.pk and n.owner_dept_id != user.department_id:
         messages.error(request, 'Not allowed.')
         return redirect('core:notifications')
     n.mark_cleared()
@@ -86,7 +93,7 @@ def notification_dismiss(request, pk):
 def notification_mark_read(request, pk):
     n = get_object_or_404(Notification, pk=pk)
     user = request.user
-    if not user.is_superuser and n.owner_dept_id != user.department_id:
+    if not user.is_superuser and n.recipient_id != user.pk and n.owner_dept_id != user.department_id:
         messages.error(request, 'Not allowed.')
         return redirect('core:notifications')
     n.mark_read()

@@ -91,7 +91,11 @@ def _notification_snapshot(request):
 
         base = Notification.objects.filter(is_cleared=False)
         if not user.is_superuser:
-            base = base.filter(owner_dept_id=user.department_id)
+            from django.db.models import Q
+            cond = Q(recipient=user)
+            if user.department_id:
+                cond |= Q(owner_dept_id=user.department_id)
+            base = base.filter(cond)
 
         recent = list(base.order_by('-created_at')[:5])
 

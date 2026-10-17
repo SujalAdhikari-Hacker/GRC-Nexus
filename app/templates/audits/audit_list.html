@@ -7,7 +7,7 @@
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-clipboard-check"></i> Total audits</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ in_progress_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> In progress</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value text-token-success">{{ complete_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Complete</div></div></div>
-    <div class="col-md-3"><div class="stat-card" {% if open_findings_count %}style="border-color:#dc3545;"{% endif %}><div class="value text-danger">{{ open_findings_count }}</div><div class="label"><i class="bi bi-exclamation-triangle"></i> Open findings</div></div></div>
+    <div class="col-md-3"><div class="stat-card{% if open_findings_count %} stat-alert-danger{% endif %}"><div class="value text-danger">{{ open_findings_count }}</div><div class="label"><i class="bi bi-exclamation-triangle"></i> Open findings</div></div></div>
 </div>
 
 <div class="card">

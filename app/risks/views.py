@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import (
     CreateView,
+    DeleteView,
     DetailView,
     ListView,
     TemplateView,
@@ -28,7 +29,12 @@ from .forms import (
     RiskTreatmentUpdateForm,
 )
 from .models import Risk, RiskAppetite, RiskCategory, RiskException, RiskTreatment
-from .services import calculate_residual_from_controls, recalculate_risk, severity_band
+from .services import (
+    calculate_residual_from_controls,
+    recalculate_risk,
+    severity_band,
+    sync_risk_from_treatment,
+)
 
 
 # ==================================================================
@@ -101,6 +107,7 @@ class RiskListView(SavedViewsMixin, ReportMixin, DepartmentScopedMixin, CsvExpor
         ctx['filter_likelihood'] = self.request.GET.get('likelihood', '')
         ctx['filter_impact'] = self.request.GET.get('impact', '')
         ctx['filter_assessed'] = self.request.GET.get('assessed', '')
+        ctx['has_appetites'] = RiskAppetite.objects.exists()
         return ctx
 
     def build_rows(self):
@@ -189,6 +196,24 @@ class RiskUpdateView(DepartmentScopedMixin, UpdateView):
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         recalculate_risk(self.object)
+        return response
+
+
+class RiskDeleteView(HODOrSuperuserMixin, DepartmentScopedMixin, DeleteView):
+    model = Risk
+    template_name = 'core/confirm_delete.html'
+    success_url = reverse_lazy('risks:list')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['object_verbose_name'] = 'risk'
+        ctx['cancel_url'] = reverse_lazy('risks:detail', kwargs={'pk': self.object.pk})
+        return ctx
+
+    def form_valid(self, form):
+        label = self.object.title[:60]
+        response = super().form_valid(form)
+        messages.success(self.request, f'Risk "{label}" deleted.')
         return response
 
 
@@ -361,7 +386,7 @@ class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
-        recalculate_risk(self.risk)
+        sync_risk_from_treatment(self.object)
         return response
 
     def get_success_url(self):
@@ -382,7 +407,7 @@ class RiskTreatmentUpdateView(DepartmentScopedMixin, UpdateView):
     def form_valid(self, form):
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
-        recalculate_risk(self.object.risk)
+        sync_risk_from_treatment(self.object)
         return response
 
     def get_success_url(self):
@@ -500,6 +525,22 @@ class RiskExceptionDetailView(DepartmentScopedMixin, DetailView):
     department_field = 'risk__owner_dept'
 
 
+def _notify_exception_approver(exc):
+    """Tell the named approver that a risk exception is waiting on them."""
+    if not exc.approver_id or exc.status != 'pending':
+        return
+    from core.notifications import create_notification
+
+    create_notification(
+        kind='exception_approval_needed',
+        title=f'Approval required: {exc.exception_id} — {exc.title[:120]}',
+        action_url=f'/risks/exceptions/{exc.pk}/',
+        owner_dept=exc.risk.owner_dept,
+        ref_obj=exc,
+        recipient=exc.approver,
+    )
+
+
 class RiskExceptionCreateView(LoginRequiredMixin, CreateView):
     model = RiskException
     form_class = RiskExceptionForm
@@ -523,7 +564,9 @@ class RiskExceptionCreateView(LoginRequiredMixin, CreateView):
             raise PermissionDenied
         if not form.instance.requested_by_id:
             form.instance.requested_by = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        _notify_exception_approver(self.object)
+        return response
 
     def get_success_url(self):
         return reverse_lazy('risks:exception_detail', kwargs={'pk': self.object.pk})
@@ -538,7 +581,9 @@ class RiskExceptionUpdateView(DepartmentScopedMixin, UpdateView):
     def form_valid(self, form):
         if not user_can_access(self.request.user, form.instance.risk):
             raise PermissionDenied
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        _notify_exception_approver(self.object)
+        return response
 
     def get_success_url(self):
         return reverse_lazy('risks:exception_detail', kwargs={'pk': self.object.pk})
@@ -547,15 +592,37 @@ class RiskExceptionUpdateView(DepartmentScopedMixin, UpdateView):
 @login_required
 @require_POST
 def exception_approve(request, pk):
-    if not (request.user.is_superuser or request.user.is_hod):
-        raise PermissionDenied
     exc = get_object_or_404(RiskException, pk=pk)
     if not user_can_access(request.user, exc.risk):
         raise PermissionDenied
+
+    # The person *named* as approver is the one who must accept the risk.
+    # A superuser can act as break-glass; if no approver was named, any HOD may
+    # approve. We never silently overwrite a designated approver.
+    if exc.approver_id:
+        if not (request.user.is_superuser or request.user.pk == exc.approver_id):
+            messages.error(
+                request,
+                f'{exc.exception_id} is waiting on '
+                f'{exc.approver.get_full_name() or exc.approver.username} '
+                'to approve it.',
+            )
+            return redirect('risks:exception_detail', pk=pk)
+    elif not (request.user.is_superuser or request.user.is_hod):
+        raise PermissionDenied
+
     exc.status = 'active'
-    exc.approver = request.user
+    if not exc.approver_id:
+        exc.approver = request.user
     exc.approval_date = timezone.now().date()
     exc.save()
+
+    # Clear the pending-approval notification now that it is actioned.
+    from core.notifications import Notification
+    Notification.objects.filter(
+        kind='exception_approval_needed', ref_id=exc.pk, is_cleared=False,
+    ).update(is_cleared=True, cleared_at=timezone.now())
+
     messages.success(request, f'{exc.exception_id} approved and now active.')
     return redirect('risks:exception_detail', pk=pk)
 

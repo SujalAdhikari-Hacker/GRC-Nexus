@@ -172,11 +172,17 @@ class TicketCreateView(DepartmentCreateMixin, HODOrSuperuserMixin, CreateView):
             initial['owner_dept'] = self.request.user.department
         return initial
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         if not self.request.user.is_superuser:
             form.instance.owner_dept = self.request.user.department
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
+        form.apply_link(form.instance)
         response = super().form_valid(form)
         messages.success(self.request, f'Ticket {self.object.ticket_id} created.')
         return response
@@ -191,8 +197,14 @@ class TicketUpdateView(DepartmentScopedMixin, UpdateView):
     template_name = 'tickets/ticket_form.html'
     department_field = 'owner_dept'
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         form.instance.updated_by = self.request.user
+        form.apply_link(form.instance)
         response = super().form_valid(form)
         messages.success(self.request, f'Ticket {self.object.ticket_id} updated.')
         return response
