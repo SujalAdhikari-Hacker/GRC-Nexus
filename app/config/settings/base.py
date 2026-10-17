@@ -172,6 +172,49 @@ LOGIN_REDIRECT_URL = 'core:dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
 # --------------------------------------------------------------------------
+# Email
+# --------------------------------------------------------------------------
+# The default backend is the *console* backend: with no SMTP server
+# configured, every digest/escalation is written to the container log, so the
+# feature is observable out of the box (``docker compose logs -f web``). Set
+# EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend and the host /
+# credentials below to deliver real mail.
+EMAIL_BACKEND = config(
+    'EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend'
+)
+EMAIL_HOST = config('EMAIL_HOST', default='localhost')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
+EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=20, cast=int)
+DEFAULT_FROM_EMAIL = config(
+    'DEFAULT_FROM_EMAIL', default='GRC Nexus <no-reply@grcnexus.local>'
+)
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Absolute base URL used to build links inside emails — a scheduled job has no
+# request to derive it from.
+SITE_BASE_URL = config('SITE_BASE_URL', default='http://localhost:8000').rstrip('/')
+
+# Escalations that have no obvious owner (no assigned user, no HOD) are sent
+# here as a last resort. Comma-separated; empty means "drop them".
+ESCALATION_FALLBACK_EMAILS = config(
+    'ESCALATION_FALLBACK_EMAILS', default='', cast=Csv()
+)
+
+# --- scheduling knobs read by the send_email_digest / send_escalations jobs ---
+
+# Only items seen since this many hours ago count as "new" digest activity.
+DIGEST_LOOKBACK_HOURS = config('DIGEST_LOOKBACK_HOURS', default=24, cast=int)
+# How long past a due date an item may sit before it escalates. Keeps a
+# one-day slip out of the escalation queue.
+ESCALATION_GRACE_DAYS = config('ESCALATION_GRACE_DAYS', default=1, cast=int)
+# Risk exceptions / vendor contracts are warned about this many days ahead.
+ESCALATION_WARN_DAYS = config('ESCALATION_WARN_DAYS', default=14, cast=int)
+
+# --------------------------------------------------------------------------
 # Security defaults (kept permissive here; prod.py tightens them).
 # Anything with a config() call can be overridden per-environment.
 # --------------------------------------------------------------------------

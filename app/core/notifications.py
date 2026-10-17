@@ -27,6 +27,16 @@ class Notification(models.Model):
         ('action_needs_owner',      'Action item needs an owner'),
         ('ticket_unassigned',       'Ticket is unassigned'),
         ('exception_approval_needed', 'Risk exception awaiting your approval'),
+        # --- escalations (raised by the send_escalations job) ---
+        ('risk_escalated',          'Risk escalated — beyond capacity'),
+        ('risk_overdue',            'Risk past its target close date'),
+        ('finding_overdue',         'Audit finding overdue'),
+        ('action_overdue',          'Remediation action overdue'),
+        ('ticket_overdue',          'Ticket overdue'),
+        ('exception_expiring',      'Risk exception expiring'),
+        ('vendor_contract_expired', 'Vendor contract expired or expiring'),
+        ('kri_red',                 'KRI breached tolerance'),
+        ('vuln_sla_breach',         'Vulnerability past its remediation SLA'),
     ]
 
     owner_dept = models.ForeignKey(
@@ -90,6 +100,15 @@ class Notification(models.Model):
             'action_needs_owner':      'bi-person-check',
             'ticket_unassigned':       'bi-ticket-detailed',
             'exception_approval_needed': 'bi-patch-check',
+            'risk_escalated':          'bi-exclamation-octagon',
+            'risk_overdue':            'bi-hourglass-split',
+            'finding_overdue':         'bi-clipboard-x',
+            'action_overdue':          'bi-list-check',
+            'ticket_overdue':          'bi-alarm',
+            'exception_expiring':      'bi-calendar-x',
+            'vendor_contract_expired': 'bi-file-earmark-x',
+            'kri_red':                 'bi-speedometer2',
+            'vuln_sla_breach':         'bi-shield-exclamation',
         }
         return icons.get(self.kind, 'bi-bell')
 

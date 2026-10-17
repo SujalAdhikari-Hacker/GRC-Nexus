@@ -12,7 +12,7 @@
 [![Django](https://img.shields.io/badge/django-4.2-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
-[![Tests](https://img.shields.io/badge/tests-83%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-120%20passing-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
@@ -132,6 +132,14 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - **Command palette** (Ctrl/⌘ + K) — search across assets, risks, controls, policies, vendors,
   findings, audits, frameworks, KRIs, tickets and threat actors.
 - **Notifications** — a department-scoped work queue (unread is real unread).
+- **Email digests & escalations** — a scheduled scan finds overdue tickets, findings and actions,
+  risks past their target date or beyond capacity, expiring risk exceptions, lapsing vendor
+  contracts, red KRIs and SLA-breached vulnerabilities. Each item is raised in-app for the owning
+  department and emailed to the responsible person (owner, else the department HOD). An item is
+  only emailed once while it stays unresolved, so the job is safe to run hourly. Users choose
+  Off / Daily / Weekly digests and per-event email toggles in Settings, and can send themselves a
+  test email to confirm delivery. Ships with the console email backend, so it is observable out of
+  the box via `docker compose logs -f web` — point `EMAIL_BACKEND` at SMTP for real mail.
 - **Dark mode** with persistence; native `type="date"` calendar pickers everywhere.
 - **CSV / Excel / PDF export** on the list views that support it.
 - **Bulk actions** — select rows on a register and apply a server-approved change (e.g. set
@@ -177,7 +185,7 @@ through signals. Views stay thin.
 grc-nexus/
 ├── app/
 │   ├── config/            # settings (base/dev/prod), urls, wsgi
-│   ├── core/              # users, departments, dashboard, search, notifications, media, mixins
+│   ├── core/              # users, departments, dashboard, search, notifications, email, escalations, media, mixins
 │   ├── frameworks/        # frameworks, requirements, coverage, assessments
 │   ├── assets/            # asset inventory + relationship explorer
 │   ├── vendors/           # vendor register + risk assessments
@@ -314,6 +322,11 @@ your own admin, or sign in as a seeded HOD to see department scoping in action.
 | `SERVE_MEDIA` | Legacy flag; media is served through the scoped view regardless |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT` | Database connection |
 | `ABUSECH_AUTH_KEY`, `OTX_API_KEY` | Optional; enable ThreatFox / OTX IOC sync |
+| `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`, `EMAIL_USE_SSL` | Outbound mail. Defaults to the **console** backend (messages land in the app log); switch to the SMTP backend for real delivery |
+| `DEFAULT_FROM_EMAIL` | `From:` header on every message |
+| `SITE_BASE_URL` | Absolute base URL used to build the links inside emails (a cron job has no request) |
+| `ESCALATION_FALLBACK_EMAILS` | Comma-separated catch-all for escalations that have no owner and no HOD. Empty drops them |
+| `DIGEST_LOOKBACK_HOURS`, `ESCALATION_GRACE_DAYS`, `ESCALATION_WARN_DAYS` | Scheduling knobs: grace period before an item escalates, and how far ahead to warn about expiring exceptions/contracts |
 
 See [`.env.example`](.env.example) for the annotated list.
 
@@ -329,6 +342,36 @@ Configuration lives in `app/config/settings/`:
 
 Select the module with `DJANGO_SETTINGS_MODULE`.
 
+### Scheduled jobs (digests & escalations)
+
+Two idempotent management commands do the outbound mail. Neither needs a request, so they are safe
+to run from cron, a scheduler or a sidecar:
+
+```bash
+# Alert on overdue / expiring / breaching items (in-app + email). Run hourly or daily.
+docker compose exec -T web python manage.py send_escalations
+docker compose exec -T web python manage.py send_escalations --dry-run   # see what would fire
+
+# Email each opted-in user a digest of what is outstanding for them.
+docker compose exec -T web python manage.py send_email_digest
+docker compose exec -T web python manage.py send_email_digest --force --user admin   # test one
+```
+
+`send_escalations` covers overdue tickets, findings and remediation actions; risks past their target
+close date or beyond appetite capacity; expiring/expired risk exceptions; lapsed and soon-to-renew
+vendor contracts; KRIs that have breached tolerance; and vulnerabilities past their remediation SLA.
+Each item is raised once in-app for the owning department and, when it is *newly* raised, email is
+sent to the responsible user (owner, else the department HOD, else `ESCALATION_FALLBACK_EMAILS`).
+Every alert carries a matching auto-clear rule, so it disappears the moment the underlying condition
+is fixed — and will alert again if the problem comes back.
+
+A sample crontab (inside the host, where the compose project lives):
+
+```cron
+15 * * * *  cd /srv/grc-nexus && docker compose exec -T web python manage.py send_escalations
+0 7 * * *   cd /srv/grc-nexus && docker compose exec -T web python manage.py send_email_digest
+```
+
 ---
 
 ## Common commands
@@ -342,6 +385,8 @@ docker compose exec web python manage.py recompute_risk_scores   # re-derive res
 docker compose exec web python manage.py scan_for_alerts         # generate remediation tickets
 docker compose exec web python manage.py sync_attack_data        # MITRE ATT&CK data
 docker compose exec web python manage.py sync_recent_cves        # latest CVEs from NVD
+docker compose exec web python manage.py send_escalations         # overdue/expiring items → notify + email
+docker compose exec web python manage.py send_email_digest        # daily/weekly digest to opted-in users
 docker compose exec web python manage.py test                    # run the test suite
 docker compose down                                              # stop
 docker compose down -v                                           # stop and wipe the database
@@ -360,11 +405,13 @@ banding, the risk/policy state machines, control evidence gating, the vulnerabil
 vendor contract expiry derivation, object-level sharing (django-guardian) and department scoping,
 the finding verification loop, approver-gated risk-exception approval, ticket linking, delete
 authorization, the custom 403/404 pages, bulk actions and saved views, the authenticated media
-view, CSV-injection guarding, export fidelity and the PDF watermark.
+view, CSV-injection guarding, export fidelity, the PDF watermark, and the email layer:
+preference gating, digest scheduling windows, escalation detection/grace periods, notification
+idempotency and the escalation auto-clear rules.
 
 ```bash
 docker compose exec web python manage.py test
-# Ran 83 tests — OK
+# Ran 120 tests — OK
 ```
 
 ---
@@ -438,10 +485,10 @@ The platform is under active development.
 - [x] Residual-governed appetite breach detection; treatment completes → risk closes
 - [x] Vendor contract-expiry derivation; ticket linking; approver-gated risk exceptions
 - [x] Custom 403/404 pages; delete actions; stray duplicate tree removed
+- [x] Email digests and escalation notifications (scheduled `send_escalations` / `send_email_digest`)
 
 **Planned**
 
-- [ ] Email digests and escalation notifications
 - [ ] SSO / OIDC and MFA for enterprise deployments
 
 ---

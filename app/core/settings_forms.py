@@ -8,9 +8,10 @@ class UserPreferenceForm(forms.ModelForm):
         fields = [
             'language', 'timezone', 'date_format', 'time_format',
             'theme', 'items_per_page',
-            'email_notifications_enabled',
+            'email_notifications_enabled', 'email_digest_frequency',
             'email_on_ticket_assigned', 'email_on_risk_breach',
             'email_on_audit_finding', 'email_on_kri_red', 'email_on_vuln_sla',
+            'email_on_escalation',
         ]
         widgets = {
             'theme': forms.RadioSelect(),

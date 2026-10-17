@@ -10,8 +10,11 @@ guarding, calendar-month bucketing, and the "authenticate before resolving
 the object" rule for object-level create views.
 """
 import datetime as _dt
+from io import StringIO
 
 from django.contrib.auth.models import AnonymousUser
+from django.core import mail
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 
@@ -1188,3 +1191,392 @@ class ErrorPageTests(TestCase):
         response = self.client.post('/assets/1/delete/')
         self.assertEqual(response.status_code, 403)
         self.assertContains(response, 'error-card', status_code=403)
+
+
+# ===========================================================================
+# Email digests & escalation notifications
+# ===========================================================================
+
+class EmailPreferenceTests(TestCase):
+    """``email_pref_allows`` is the single gate in front of every outbound mail."""
+
+    def setUp(self):
+        self.dept = Department.objects.create(name='Mail Dept')
+        self.user = User.objects.create_user(
+            'mail_user', 'mail@example.com', 'pw', department=self.dept,
+        )
+
+    def test_missing_preference_row_defaults_to_opted_in(self):
+        from core.emails import email_pref_allows
+        self.assertIsNone(getattr(self.user, 'preference', None))
+        self.assertTrue(email_pref_allows(self.user))
+        self.assertTrue(email_pref_allows(self.user, 'email_on_risk_breach'))
+
+    def test_master_switch_blocks_every_flag(self):
+        from core.emails import email_pref_allows
+        from core.settings_model import UserPreference
+        UserPreference.objects.create(
+            user=self.user, email_notifications_enabled=False,
+        )
+        self.assertFalse(email_pref_allows(self.user))
+        self.assertFalse(email_pref_allows(self.user, 'email_on_kri_red'))
+
+    def test_a_single_flag_can_be_turned_off(self):
+        from core.emails import email_pref_allows
+        from core.settings_model import UserPreference
+        UserPreference.objects.create(user=self.user, email_on_vuln_sla=False)
+        self.assertTrue(email_pref_allows(self.user))
+        self.assertFalse(email_pref_allows(self.user, 'email_on_vuln_sla'))
+
+    def test_a_user_without_an_address_gets_nothing(self):
+        from core.emails import email_pref_allows
+        self.user.email = ''
+        self.user.save(update_fields=['email'])
+        self.assertFalse(email_pref_allows(self.user))
+
+    def test_an_inactive_user_gets_nothing(self):
+        from core.emails import email_pref_allows
+        self.user.is_active = False
+        self.user.save(update_fields=['is_active'])
+        self.assertFalse(email_pref_allows(self.user))
+
+
+class EmailRenderingTests(TestCase):
+    """Links must be absolute and every item must survive into both bodies."""
+
+    def test_site_url_builds_absolute_links(self):
+        from core.emails import site_url
+        url = site_url('/tickets/1/')
+        self.assertTrue(url.startswith('http'))
+        self.assertTrue(url.endswith('/tickets/1/'))
+        self.assertEqual(site_url('https://x.test/y'), 'https://x.test/y')
+
+    def test_digest_bodies_include_every_item(self):
+        from core.emails import render_html, render_text
+        items = [
+            {'title': 'First item', 'meta': 'm1', 'url': '/a/', 'severity': 'danger'},
+            {'title': 'Second item', 'meta': 'm2', 'url': '/b/', 'severity': 'warning'},
+        ]
+        text = render_text('Heading', 'Intro', items)
+        html = render_html('Heading', 'Intro', items)
+        for body in (text, html):
+            self.assertIn('First item', body)
+            self.assertIn('Second item', body)
+        self.assertIn('href', html)
+
+    def test_send_email_never_raises_without_recipients(self):
+        from core.emails import send_email
+        self.assertEqual(send_email('Subject', 'Body', []), 0)
+        self.assertEqual(send_email('Subject', 'Body', [None, '']), 0)
+
+
+class EscalationScanTests(TestCase):
+    """Overdue work is found once, notified once, and emailed to the owner."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Esc Dept')
+        cls.hod = User.objects.create_user(
+            'esc_hod', 'esc_hod@example.com', 'pw',
+            department=cls.dept, is_hod=True,
+        )
+        cls.owner = User.objects.create_user(
+            'esc_owner', 'esc_owner@example.com', 'pw', department=cls.dept,
+        )
+
+    def _overdue_ticket(self, **kw):
+        from tickets.models import Ticket
+        defaults = dict(
+            title='Overdue ticket',
+            owner_dept=self.dept,
+            assigned_to=self.owner,
+            due_date=timezone.localdate() - _dt.timedelta(days=10),
+        )
+        defaults.update(kw)
+        return Ticket.objects.create(**defaults)
+
+    def test_overdue_ticket_is_collected(self):
+        from core.escalations import collect_escalations
+        ticket = self._overdue_ticket()
+        found = {e.ref.pk for e in collect_escalations() if e.kind == 'ticket_overdue'}
+        self.assertIn(ticket.pk, found)
+
+    def test_expired_vendor_contract_is_collected(self):
+        from core.escalations import collect_escalations
+        vendor = Vendor.objects.create(
+            name='Lapsed Vendor', owner_dept=self.dept,
+            contract_renewal_date=timezone.localdate() - _dt.timedelta(days=30),
+        )
+        found = {
+            e.ref.pk for e in collect_escalations()
+            if e.kind == 'vendor_contract_expired'
+        }
+        self.assertIn(vendor.pk, found)
+
+    def test_grace_period_quietens_a_one_day_slip(self):
+        from core.escalations import collect_escalations
+        ticket = self._overdue_ticket(
+            due_date=timezone.localdate() - _dt.timedelta(days=1),
+        )
+        found = {e.ref.pk for e in collect_escalations() if e.kind == 'ticket_overdue'}
+        self.assertNotIn(ticket.pk, found)
+
+    def test_scan_is_idempotent_and_emails_once(self):
+        from core.escalations import run_escalations
+        from core.notifications import Notification
+        ticket = self._overdue_ticket()
+
+        run_escalations()
+        self.assertEqual(
+            Notification.objects.filter(
+                kind='ticket_overdue', ref_id=ticket.pk,
+            ).count(),
+            1,
+        )
+        self.assertIn('esc_owner@example.com', mail.outbox[0].to)
+
+        mail.outbox.clear()
+        run_escalations()
+        self.assertEqual(
+            Notification.objects.filter(
+                kind='ticket_overdue', ref_id=ticket.pk,
+            ).count(),
+            1,
+        )
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_notification_is_targeted_at_the_assignee(self):
+        from core.escalations import run_escalations
+        from core.notifications import Notification
+        ticket = self._overdue_ticket()
+        run_escalations()
+        note = Notification.objects.get(kind='ticket_overdue', ref_id=ticket.pk)
+        self.assertEqual(note.recipient, self.owner)
+
+    def test_no_assignee_falls_back_to_the_hod(self):
+        from core.escalations import run_escalations
+        self._overdue_ticket(assigned_to=None)
+        run_escalations()
+        self.assertEqual(mail.outbox[0].to, ['esc_hod@example.com'])
+
+    def test_disabled_flag_silences_the_email_not_the_alert(self):
+        from core.escalations import run_escalations
+        from core.notifications import Notification
+        from core.settings_model import UserPreference
+        UserPreference.objects.create(
+            user=self.owner, email_on_ticket_assigned=False,
+        )
+        ticket = self._overdue_ticket()
+        run_escalations()
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertTrue(
+            Notification.objects.filter(
+                kind='ticket_overdue', ref_id=ticket.pk,
+            ).exists()
+        )
+
+    def test_resolving_the_ticket_clears_the_alert(self):
+        from core.escalations import run_escalations
+        from core.notification_registry import refresh_notifications
+        from core.notifications import Notification
+        ticket = self._overdue_ticket()
+        run_escalations()
+        ticket.status = 'resolved'
+        ticket.save(update_fields=['status'])
+        refresh_notifications(is_super=True)
+        self.assertTrue(
+            Notification.objects.get(
+                kind='ticket_overdue', ref_id=ticket.pk,
+            ).is_cleared
+        )
+
+    def test_dry_run_writes_nothing(self):
+        from core.escalations import run_escalations
+        from core.notifications import Notification
+        ticket = self._overdue_ticket()
+        summary = run_escalations(dry_run=True)
+        self.assertEqual(summary['found'], 1)
+        self.assertEqual(
+            Notification.objects.filter(
+                kind='ticket_overdue', ref_id=ticket.pk,
+            ).count(),
+            0,
+        )
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_no_email_mode_still_raises_the_alert(self):
+        from core.escalations import run_escalations
+        from core.notifications import Notification
+        ticket = self._overdue_ticket()
+        run_escalations(send_emails=False)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertTrue(
+            Notification.objects.filter(
+                kind='ticket_overdue', ref_id=ticket.pk,
+            ).exists()
+        )
+
+
+class DigestCommandTests(TestCase):
+    """``send_email_digest`` honours the window and the preferences."""
+
+    def setUp(self):
+        self.dept = Department.objects.create(name='Digest Dept')
+        self.user = User.objects.create_user(
+            'digest_user', 'digest@example.com', 'pw', department=self.dept,
+        )
+        from core.notifications import Notification
+        Notification.objects.create(
+            owner_dept=self.dept, kind='ticket_unassigned',
+            title='TICK-9001 needs an owner', recipient=self.user,
+        )
+
+    def _run(self, *args):
+        out = StringIO()
+        call_command('send_email_digest', *args, stdout=out)
+        return out.getvalue()
+
+    def test_forced_digest_is_emailed_and_stamped(self):
+        from core.settings_model import UserPreference
+        self._run('--force', '--user', 'digest_user')
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['digest@example.com'])
+        self.assertIn('TICK-9001 needs an owner', mail.outbox[0].body)
+        self.assertIsNotNone(
+            UserPreference.objects.get(user=self.user).last_digest_sent_at
+        )
+
+    def test_the_window_stops_a_second_send(self):
+        self._run('--force', '--user', 'digest_user')
+        mail.outbox.clear()
+        self._run('--user', 'digest_user')
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_frequency_off_is_respected(self):
+        from core.settings_model import UserPreference
+        UserPreference.objects.create(user=self.user, email_digest_frequency='off')
+        self._run('--force', '--user', 'digest_user')
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_master_switch_is_respected(self):
+        from core.settings_model import UserPreference
+        UserPreference.objects.create(
+            user=self.user, email_notifications_enabled=False,
+        )
+        self._run('--force', '--user', 'digest_user')
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_nothing_to_report_sends_nothing(self):
+        from core.notifications import Notification
+        Notification.objects.filter(recipient=self.user).delete()
+        self._run('--force', '--user', 'digest_user')
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_dry_run_sends_no_mail(self):
+        self._run('--force', '--user', 'digest_user', '--dry-run')
+        self.assertEqual(len(mail.outbox), 0)
+
+
+class TestEmailViewTests(TestCase):
+    """The Settings page can prove deliverability end to end."""
+
+    def setUp(self):
+        self.dept = Department.objects.create(name='TestMail Dept')
+        self.user = User.objects.create_user(
+            'tm_user', 'tm@example.com', 'pw', department=self.dept,
+        )
+
+    def test_settings_page_renders_the_digest_controls(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/settings/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Digest frequency')
+        self.assertContains(response, 'email_digest_frequency')
+        self.assertContains(response, 'email_on_escalation')
+        self.assertContains(response, '/settings/test-email/')
+
+    def test_requires_a_post(self):
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get('/settings/test-email/').status_code, 405)
+
+    def test_requires_login(self):
+        response = self.client.post('/settings/test-email/')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login/', response['Location'])
+
+    def test_sends_a_sample_digest(self):
+        self.client.force_login(self.user)
+        response = self.client.post('/settings/test-email/')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['tm@example.com'])
+
+    def test_reports_a_missing_address(self):
+        self.user.email = ''
+        self.user.save(update_fields=['email'])
+        self.client.force_login(self.user)
+        self.client.post('/settings/test-email/')
+        self.assertEqual(len(mail.outbox), 0)
+
+
+class EscalationRegistryTests(TestCase):
+    """Every escalation kind needs a label, an icon and an auto-clear rule."""
+
+    KINDS = {
+        'risk_escalated', 'risk_overdue', 'finding_overdue', 'action_overdue',
+        'ticket_overdue', 'exception_expiring', 'vendor_contract_expired',
+        'kri_red', 'vuln_sla_breach',
+    }
+
+    def test_every_escalation_kind_is_registered(self):
+        from core.notification_registry import CLEAR_RULES
+        from core.notifications import Notification
+        labels = dict(Notification.KIND_CHOICES)
+        for kind in self.KINDS:
+            with self.subTest(kind=kind):
+                self.assertIn(kind, labels)
+                self.assertIn(kind, CLEAR_RULES)
+
+    def test_escalations_have_a_dedicated_icon(self):
+        from core.notifications import Notification
+        for kind in self.KINDS:
+            with self.subTest(kind=kind):
+                self.assertNotEqual(Notification(kind=kind).kind_icon, 'bi-bell')
+
+
+class AuditFindingDueDateTests(TestCase):
+    """The due-date helpers the escalation scan relies on."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Finding Dept')
+
+    def _finding(self, **kw):
+        defaults = dict(
+            title='Finding with a date', owner_dept=self.dept,
+            severity='high', status='open',
+            due_date=timezone.localdate() - _dt.timedelta(days=3),
+        )
+        defaults.update(kw)
+        return AuditFinding.objects.create(**defaults)
+
+    def test_open_finding_past_due_is_overdue(self):
+        self.assertTrue(self._finding().is_overdue)
+
+    def test_a_closed_finding_is_never_overdue(self):
+        finding = self._finding(
+            status='closed', verification_status='verified',
+        )
+        self.assertFalse(finding.is_overdue)
+
+    def test_a_resolved_finding_is_not_overdue(self):
+        self.assertFalse(self._finding(status='resolved').is_overdue)
+
+    def test_accepted_risk_is_not_overdue(self):
+        self.assertFalse(self._finding(status='accepted').is_overdue)
+
+    def test_no_due_date_is_not_overdue(self):
+        self.assertFalse(self._finding(due_date=None).is_overdue)
+
+    def test_days_overdue_counts_the_slip(self):
+        self.assertEqual(self._finding().days_overdue, 3)

@@ -13,6 +13,7 @@ from django.views.generic import (
     UpdateView,
 )
 
+from core.emails import email_pref_allows, send_email, site_url
 from core.mixins import (
     DepartmentCreateMixin,
     DepartmentScopedMixin,
@@ -270,6 +271,26 @@ def ticket_assign(request, pk):
         ticket.status = 'assigned'
     ticket.updated_by = request.user
     ticket.save()
+
+    # Immediate "you've been assigned" email, if the assignee wants it. This is
+    # a best-effort side effect — send_email() never raises.
+    if assignee != request.user and email_pref_allows(assignee, 'email_on_ticket_assigned'):
+        send_email(
+            subject=(
+                f'[GRC Nexus] {ticket.ticket_id} assigned to you — '
+                f'{ticket.title[:80]}'
+            ),
+            text_body=(
+                f'{request.user.get_full_name() or request.user.username} '
+                f'assigned {ticket.ticket_id} to you.\n\n'
+                f'Title:    {ticket.title}\n'
+                f'Priority: {ticket.get_priority_display()}\n'
+                f'Due:      {ticket.due_date or "no due date"}\n\n'
+                f'Open it in GRC Nexus: '
+                f'{site_url(reverse_lazy("tickets:detail", kwargs={"pk": ticket.pk}))}\n'
+            ),
+            recipients=[assignee.email],
+        )
 
     messages.success(request, f'{ticket.ticket_id} assigned to {assignee.username}.')
     return redirect('tickets:detail', pk=pk)

@@ -361,6 +361,27 @@ class AuditFinding(models.Model):
     def awaiting_verification(self):
         return self.status == 'resolved' and self.verification_status != 'verified'
 
+    # --- due-date helpers (used by the escalation scan) ---------------------
+
+    @property
+    def days_until_due(self):
+        from django.utils import timezone
+        if not self.due_date:
+            return None
+        return (self.due_date - timezone.now().date()).days
+
+    @property
+    def is_overdue(self):
+        """An open finding past its remediation due date."""
+        if self.status in ('resolved', 'accepted', 'closed'):
+            return False
+        days = self.days_until_due
+        return days is not None and days < 0
+
+    @property
+    def days_overdue(self):
+        return abs(self.days_until_due) if self.is_overdue else 0
+
     def clean(self):
         super().clean()
         if self.status == 'closed' and self.verification_status != 'verified':

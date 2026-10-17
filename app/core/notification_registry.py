@@ -46,6 +46,21 @@ def _ticket_assigned(obj):
     return obj.assigned_to_id is not None
 
 
+def _exception_no_longer_expiring(obj):
+    """Clear once the exception is actioned, or pushed far enough out."""
+    from django.conf import settings
+    if obj.status in ('revoked', 'expired'):
+        return True
+    days = obj.days_until_expiry
+    if days is None:
+        return True
+    return days > getattr(settings, 'ESCALATION_WARN_DAYS', 14)
+
+
+def _vendor_contract_ok(obj):
+    return not (obj.is_contract_expired or obj.is_renewal_due_soon)
+
+
 CLEAR_RULES = {
     'asset_needs_vendor':      lambda o: o.vendors.exists(),
     'asset_needs_owner':       lambda o: o.owner_user_id is not None,
@@ -63,6 +78,16 @@ CLEAR_RULES = {
     'finding_needs_actions':   lambda o: o.action_items.exists(),
     'action_needs_owner':      lambda o: o.owner_user_id is not None,
     'ticket_unassigned':       _ticket_assigned,
+    # Escalations clear as soon as the underlying condition is resolved.
+    'risk_escalated':          lambda o: not o.escalated,
+    'risk_overdue':            lambda o: not o.is_overdue,
+    'finding_overdue':         lambda o: not o.is_overdue,
+    'action_overdue':          lambda o: not o.is_overdue,
+    'ticket_overdue':          lambda o: not o.is_overdue,
+    'exception_expiring':      _exception_no_longer_expiring,
+    'vendor_contract_expired': _vendor_contract_ok,
+    'kri_red':                 lambda o: o.rag_status != 'red',
+    'vuln_sla_breach':         lambda o: not o.is_overdue,
 }
 
 

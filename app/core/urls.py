@@ -1,5 +1,5 @@
 from django.urls import path, re_path
-from .settings_views import settings_view
+from .settings_views import settings_view, send_test_email
 from .media import download_media
 from .object_views import share_object, saved_view_save, saved_view_delete
 from .notification_views import (
@@ -42,6 +42,7 @@ urlpatterns = [
     path('notifications/<int:pk>/read/', notification_mark_read, name='notification_mark_read'),
     path('notifications/mark-all-read/', notification_mark_all_read, name='notification_mark_all_read'),
     path('settings/', settings_view, name='settings'),
+    path('settings/test-email/', send_test_email, name='send_test_email'),
 
     # Object-level sharing (django-guardian)
     path(

@@ -76,6 +76,12 @@ class UserPreference(models.Model):
         'core.User', on_delete=models.CASCADE, related_name='preference'
     )
 
+    DIGEST_FREQUENCY_CHOICES = [
+        ('off',    'Off — no digests'),
+        ('daily',  'Daily digest'),
+        ('weekly', 'Weekly digest'),
+    ]
+
     language = models.CharField(max_length=10, choices=LANGUAGE_CHOICES, default='en')
     timezone = models.CharField(max_length=64, choices=_tz_choices(), default='UTC')
     date_format = models.CharField(max_length=20, choices=DATE_FORMAT_CHOICES, default='Y-m-d')
@@ -88,11 +94,23 @@ class UserPreference(models.Model):
         default=True,
         help_text='Receive email notifications for alerts and assignments',
     )
+    email_digest_frequency = models.CharField(
+        max_length=10, choices=DIGEST_FREQUENCY_CHOICES, default='weekly',
+        help_text='How often to email you a summary of everything outstanding.',
+    )
+    last_digest_sent_at = models.DateTimeField(
+        null=True, blank=True, editable=False,
+        help_text='When the digest job last emailed this user.',
+    )
     email_on_ticket_assigned = models.BooleanField(default=True)
     email_on_risk_breach = models.BooleanField(default=True)
     email_on_audit_finding = models.BooleanField(default=True)
     email_on_kri_red = models.BooleanField(default=True)
     email_on_vuln_sla = models.BooleanField(default=True)
+    email_on_escalation = models.BooleanField(
+        default=True,
+        help_text='Overdue tickets, expiring exceptions and lapsed vendor contracts.',
+    )
 
     updated_at = models.DateTimeField(auto_now=True)
     history = HistoricalRecords()
