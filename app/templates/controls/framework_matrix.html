@@ -36,7 +36,7 @@
                 <span>{{ row.cov.covered }} of {{ row.cov.total }} covered</span>
                 <strong>{{ row.cov.percent }}%</strong>
             </div>
-            <div class="progress" style="height:8px;">
+            <div class="progress h-8px">
                 <div class="progress-bar {% if row.cov.percent >= 75 %}bg-success{% elif row.cov.percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
                      style="width: {{ row.cov.percent }}%;"></div>
             </div>

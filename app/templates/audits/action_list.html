@@ -12,9 +12,9 @@
 {% block content %}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-list-task"></i> Total action items</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#0284C7;">{{ in_progress_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> In Progress</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-info">{{ in_progress_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> In Progress</div></div></div>
     <div class="col-md-3"><div class="stat-card" {% if overdue_count %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ overdue_count }}</div><div class="label"><i class="bi bi-clock-history"></i> Overdue</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ completed_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Completed</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-success">{{ completed_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Completed</div></div></div>
 </div>
 
 <div class="card">
@@ -66,14 +66,14 @@
                         <small>
                         {% if a.due_date %}
                             {% if a.is_overdue %}<span class="text-danger">{{ a.due_date }} <i class="bi bi-clock-history"></i></span>
-                            {% elif a.is_due_soon %}<span style="color:#D97706;">{{ a.due_date }}</span>
+                            {% elif a.is_due_soon %}<span class="text-token-warning">{{ a.due_date }}</span>
                             {% else %}{{ a.due_date }}{% endif %}
                         {% else %}—{% endif %}
                         </small>
                     </td>
                     <td>
                         <div class="d-flex align-items-center gap-2">
-                            <div class="progress flex-grow-1" style="height:6px;">
+                            <div class="progress flex-grow-1 h-6px">
                                 <div class="progress-bar" style="width:{{ a.progress_percent }}%; background:{{ a.status_color }};"></div>
                             </div>
                             <small>{{ a.progress_percent }}%</small>

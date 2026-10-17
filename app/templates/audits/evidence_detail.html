@@ -75,7 +75,7 @@
                             {% else %}#DC2626{% endif %};">
                             {{ score.total_score }}<span style="font-size:1rem; opacity:.6;">/100</span>
                         </div>
-                        <div class="badge {% if score.rating == 'excellent' %}bg-success{% elif score.rating == 'good' %}bg-info text-dark{% elif score.rating == 'partial' %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size:12px;">
+                        <div class="badge {% if score.rating == 'excellent' %}bg-success{% elif score.rating == 'good' %}bg-info text-dark{% elif score.rating == 'partial' %}bg-warning text-dark{% else %}bg-danger{% endif %} fs-12">
                             {{ score.rating|upper }}
                         </div>
                     </div>
@@ -85,27 +85,27 @@
                             <tr>
                                 <td>Relevance</td>
                                 <td class="text-end"><strong>{{ score.relevance }}</strong>/20</td>
-                                <td style="width:50%;"><div class="progress" style="height:6px;"><div class="progress-bar bg-primary" style="width:{% widthratio score.relevance 20 100 %}%;"></div></div></td>
+                                <td style="width:50%;"><div class="progress h-6px"><div class="progress-bar bg-primary" style="width:{% widthratio score.relevance 20 100 %}%;"></div></div></td>
                             </tr>
                             <tr>
                                 <td>Completeness</td>
                                 <td class="text-end"><strong>{{ score.completeness }}</strong>/20</td>
-                                <td><div class="progress" style="height:6px;"><div class="progress-bar bg-primary" style="width:{% widthratio score.completeness 20 100 %}%;"></div></div></td>
+                                <td><div class="progress h-6px"><div class="progress-bar bg-primary" style="width:{% widthratio score.completeness 20 100 %}%;"></div></div></td>
                             </tr>
                             <tr>
                                 <td>Timeliness</td>
                                 <td class="text-end"><strong>{{ score.timeliness }}</strong>/20</td>
-                                <td><div class="progress" style="height:6px;"><div class="progress-bar bg-primary" style="width:{% widthratio score.timeliness 20 100 %}%;"></div></div></td>
+                                <td><div class="progress h-6px"><div class="progress-bar bg-primary" style="width:{% widthratio score.timeliness 20 100 %}%;"></div></div></td>
                             </tr>
                             <tr>
                                 <td>Reliability</td>
                                 <td class="text-end"><strong>{{ score.reliability }}</strong>/20</td>
-                                <td><div class="progress" style="height:6px;"><div class="progress-bar bg-primary" style="width:{% widthratio score.reliability 20 100 %}%;"></div></div></td>
+                                <td><div class="progress h-6px"><div class="progress-bar bg-primary" style="width:{% widthratio score.reliability 20 100 %}%;"></div></div></td>
                             </tr>
                             <tr>
                                 <td>Sufficiency</td>
                                 <td class="text-end"><strong>{{ score.sufficiency }}</strong>/20</td>
-                                <td><div class="progress" style="height:6px;"><div class="progress-bar bg-primary" style="width:{% widthratio score.sufficiency 20 100 %}%;"></div></div></td>
+                                <td><div class="progress h-6px"><div class="progress-bar bg-primary" style="width:{% widthratio score.sufficiency 20 100 %}%;"></div></div></td>
                             </tr>
                         </tbody>
                     </table>

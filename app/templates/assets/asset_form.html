@@ -22,22 +22,22 @@
             {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
 
             {# Accountability panel #}
-            <div class="card mb-3" style="border-left: 4px solid #F59E0B;">
+            <div class="card mb-3 border-left-amber">
                 <div class="card-header bg-white"><strong><i class="bi bi-fingerprint"></i> Accountability</strong></div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">Asset ID</label>
                             <div class="form-control" style="background: var(--surface-2); font-family: monospace; display: flex; align-items: center; gap: 8px;">
-                                <i class="bi bi-hash" style="color: #0284C7;"></i>
+                                <i class="bi bi-hash text-token-info"></i>
                                 <strong>{{ form.instance.asset_id|default:"Auto-generated" }}</strong>
                             </div>
                             <div class="form-text small">Auto-assigned on save.</div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Created by</label>
-                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
-                                <i class="bi bi-person-check" style="color: #059669;"></i>
+                            <div class="form-control inline-bar">
+                                <i class="bi bi-person-check text-token-success"></i>
                                 <strong>{{ form.instance.created_by.username|default:request.user.username }}</strong>
                             </div>
                             <div class="form-text small">
@@ -50,8 +50,8 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Last updated</label>
-                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
-                                <i class="bi bi-clock-history" style="color: #0284C7;"></i>
+                            <div class="form-control inline-bar">
+                                <i class="bi bi-clock-history text-token-info"></i>
                                 <strong>
                                     {% if form.instance.pk and form.instance.updated_by %}
                                         {{ form.instance.updated_by.username }}
@@ -184,7 +184,7 @@
     </div>
 
     <div class="col-md-4">
-        <div class="card sticky-top" style="top:1rem;">
+        <div class="card sticky-top top-1rem">
             <div class="card-header bg-white"><strong>Criticality guide</strong></div>
             <div class="card-body small">
                 <div class="mb-2"><span class="badge bg-danger">Critical</span> — halts the business</div>

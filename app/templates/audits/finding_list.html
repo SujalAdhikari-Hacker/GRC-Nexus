@@ -39,10 +39,16 @@
         <a href="{% url 'audits:finding_create' %}" class="btn btn-sm btn-primary text-nowrap">+ New Finding</a>
     </div>
 
+    {% include 'includes/_bulk_toolbar.html' %}
+
     <div class="table-responsive">
         <table class="table mb-0 align-middle">
             <thead class="table-light">
                 <tr>
+                    <th style="width:36px;">
+                        <input type="checkbox" class="form-check-input" data-bulk-select-all
+                               aria-label="Select all findings">
+                    </th>
                     <th>Title</th>
                     <th>Severity</th>
                     <th>Status</th>
@@ -56,6 +62,8 @@
             <tbody>
             {% for f in findings %}
                 <tr>
+                    <td><input type="checkbox" class="form-check-input" name="selected"
+                               value="{{ f.pk }}" form="bulkForm" aria-label="Select {{ f.title }}"></td>
                     <td><a href="{% url 'audits:finding_detail' f.pk %}"><strong>{{ f.title|truncatechars:60 }}</strong></a></td>
                     <td>
                         {% if f.severity == 'critical' %}<span class="badge bg-danger">Critical</span>
@@ -85,7 +93,7 @@
                     <td class="text-end"><a href="{% url 'audits:finding_detail' f.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>
                 </tr>
             {% empty %}
-                <tr><td colspan="8" class="text-center text-muted py-4">No findings. <a href="{% url 'audits:finding_create' %}">Add one</a>.</td></tr>
+                <tr><td colspan="9" class="text-center text-muted py-4">No findings. <a href="{% url 'audits:finding_create' %}">Add one</a>.</td></tr>
             {% endfor %}
             </tbody>
         </table>

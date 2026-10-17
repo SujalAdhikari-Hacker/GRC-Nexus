@@ -1,0 +1,92 @@
+{% load permissions_tags %}
+{% can_share request.user obj as allow_share %}
+{% share_url obj as share_action %}
+{% if allow_share %}
+<div class="card mt-3" id="share-panel">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <strong>Sharing</strong>
+    <span class="text-muted small">Grant one person or group access to this record, without widening their whole department view.</span>
+  </div>
+
+  <div class="list-group list-group-flush">
+    {% shares_for obj as shares %}
+    {% for s in shares %}
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div class="text-truncate">
+          <i class="bi {% if s.type == 'group' %}bi-people{% else %}bi-person{% endif %}" aria-hidden="true"></i>
+          <strong>{{ s.name }}</strong>
+          <span class="badge bg-secondary ms-1">{{ s.type|capfirst }}</span>
+          {% for p in s.perms %}<span class="badge bg-light text-dark border ms-1">{{ p }}</span>{% endfor %}
+        </div>
+        <form method="post"
+              action="{{ share_action }}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <input type="hidden" name="action" value="revoke">
+          <input type="hidden" name="principal_type" value="{{ s.type }}">
+          <input type="hidden" name="principal_id" value="{{ s.id }}">
+          <button class="btn btn-sm btn-outline-danger text-nowrap">Remove</button>
+        </form>
+      </div>
+    {% empty %}
+      <div class="list-group-item text-muted small">
+        Not shared with anyone yet — access is limited to the owning department.
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="card-body">
+    <form method="post"
+          action="{{ share_action }}"
+          class="row g-2 align-items-end">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <input type="hidden" name="action" value="grant">
+      <input type="hidden" name="principal_type" value="user">
+      <div class="col-md-5">
+        <label class="form-label small mb-1" for="shareUser">Share with a user</label>
+        <select name="principal_id" id="shareUser" class="form-select form-select-sm" required>
+          <option value="">Choose a user…</option>
+          {% shareable_users as users %}
+          {% for u in users %}
+            <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }}{% if u.department %} · {{ u.department.name }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <span class="form-label small mb-1 d-block">Permission</span>
+        <div class="d-flex gap-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perms" value="view" id="permView" checked>
+            <label class="form-check-label small" for="permView">View</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perms" value="change" id="permChange" checked>
+            <label class="form-check-label small" for="permChange">Edit</label>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3"><button class="btn btn-sm btn-dark w-100">Share</button></div>
+    </form>
+
+    <form method="post"
+          action="{{ share_action }}"
+          class="row g-2 align-items-end mt-2">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <input type="hidden" name="action" value="grant">
+      <input type="hidden" name="principal_type" value="group">
+      <div class="col-md-5">
+        <label class="form-label small mb-1" for="shareGroup">…or a group</label>
+        <select name="principal_id" id="shareGroup" class="form-select form-select-sm" required>
+          <option value="">Choose a group…</option>
+          {% shareable_groups as groups %}
+          {% for g in groups %}<option value="{{ g.pk }}">{{ g.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4"></div>
+      <div class="col-md-3"><button class="btn btn-sm btn-outline-dark w-100">Share with group</button></div>
+    </form>
+  </div>
+</div>
+{% endif %}

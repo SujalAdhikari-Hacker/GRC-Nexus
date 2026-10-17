@@ -61,15 +61,15 @@
 
             {# ==================== OVERVIEW ==================== #}
             <div class="sidebar-section-head" style="display: flex; cursor: default;">Overview</div>
-            <a href="{% url 'core:dashboard' %}" class="sidebar-link {% if urlname == 'dashboard' %}active{% endif %}" style="display: flex;">
+            <a href="{% url 'core:dashboard' %}" class="sidebar-link {% if urlname == 'dashboard' %}active{% endif %} d-flex">
                 <i class="bi bi-grid-1x2"></i><span>Dashboard</span>
             </a>
-            <a href="{% url 'core:executive_report' %}" target="_blank" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'core:executive_report' %}" target="_blank" class="sidebar-link d-flex">
                 <i class="bi bi-file-earmark-pdf"></i><span>Executive Report</span>
             </a>
 
             {# ==================== INVENTORY & LIBRARY ==================== #}
-            <div class="sidebar-section-head sidebar-head-toggle" data-target="inv" style="display: flex;">
+            <div class="sidebar-section-head sidebar-head-toggle d-flex" data-target="inv">
                 <span>Inventory &amp; Library{% if notif_section_inventory %}<span class="sidebar-dot" title="{{ notif_section_inventory }} unread notification{{ notif_section_inventory|pluralize }}"></span>{% endif %}</span>
                 <i class="bi bi-chevron-down section-caret"></i>
             </div>
@@ -99,7 +99,7 @@
             </a>
 
             {# ==================== RISK & CONTROLS ==================== #}
-            <div class="sidebar-section-head sidebar-head-toggle" data-target="risk" style="display: flex;">
+            <div class="sidebar-section-head sidebar-head-toggle d-flex" data-target="risk">
                 <span>Risk &amp; Controls{% if notif_section_risk %}<span class="sidebar-dot" title="{{ notif_section_risk }} unread notification{{ notif_section_risk|pluralize }}"></span>{% endif %}</span>
                 <i class="bi bi-chevron-down section-caret"></i>
             </div>
@@ -110,7 +110,7 @@
             {% endif %}
 
             {# ==================== AUDIT & COMPLIANCE ==================== #}
-            <div class="sidebar-section-head sidebar-head-toggle" data-target="audit" style="display: flex;">
+            <div class="sidebar-section-head sidebar-head-toggle d-flex" data-target="audit">
                 <span>Audit &amp; Compliance{% if notif_section_audit %}<span class="sidebar-dot" title="{{ notif_section_audit }} unread notification{{ notif_section_audit|pluralize }}"></span>{% endif %}</span>
                 <i class="bi bi-chevron-down section-caret"></i>
             </div>
@@ -138,7 +138,7 @@
             </a>
 
             {# ==================== OPERATIONS ==================== #}
-            <div class="sidebar-section-head sidebar-head-toggle" data-target="ops" style="display: flex;">
+            <div class="sidebar-section-head sidebar-head-toggle d-flex" data-target="ops">
                 <span>Operations
                     {% if my_tickets_count %}
                         <span class="sidebar-dot" title="{{ my_tickets_count }} ticket{{ my_tickets_count|pluralize }} assigned to you"></span>
@@ -169,7 +169,7 @@
 
 
             {# ==================== THREAT INTEL ==================== #}
-            <div class="sidebar-section-head sidebar-head-toggle" data-target="threat" style="display: flex;">
+            <div class="sidebar-section-head sidebar-head-toggle d-flex" data-target="threat">
                 <span>Threat Intel</span>
                 <i class="bi bi-chevron-down section-caret"></i>
             </div>
@@ -188,7 +188,7 @@
 
             {# ==================== ADMINISTRATION ==================== #}
             {% if user.is_hod or user.is_superuser %}
-            <div class="sidebar-section-head sidebar-head-toggle" data-target="admin" style="display: flex;">
+            <div class="sidebar-section-head sidebar-head-toggle d-flex" data-target="admin">
                 <span>Administration</span>
                 <i class="bi bi-chevron-down section-caret"></i>
             </div>
@@ -203,7 +203,7 @@
             </a>
             <div class="sidebar-section-head" style="display: flex; cursor: default;">Admin</div>
             {% if user.is_superuser %}
-            <a href="{% url 'admin:index' %}" class="sidebar-link" style="display: flex;">
+            <a href="{% url 'admin:index' %}" class="sidebar-link d-flex">
                 <i class="bi bi-gear"></i><span>Django Admin</span>
             </a>
             {% endif %}
@@ -307,7 +307,7 @@
                         <div class="user-menu-divider"></div>
                         {% endif %}
                         <a href="{% url 'password_change' %}" class="user-menu-item"><i class="bi bi-key"></i><span>Change Password</span></a>
-                        <form method="post" action="{% url 'logout' %}" style="margin:0;">
+                        <form class="m-0" method="post" action="{% url 'logout' %}">
                             {% csrf_token %}
                             <button type="submit" class="user-menu-item danger"><i class="bi bi-box-arrow-right"></i><span>Sign out</span></button>
                         </form>
@@ -327,6 +327,7 @@
                 {% endfor %}
                 </div>
             {% endif %}
+            {% include 'includes/_saved_views.html' %}
             {% block content %}{% endblock %}
             {% include 'includes/_pagination.html' %}
         </div>

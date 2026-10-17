@@ -1,0 +1,43 @@
+{% if supports_saved_views %}
+<div class="saved-views d-flex flex-wrap align-items-center gap-2 mb-3">
+  {% if saved_view_list %}
+    <div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-bookmark-star" aria-hidden="true"></i> Saved views
+      </button>
+      <ul class="dropdown-menu">
+        {% for sv in saved_view_list %}
+          <li class="d-flex align-items-center">
+            <a class="dropdown-item flex-grow-1 text-truncate"
+               href="{{ request.path }}{% if sv.query_string %}?{{ sv.query_string }}{% endif %}">{{ sv.name }}</a>
+            <form method="post" action="{% url 'core:saved_view_delete' sv.pk %}" class="me-2">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button class="btn btn-sm btn-link text-danger p-0" title="Delete saved view"
+                      aria-label="Delete saved view {{ sv.name }}"><i class="bi bi-x-lg"></i></button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+          data-bs-target="#saveViewForm" aria-expanded="false" aria-controls="saveViewForm">
+    <i class="bi bi-bookmark-plus" aria-hidden="true"></i> Save this view
+  </button>
+
+  <div class="collapse flex-grow-1" id="saveViewForm">
+    <form method="post" action="{% url 'core:saved_view_save' %}" class="d-flex gap-2">
+      {% csrf_token %}
+      <input type="hidden" name="model_label" value="{{ saved_view_key }}">
+      <input type="hidden" name="query_string" value="{{ saved_view_current_query }}">
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <input type="text" name="name" class="form-control form-control-sm" placeholder="Name this view…"
+             maxlength="120" required aria-label="Saved view name">
+      <button class="btn btn-sm btn-dark text-nowrap">Save</button>
+    </form>
+  </div>
+</div>
+{% endif %}

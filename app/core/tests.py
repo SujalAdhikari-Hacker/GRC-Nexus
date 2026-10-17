@@ -16,6 +16,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from assets.models import Asset
+from audits.models import AuditFinding
 from controls.models import Control
 from core.mixins import csv_safe, scope_queryset, user_can_access
 from core.models import Department, User
@@ -536,3 +537,343 @@ class GlobalSearchCoverageTests(TestCase):
         response = self.client.get('/search/?q=searchable')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'searchable')
+
+
+class ObjectSharingTests(TestCase):
+    """django-guardian object-level grants widen visibility for exactly one
+    record, without leaking the rest of a department."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from risks.models import Risk, RiskCategory
+
+        cls.dept_a = Department.objects.create(name='Share Dept A')
+        cls.dept_b = Department.objects.create(name='Share Dept B')
+        cls.category = RiskCategory.objects.create(name='Share Cat')
+
+        cls.hod_b = User.objects.create_user(
+            'share_hod_b', 'hb@e.com', 'pw', department=cls.dept_b, is_hod=True,
+        )
+        cls.user_a = User.objects.create_user(
+            'share_user_a', 'ua@e.com', 'pw', department=cls.dept_a,
+        )
+        cls.superuser = User.objects.create_superuser('share_su', 'su@e.com', 'pw')
+
+        cls.risk_b = Risk.objects.create(
+            title='Dept B risk', category=cls.category, owner_dept=cls.dept_b,
+        )
+        cls.risk_b2 = Risk.objects.create(
+            title='Dept B risk two', category=cls.category, owner_dept=cls.dept_b,
+        )
+
+    def _fresh(self, user):
+        return User.objects.get(pk=user.pk)
+
+    def test_grant_makes_single_object_visible(self):
+        from guardian.shortcuts import assign_perm
+        from risks.models import Risk
+
+        assign_perm('view_risk', self.user_a, self.risk_b)
+        user = self._fresh(self.user_a)
+
+        visible = set(
+            scope_queryset(Risk.objects.all(), user).values_list('pk', flat=True)
+        )
+        self.assertIn(self.risk_b.pk, visible)
+        self.assertNotIn(self.risk_b2.pk, visible)
+        self.assertTrue(user_can_access(user, self.risk_b))
+        self.assertFalse(user_can_access(user, self.risk_b2))
+
+    def test_revoke_removes_visibility(self):
+        from core.permissions import grant_object_perms, revoke_object_perms
+        from risks.models import Risk
+
+        grant_object_perms(self.risk_b, user=self.user_a)
+        revoke_object_perms(self.risk_b, user=self.user_a)
+        user = self._fresh(self.user_a)
+
+        visible = scope_queryset(Risk.objects.all(), user)
+        self.assertNotIn(self.risk_b.pk, visible.values_list('pk', flat=True))
+        self.assertFalse(user_can_access(user, self.risk_b))
+
+    def test_global_permission_does_not_grant_every_row(self):
+        """A user holding the *global* change_risk permission must not be handed
+        every risk through the object-grant union."""
+        from django.contrib.auth.models import Permission
+        from risks.models import Risk
+
+        perm = Permission.objects.get(codename='change_risk')
+        self.user_a.user_permissions.add(perm)
+        user = self._fresh(self.user_a)
+        visible = scope_queryset(Risk.objects.all(), user)
+        self.assertEqual(visible.count(), 0)
+
+    def test_hod_can_share_own_department_record(self):
+        self.client.force_login(self.hod_b)
+        response = self.client.post(
+            f'/share/risks/risk/{self.risk_b.pk}/',
+            {
+                'action': 'grant',
+                'principal_type': 'user',
+                'principal_id': self.user_a.pk,
+                'perms': ['view'],
+                'next': '/risks/',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        user = self._fresh(self.user_a)
+        self.assertTrue(user_can_access(user, self.risk_b))
+
+    def test_non_manager_cannot_share(self):
+        self.client.force_login(self.user_a)  # dept A cannot manage dept B's risk
+        response = self.client.post(
+            f'/share/risks/risk/{self.risk_b.pk}/',
+            {
+                'action': 'grant',
+                'principal_type': 'user',
+                'principal_id': self.superuser.pk,
+                'perms': ['view'],
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_share_requires_post(self):
+        self.client.force_login(self.hod_b)
+        self.assertEqual(
+            self.client.get(f'/share/risks/risk/{self.risk_b.pk}/').status_code, 405
+        )
+
+    def test_share_panel_renders_for_manager(self):
+        self.client.force_login(self.hod_b)
+        response = self.client.get(f'/risks/{self.risk_b.pk}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Sharing')
+        self.assertContains(response, 'share-panel')
+
+
+class SavedViewTests(TestCase):
+    """Per-user saved list filters."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from risks.models import Risk, RiskCategory
+
+        cls.dept = Department.objects.create(name='SavedView Dept')
+        cls.category = RiskCategory.objects.create(name='SavedView Cat')
+        cls.user = User.objects.create_superuser('sv_user', 'sv@e.com', 'pw')
+        Risk.objects.create(title='SV risk', category=cls.category, owner_dept=cls.dept)
+
+    def test_save_and_apply_view(self):
+        from core.models import SavedView
+
+        self.client.force_login(self.user)
+        response = self.client.post(
+            '/views/save/',
+            {
+                'name': 'Critical only',
+                'model_label': 'risks.risk',
+                'query_string': 'severity=critical',
+                'next': '/risks/',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        view = SavedView.objects.get(user=self.user, name='Critical only')
+        self.assertEqual(view.query_string, 'severity=critical')
+
+        listing = self.client.get('/risks/')
+        self.assertContains(listing, 'Critical only')
+
+    def test_saving_same_name_updates_not_duplicates(self):
+        from core.models import SavedView
+
+        self.client.force_login(self.user)
+        for qs in ('severity=high', 'severity=low'):
+            self.client.post('/views/save/', {
+                'name': 'Mine', 'model_label': 'risks.risk',
+                'query_string': qs, 'next': '/risks/',
+            })
+        views = SavedView.objects.filter(user=self.user, name='Mine')
+        self.assertEqual(views.count(), 1)
+        self.assertEqual(views.first().query_string, 'severity=low')
+
+    def test_delete_view(self):
+        from core.models import SavedView
+
+        view = SavedView.objects.create(
+            user=self.user, name='Temp', model_label='risks.risk',
+        )
+        self.client.force_login(self.user)
+        response = self.client.post(
+            f'/views/{view.pk}/delete/', {'next': '/risks/'}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(SavedView.objects.filter(pk=view.pk).exists())
+
+    def test_cannot_delete_another_users_view(self):
+        from core.models import SavedView
+
+        other = User.objects.create_user('sv_other', 'o@e.com', 'pw')
+        view = SavedView.objects.create(
+            user=other, name='Theirs', model_label='risks.risk',
+        )
+        self.client.force_login(self.user)
+        self.assertEqual(
+            self.client.post(f'/views/{view.pk}/delete/').status_code, 404
+        )
+
+
+class BulkActionTests(TestCase):
+    """Checkbox bulk edits stay inside the scoped queryset and reject values
+    that would bypass a workflow gate."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept_a = Department.objects.create(name='Bulk Dept A')
+        cls.dept_b = Department.objects.create(name='Bulk Dept B')
+        cls.superuser = User.objects.create_superuser('bulk_su', 'bs@e.com', 'pw')
+        cls.hod_a = User.objects.create_user(
+            'bulk_hod_a', 'bha@e.com', 'pw', department=cls.dept_a, is_hod=True,
+        )
+        cls.finding_a = AuditFinding.objects.create(
+            title='Bulk finding A', owner_dept=cls.dept_a, severity='low',
+        )
+        cls.finding_b = AuditFinding.objects.create(
+            title='Bulk finding B', owner_dept=cls.dept_b, severity='low',
+        )
+
+    def test_bulk_set_severity(self):
+        self.client.force_login(self.superuser)
+        response = self.client.post('/audits/findings/', {
+            'bulk_action': 'set_severity',
+            'bulk_value': 'high',
+            'selected': [self.finding_a.pk, self.finding_b.pk],
+        })
+        self.assertEqual(response.status_code, 302)
+        self.finding_a.refresh_from_db()
+        self.assertEqual(self.finding_a.severity, 'high')
+
+    def test_bulk_cannot_close_finding(self):
+        self.client.force_login(self.superuser)
+        self.client.post('/audits/findings/', {
+            'bulk_action': 'set_status',
+            'bulk_value': 'closed',   # not an offered choice
+            'selected': [self.finding_a.pk],
+        })
+        self.finding_a.refresh_from_db()
+        self.assertEqual(self.finding_a.status, 'open')
+
+    def test_bulk_action_is_department_scoped(self):
+        self.client.force_login(self.hod_a)
+        self.client.post('/audits/findings/', {
+            'bulk_action': 'set_severity',
+            'bulk_value': 'critical',
+            'selected': [self.finding_a.pk, self.finding_b.pk],
+        })
+        self.finding_a.refresh_from_db()
+        self.finding_b.refresh_from_db()
+        self.assertEqual(self.finding_a.severity, 'critical')
+        self.assertEqual(self.finding_b.severity, 'low')  # untouched
+
+    def test_asset_bulk_classification(self):
+        asset = Asset.objects.create(
+            asset_id='BULK-A1', name='Bulk asset', owner_dept=self.dept_a,
+        )
+        self.client.force_login(self.superuser)
+        self.client.post('/assets/', {
+            'bulk_action': 'set_classification',
+            'bulk_value': 'restricted',
+            'selected': [asset.pk],
+        })
+        asset.refresh_from_db()
+        self.assertEqual(asset.classification, 'restricted')
+
+    def test_bulk_toolbar_renders(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get('/audits/findings/')
+        self.assertContains(response, 'bulkForm')
+
+
+class FindingVerificationTests(TestCase):
+    """A finding cannot be closed until its remediation is verified."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Verify Dept')
+        cls.hod = User.objects.create_user(
+            'verify_hod', 'vh@e.com', 'pw', department=cls.dept, is_hod=True,
+        )
+        cls.plain = User.objects.create_user(
+            'verify_plain', 'vp@e.com', 'pw', department=cls.dept,
+        )
+        cls.superuser = User.objects.create_superuser('verify_su', 'vs@e.com', 'pw')
+
+    def _finding(self, **kwargs):
+        defaults = {'title': 'Verify me', 'owner_dept': self.dept}
+        defaults.update(kwargs)
+        return AuditFinding.objects.create(**defaults)
+
+    def test_cannot_close_without_verification(self):
+        from django.core.exceptions import ValidationError
+
+        finding = self._finding(status='open')
+        finding.status = 'closed'
+        with self.assertRaises(ValidationError):
+            finding.save()
+
+    def test_model_clean_blocks_unverified_closure(self):
+        from django.core.exceptions import ValidationError
+
+        finding = self._finding(title='Clean block')
+        finding.status = 'closed'
+        with self.assertRaises(ValidationError):
+            finding.full_clean()
+
+    def test_verify_closes_finding(self):
+        finding = self._finding(title='Resolved one', status='resolved')
+        self.client.force_login(self.hod)
+        response = self.client.post(
+            f'/audits/findings/{finding.pk}/verify/',
+            {'decision': 'verified', 'verification_notes': 'Checked logs.'},
+        )
+        self.assertEqual(response.status_code, 302)
+        finding.refresh_from_db()
+        self.assertEqual(finding.verification_status, 'verified')
+        self.assertEqual(finding.status, 'closed')
+        self.assertEqual(finding.verified_by, self.hod)
+        self.assertIsNotNone(finding.verified_at)
+        self.assertTrue(finding.closed_date)
+
+    def test_reject_sends_back_for_remediation(self):
+        finding = self._finding(title='Reject me', status='resolved')
+        self.client.force_login(self.hod)
+        self.client.post(
+            f'/audits/findings/{finding.pk}/verify/',
+            {'decision': 'rejected', 'verification_notes': 'Not fixed.'},
+        )
+        finding.refresh_from_db()
+        self.assertEqual(finding.verification_status, 'rejected')
+        self.assertEqual(finding.status, 'in_progress')
+
+    def test_only_resolved_can_be_verified(self):
+        finding = self._finding(title='Still open', status='open')
+        self.client.force_login(self.hod)
+        self.client.post(
+            f'/audits/findings/{finding.pk}/verify/', {'decision': 'verified'}
+        )
+        finding.refresh_from_db()
+        self.assertEqual(finding.status, 'open')
+        self.assertEqual(finding.verification_status, 'pending')
+
+    def test_plain_user_cannot_verify(self):
+        finding = self._finding(title='Plain cannot', status='resolved')
+        self.client.force_login(self.plain)
+        response = self.client.post(
+            f'/audits/findings/{finding.pk}/verify/', {'decision': 'verified'}
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_verification_form_shown_on_resolved_finding(self):
+        finding = self._finding(title='Show form', status='resolved')
+        self.client.force_login(self.hod)
+        response = self.client.get(f'/audits/findings/{finding.pk}/')
+        self.assertContains(response, 'Verify &amp; close')

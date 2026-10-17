@@ -6,7 +6,7 @@
 
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ ioc_total }}</div><div class="label"><i class="bi bi-bug"></i> Active IOCs</div></div></div>
-    <div class="col-md-3"><div class="stat-card" {% if ioc_24h %}style="border-color:#0284C7;"{% endif %}><div class="value" style="color:#0284C7;">{{ ioc_24h }}</div><div class="label"><i class="bi bi-clock"></i> Added in last 24h</div></div></div>
+    <div class="col-md-3"><div class="stat-card" {% if ioc_24h %}style="border-color:#0284C7;"{% endif %}><div class="value text-token-info">{{ ioc_24h }}</div><div class="label"><i class="bi bi-clock"></i> Added in last 24h</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ technique_count }}</div><div class="label"><i class="bi bi-diagram-3"></i> ATT&CK techniques</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ actor_count }}</div><div class="label"><i class="bi bi-person-badge"></i> Threat actors</div></div></div>
 </div>
@@ -25,7 +25,7 @@
                         <span>{{ row.ioc_type|upper }}</span>
                         <strong>{{ row.c }}</strong>
                     </div>
-                    <div class="progress" style="height:6px;">
+                    <div class="progress h-6px">
                         <div class="progress-bar bg-primary" style="width:{% widthratio row.c ioc_total 100 %}%;"></div>
                     </div>
                 </div>

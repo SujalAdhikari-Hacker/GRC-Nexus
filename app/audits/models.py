@@ -281,6 +281,11 @@ class AuditFinding(models.Model):
         ('continuous_monitoring', 'Continuous Monitoring'),
         ('other',                 'Other'),
     ]
+    VERIFICATION_CHOICES = [
+        ('pending',  'Pending verification'),
+        ('verified', 'Verified'),
+        ('rejected', 'Rejected'),
+    ]
 
     title = models.CharField(max_length=300)
     severity = models.CharField(max_length=20, choices=SEVERITY_CHOICES, default='medium')
@@ -309,6 +314,20 @@ class AuditFinding(models.Model):
     description = models.TextField(blank=True)
     recommendation = models.TextField(blank=True)
 
+    # --- Verification loop: resolved -> verified -> closed -------------------
+    verification_status = models.CharField(
+        max_length=20, choices=VERIFICATION_CHOICES, default='pending',
+        help_text='A finding cannot be closed until remediation is verified.'
+    )
+    verified_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='verified_findings'
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verification_notes = models.TextField(
+        blank=True, help_text='What the verifier checked before signing off.'
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(
@@ -331,6 +350,36 @@ class AuditFinding(models.Model):
 
     def __str__(self):
         return f"[{self.get_severity_display()}] {self.title}"
+
+    # --- Verification loop --------------------------------------------------
+
+    @property
+    def is_verified(self):
+        return self.verification_status == 'verified'
+
+    @property
+    def awaiting_verification(self):
+        return self.status == 'resolved' and self.verification_status != 'verified'
+
+    def clean(self):
+        super().clean()
+        if self.status == 'closed' and self.verification_status != 'verified':
+            raise ValidationError({
+                'status': 'A finding cannot be closed until its remediation is '
+                          'verified. Mark it verified first.'
+            })
+
+    def save(self, *args, **kwargs):
+        # Enforce the invariant on every write path — forms, admin, management
+        # commands and the shell — not just ModelForm validation.
+        if self.status == 'closed' and self.verification_status != 'verified':
+            raise ValidationError(
+                'A finding cannot be closed until its remediation is verified.'
+            )
+        if self.status == 'closed' and not self.closed_date:
+            from django.utils import timezone
+            self.closed_date = timezone.now().date()
+        super().save(*args, **kwargs)
 
 
 class ActionItem(models.Model):

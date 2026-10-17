@@ -12,9 +12,9 @@
 {% block content %}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-ticket-detailed"></i> Total assigned</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#0284C7;">{{ open_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> Open</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-info">{{ open_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> Open</div></div></div>
     <div class="col-md-3"><div class="stat-card" {% if overdue_count %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ overdue_count }}</div><div class="label"><i class="bi bi-clock-history"></i> Overdue</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ resolved_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Resolved / Closed</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-success">{{ resolved_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Resolved / Closed</div></div></div>
 </div>
 
 <div class="card">

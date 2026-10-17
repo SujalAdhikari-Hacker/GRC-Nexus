@@ -37,8 +37,8 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Created by</label>
-                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
-                                <i class="bi bi-person-check" style="color: #0284C7;"></i>
+                            <div class="form-control inline-bar">
+                                <i class="bi bi-person-check text-token-info"></i>
                                 <strong>
                                     {% if form.instance.created_by %}
                                         {{ form.instance.created_by.username }}
@@ -59,8 +59,8 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Last updated</label>
-                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
-                                <i class="bi bi-clock-history" style="color: #6B7280;"></i>
+                            <div class="form-control inline-bar">
+                                <i class="bi bi-clock-history text-token-muted"></i>
                                 <strong>
                                     {% if form.instance.updated_by %}
                                         {{ form.instance.updated_by.username }}

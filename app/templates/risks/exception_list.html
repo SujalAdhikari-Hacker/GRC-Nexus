@@ -12,11 +12,11 @@
 {% block content %}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-shield-check"></i> Total exceptions</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#D97706;">{{ pending_count }}</div><div class="label"><i class="bi bi-hourglass"></i> Pending approval</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ active_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Active</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-warning">{{ pending_count }}</div><div class="label"><i class="bi bi-hourglass"></i> Pending approval</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-success">{{ active_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Active</div></div></div>
     <div class="col-md-3"><div class="stat-card" {% if expired_count or expiring_soon_count %}style="border-color:#DC2626;"{% endif %}>
         <div class="value text-danger">{{ expired_count }}</div>
-        <div class="label"><i class="bi bi-clock-history"></i> Expired · <span style="color:#D97706;">{{ expiring_soon_count }} expiring soon</span></div>
+        <div class="label"><i class="bi bi-clock-history"></i> Expired · <span class="text-token-warning">{{ expiring_soon_count }} expiring soon</span></div>
     </div></div>
 </div>
 

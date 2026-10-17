@@ -6,7 +6,14 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 
 from core.correlation import get_full_asset_context, get_policies_for_asset
-from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, scope_queryset
+from core.mixins import (
+    BulkActionsMixin,
+    CsvExportMixin,
+    DepartmentCreateMixin,
+    DepartmentScopedMixin,
+    SavedViewsMixin,
+    scope_queryset,
+)
 from core.reports import ReportMixin
 
 from .forms import AssetForm
@@ -54,11 +61,24 @@ class AssetUpdateView(DepartmentScopedMixin, UpdateView):
         return response
 
 
-class AssetListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListView):
+class AssetListView(BulkActionsMixin, SavedViewsMixin, ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Asset
     template_name = 'assets/asset_list.html'
     context_object_name = 'assets'
     paginate_by = 20
+
+    bulk_actions = {
+        'set_classification': {
+            'label': 'Set classification',
+            'field': 'classification',
+            'choices': Asset.CLASSIFICATION_CHOICES,
+        },
+        'set_environment': {
+            'label': 'Set environment',
+            'field': 'environment',
+            'choices': Asset.ENVIRONMENT_CHOICES,
+        },
+    }
 
     report_title = 'Asset Inventory'
     report_filename_base = 'asset_inventory'

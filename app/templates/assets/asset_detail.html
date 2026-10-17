@@ -32,15 +32,15 @@
             <ul class="list-group list-group-flush">
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Asset ID</span><code>{{ asset.asset_id }}</code></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Name</span><span>{{ asset.name }}</span></li>
-                {% if asset.hostname %}<li class="list-group-item d-flex justify-content-between"><span class="text-muted">Hostname</span><code style="font-size:12px;">{{ asset.hostname }}</code></li>{% endif %}
-                {% if asset.ip_address %}<li class="list-group-item d-flex justify-content-between"><span class="text-muted">IP address</span><code style="font-size:12px;">{{ asset.ip_address }}</code></li>{% endif %}
-                {% if asset.fqdn %}<li class="list-group-item d-flex justify-content-between"><span class="text-muted">FQDN</span><code style="font-size:12px;">{{ asset.fqdn }}</code></li>{% endif %}
+                {% if asset.hostname %}<li class="list-group-item d-flex justify-content-between"><span class="text-muted">Hostname</span><code class="fs-12">{{ asset.hostname }}</code></li>{% endif %}
+                {% if asset.ip_address %}<li class="list-group-item d-flex justify-content-between"><span class="text-muted">IP address</span><code class="fs-12">{{ asset.ip_address }}</code></li>{% endif %}
+                {% if asset.fqdn %}<li class="list-group-item d-flex justify-content-between"><span class="text-muted">FQDN</span><code class="fs-12">{{ asset.fqdn }}</code></li>{% endif %}
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Type</span><span>{{ asset.get_asset_type_display }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Hosting</span><span>{{ asset.get_hosting_display }}</span></li>
                 {% if asset.cloud_provider and asset.cloud_provider != 'on_prem' %}
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Cloud provider</span><span>{{ asset.get_cloud_provider_display }}</span></li>
                 {% endif %}
-                {% if asset.cloud_region %}<li class="list-group-item d-flex justify-content-between"><span class="text-muted">Cloud region</span><code style="font-size:12px;">{{ asset.cloud_region }}</code></li>{% endif %}
+                {% if asset.cloud_region %}<li class="list-group-item d-flex justify-content-between"><span class="text-muted">Cloud region</span><code class="fs-12">{{ asset.cloud_region }}</code></li>{% endif %}
                 {% if asset.location %}<li class="list-group-item d-flex justify-content-between"><span class="text-muted">Location</span><span>{{ asset.location }}</span></li>{% endif %}
                 {% if asset.os_family %}<li class="list-group-item d-flex justify-content-between"><span class="text-muted">OS</span><span>{{ asset.get_os_family_display }}{% if asset.os_version %} — {{ asset.os_version }}{% endif %}</span></li>{% endif %}
                 <li class="list-group-item d-flex justify-content-between">
@@ -176,6 +176,12 @@
                 {% endfor %}
             </div>
         </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
+    <div class="col-12">
+        {% include 'includes/_share_panel.html' with obj=asset %}
     </div>
 </div>
 {% endblock %}

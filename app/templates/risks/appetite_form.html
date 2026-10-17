@@ -26,8 +26,8 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Created by</label>
-                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
-                                <i class="bi bi-person-check" style="color: #0284C7;"></i>
+                            <div class="form-control inline-bar">
+                                <i class="bi bi-person-check text-token-info"></i>
                                 <strong>
                                     {% if form.instance.created_by %}
                                         {{ form.instance.created_by.username }}
@@ -48,8 +48,8 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Last updated</label>
-                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
-                                <i class="bi bi-clock-history" style="color: #6B7280;"></i>
+                            <div class="form-control inline-bar">
+                                <i class="bi bi-clock-history text-token-muted"></i>
                                 <strong>
                                     {% if form.instance.updated_by %}
                                         {{ form.instance.updated_by.username }}
@@ -159,7 +159,7 @@
     </div>
 
     <div class="col-md-4">
-        <div class="card sticky-top" style="top:1rem;">
+        <div class="card sticky-top top-1rem">
             <div class="card-header bg-white"><strong>Appetite levels</strong></div>
             <div class="card-body small text-muted">
                 <div class="mb-2"><strong>Averse</strong> — avoid risk wherever possible</div>

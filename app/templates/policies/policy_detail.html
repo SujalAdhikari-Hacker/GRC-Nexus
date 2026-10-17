@@ -45,7 +45,7 @@
                     <span class="text-muted">Created by</span>
                     <span>
                         {% if policy.created_by %}
-                            <i class="bi bi-person-check" style="color:#059669;"></i> {{ policy.created_by.username }}
+                            <i class="bi bi-person-check text-token-success"></i> {{ policy.created_by.username }}
                         {% else %}<em class="text-muted">—</em>{% endif %}
                     </span>
                 </li>
@@ -57,7 +57,7 @@
                     <span class="text-muted">Last updated by</span>
                     <span>
                         {% if policy.updated_by %}
-                            <i class="bi bi-clock-history" style="color:#6B7280;"></i> {{ policy.updated_by.username }}
+                            <i class="bi bi-clock-history text-token-muted"></i> {{ policy.updated_by.username }}
                         {% else %}<em class="text-muted">—</em>{% endif %}
                     </span>
                 </li>
@@ -106,6 +106,12 @@
                 {% endfor %}
             </ul>
         </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
+    <div class="col-12">
+        {% include 'includes/_share_panel.html' with obj=policy %}
     </div>
 </div>
 {% endblock %}

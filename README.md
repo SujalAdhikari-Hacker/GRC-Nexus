@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/branding/grc-nexus-logo.png" alt="GRC Nexus — from assets to assurance" width="420">
+
 # GRC Nexus
 
 ### Governance · Risk · Compliance — unified in one correlated graph.
@@ -10,7 +12,7 @@
 [![Django](https://img.shields.io/badge/django-4.2-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
-[![Tests](https://img.shields.io/badge/tests-42%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-65%20passing-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
@@ -96,6 +98,8 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   Reliability, Sufficiency) → 0–100 score with rating bands.
 - **Control testing** — 8 result types (Pass, Partial, Fail, Self Audit, Continuous Monitoring…).
 - **Audit findings** — severity, source, owner, due date, recommendation, overdue tracking.
+- **Verification loop** — a finding moves Resolved → Verified → Closed; it cannot be closed
+  until a HOD or superuser verifies the fix (rejection sends it back for remediation).
 - **Action plans** — sub-tasks under findings with `ACT-XXXX` IDs, priority and progress.
 - **Per-audit PDF report** — full engagement report with findings, tests, evidence and sign-off.
 
@@ -113,13 +117,17 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - All generated PDFs carry a confidentiality watermark (one seal per page).
 
 ### Platform
-- **Login & RBAC** — department-scoped, enforced at the queryset level; `django-guardian` is
-  installed and available for future object-level permissions.
+- **Login & RBAC** — department-scoped, enforced at the queryset level, plus **object-level
+  permissions** via `django-guardian`: a HOD can share a single record with a user or group
+  from the sharing panel on its detail page, without widening their whole department view.
 - **Command palette** (Ctrl/⌘ + K) — search across assets, risks, controls, policies, vendors,
   findings, audits, frameworks, KRIs, tickets and threat actors.
 - **Notifications** — a department-scoped work queue (unread is real unread).
 - **Dark mode** with persistence; native `type="date"` calendar pickers everywhere.
 - **CSV / Excel / PDF export** on the list views that support it.
+- **Bulk actions** — select rows on a register and apply a server-approved change (e.g. set
+  severity, set classification) in one step, scoped to what you can see.
+- **Saved views** — name the filters you use most and recall them from a dropdown on the list.
 - **Authorised media downloads** — evidence and policy documents are served through a login- and
   department-scoped view (`core/media.py`), never raw `/media/`.
 - **Accessibility & responsive** — skip link, live regions, visible focus states, print
@@ -333,12 +341,13 @@ docker compose down -v                                           # stop and wipe
 
 The suite covers the invariants the product depends on: risk-scoring maths and the non-zero
 residual floor, severity banding, the risk/policy state machines, control evidence gating, the
-vulnerability→risk cascade, department scoping and the authenticated media view, CSV-injection
-guarding, export fidelity and the PDF watermark.
+vulnerability→risk cascade, object-level sharing (django-guardian) and department scoping, the
+finding verification loop, bulk actions and saved views, the authenticated media view,
+CSV-injection guarding, export fidelity and the PDF watermark.
 
 ```bash
 docker compose exec web python manage.py test
-# Ran 42 tests — OK
+# Ran 65 tests — OK
 ```
 
 ---
@@ -401,12 +410,18 @@ Existing tags: `v1.0.0`, `v2.0.0`, `v2.1.0`, `v2.2.0`.
 
 ## Roadmap
 
-The platform is under active development. Planned work:
+The platform is under active development.
 
-- [ ] Object-level permissions via `django-guardian` (installed, not yet wired)
+**Recently shipped**
+
+- [x] Object-level permissions via `django-guardian`, with a per-record sharing panel
+- [x] Audit finding → verification loop (a finding cannot be closed until it is verified)
+- [x] Bulk actions on registers and per-user saved list views
+- [x] Design-system cleanup — recurring inline styles moved to tokens/utility classes
+
+**Planned**
+
 - [ ] Email digests and escalation notifications
-- [ ] Audit finding → verification loop; bulk actions and saved views
-- [ ] Design-system cleanup (reduce inline styles to tokens)
 - [ ] SSO / OIDC and MFA for enterprise deployments
 
 ---

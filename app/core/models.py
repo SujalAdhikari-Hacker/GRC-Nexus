@@ -92,5 +92,37 @@ class OrganisationProfile(models.Model):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
 
+
+class SavedView(models.Model):
+    """A named, reusable list filter, private to the user who saved it.
+
+    A saved view stores only the querystring for a given list (model label), so
+    it stays valid as records come and go — it re-runs the filter rather than
+    freezing a set of IDs.
+    """
+
+    user = models.ForeignKey(
+        'core.User', on_delete=models.CASCADE, related_name='saved_views'
+    )
+    name = models.CharField(max_length=120)
+    model_label = models.CharField(max_length=100, db_index=True)
+    query_string = models.CharField(max_length=1000, blank=True)
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['model_label', 'name']
+        verbose_name = 'Saved view'
+        verbose_name_plural = 'Saved views'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'model_label', 'name'],
+                name='unique_saved_view_per_user',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.name} ({self.model_label})'
+
 # Import for Django model discovery
 from .settings_model import UserPreference  # noqa

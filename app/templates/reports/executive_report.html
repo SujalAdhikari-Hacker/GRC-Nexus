@@ -457,7 +457,7 @@
         </div>
     </div>
 
-    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Key Metrics</h3>
+    <h3 class="pdf-heading">Key Metrics</h3>
     <table class="data">
         <tbody>
             <tr><td>Average inherent risk score</td><td class="text-right"><strong>{{ avg_inherent }} / 25</strong></td></tr>
@@ -484,7 +484,7 @@
         resources allocated to defending it. No technical knowledge is assumed.
     </p>
 
-    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Asset Base at Risk</h3>
+    <h3 class="pdf-heading">Asset Base at Risk</h3>
     <div class="stat-grid">
         <div class="stat-card blue">
             <div class="value">£{{ total_asset_value|floatformat:0 }}</div>
@@ -508,7 +508,7 @@
         </div>
     </div>
 
-    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Financial Exposure from Risk</h3>
+    <h3 class="pdf-heading">Financial Exposure from Risk</h3>
     <table class="data">
         <thead>
             <tr>
@@ -538,8 +538,8 @@
             </tr>
             <tr style="background:#ECFDF5;">
                 <td><strong>Risk reduction achieved</strong> — value protected by controls</td>
-                <td class="text-right" style="color:#059669;"><strong>{{ risk_reduction|floatformat:0 }}</strong></td>
-                <td class="text-right" style="color:#059669;"><strong>{{ risk_reduction_pct }}%</strong></td>
+                <td class="text-right text-token-success"><strong>{{ risk_reduction|floatformat:0 }}</strong></td>
+                <td class="text-right text-token-success"><strong>{{ risk_reduction_pct }}%</strong></td>
             </tr>
         </tbody>
     </table>
@@ -554,7 +554,7 @@
         {% endif %}
     </p>
 
-    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Top Business Risks — Board View</h3>
+    <h3 class="pdf-heading">Top Business Risks — Board View</h3>
     <p style="font-size:9.5pt; color:#6B7280; margin-bottom:12px;">
         The three risks with the greatest potential financial impact, described in plain language.
     </p>
@@ -591,7 +591,7 @@
     </table>
 
     {% if org_profile.annual_security_budget or org_profile.security_headcount %}
-    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Security Investment Position</h3>
+    <h3 class="pdf-heading">Security Investment Position</h3>
     <div class="stat-grid">
         {% if org_profile.annual_security_budget %}
         <div class="stat-card green">
@@ -631,7 +631,7 @@
     {% endif %}
 
     {% if org_profile.executive_sponsor or org_profile.security_committee_chair or org_profile.last_board_report_date %}
-    <h3 style="font-size:11pt; font-weight:600; color:#0B1220; margin-top:24px;">Governance Snapshot</h3>
+    <h3 class="pdf-heading">Governance Snapshot</h3>
     <table class="data">
         <tbody>
             {% if org_profile.executive_sponsor %}
@@ -717,12 +717,12 @@
             <tr>
                 <th style="width:35px;">#</th>
                 <th>Risk</th>
-                <th style="width:80px;">Category</th>
+                <th class="w-80">Category</th>
                 <th class="text-center" style="width:45px;">L×I</th>
                 <th class="text-center" style="width:55px;">Inherent</th>
                 <th class="text-center" style="width:55px;">Residual</th>
-                <th class="text-center" style="width:60px;">Appetite</th>
-                <th style="width:70px;">Treatment</th>
+                <th class="text-center w-60">Appetite</th>
+                <th class="w-70">Treatment</th>
             </tr>
         </thead>
         <tbody>
@@ -766,10 +766,10 @@
         <div class="chart-title">Control Effectiveness Distribution</div>
         <img src="{{ chart_control }}" class="chart-img" style="max-width:80%;" alt="Control effectiveness">
         <div class="chart-caption">
-            <span style="color:#059669;">■</span> Effective ·
-            <span style="color:#0284C7;">■</span> Partially effective ·
-            <span style="color:#DC2626;">■</span> Ineffective ·
-            <span style="color:#6B7280;">■</span> Not tested
+            <span class="text-token-success">■</span> Effective ·
+            <span class="text-token-info">■</span> Partially effective ·
+            <span class="text-token-danger">■</span> Ineffective ·
+            <span class="text-token-muted">■</span> Not tested
         </div>
     </div>
 
@@ -779,7 +779,7 @@
     <ul style="font-size:10pt; line-height:1.7; padding-left:22px;">
         <li>{{ effective_controls }} control{{ effective_controls|pluralize }} assessed as effective ({{ control_effectiveness_pct }}% of library)</li>
         {% if not_tested_controls %}<li><strong>{{ not_tested_controls }}</strong> control{{ not_tested_controls|pluralize }} not yet tested — schedule testing immediately</li>{% endif %}
-        {% if ineffective_controls %}<li><strong style="color:#DC2626;">{{ ineffective_controls }}</strong> control{{ ineffective_controls|pluralize }} identified as ineffective — re-design required</li>{% endif %}
+        {% if ineffective_controls %}<li><strong class="text-token-danger">{{ ineffective_controls }}</strong> control{{ ineffective_controls|pluralize }} identified as ineffective — re-design required</li>{% endif %}
         {% if implemented_controls %}<li>{{ implemented_controls }} control{{ implemented_controls|pluralize }} confirmed implemented and operating</li>{% endif %}
     </ul>
 </div>
@@ -862,9 +862,9 @@
         <div class="chart-title">Framework Coverage</div>
         <img src="{{ chart_frameworks }}" class="chart-img" alt="Framework coverage">
         <div class="chart-caption">
-            <span style="color:#059669;">■</span> ≥75% covered ·
-            <span style="color:#0284C7;">■</span> 40–74% ·
-            <span style="color:#DC2626;">■</span> &lt;40%
+            <span class="text-token-success">■</span> ≥75% covered ·
+            <span class="text-token-info">■</span> 40–74% ·
+            <span class="text-token-danger">■</span> &lt;40%
         </div>
     </div>
     {% endif %}
@@ -873,10 +873,10 @@
         <thead>
             <tr>
                 <th>Framework</th>
-                <th class="text-center" style="width:70px;">Total</th>
-                <th class="text-center" style="width:70px;">Covered</th>
-                <th class="text-center" style="width:70px;">Gaps</th>
-                <th class="text-center" style="width:80px;">Coverage</th>
+                <th class="text-center w-70">Total</th>
+                <th class="text-center w-70">Covered</th>
+                <th class="text-center w-70">Gaps</th>
+                <th class="text-center w-80">Coverage</th>
             </tr>
         </thead>
         <tbody>
@@ -916,13 +916,13 @@
     <table class="data">
         <thead>
             <tr>
-                <th style="width:80px;">Asset ID</th>
+                <th class="w-80">Asset ID</th>
                 <th>Name</th>
-                <th style="width:80px;">Dept</th>
-                <th class="text-center" style="width:60px;">Crit.</th>
+                <th class="w-80">Dept</th>
+                <th class="text-center w-60">Crit.</th>
                 <th class="text-center" style="width:55px;">Risks</th>
-                <th class="text-center" style="width:70px;">Max residual</th>
-                <th class="text-center" style="width:70px;">Exposure</th>
+                <th class="text-center w-70">Max residual</th>
+                <th class="text-center w-70">Exposure</th>
             </tr>
         </thead>
         <tbody>

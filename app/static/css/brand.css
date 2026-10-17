@@ -1,5 +1,5 @@
 ﻿/* ============================================================
-   AEGIS BRAND — Design System
+   GRC NEXUS BRAND — Design System
    ============================================================ */
 
 :root {
@@ -1280,6 +1280,46 @@ td:hover > .mx-add-btn {
     table.table { min-width: 640px; }
     .pagination-wrap { flex-direction: column; align-items: flex-start; }
 }
+
+/* ============================================================
+   DESIGN TOKENS — utility classes
+
+   These replace recurring inline styles (colours, widths, font
+   sizes) so values come from :root instead of being hard-coded
+   in markup. Values match the literals they replace exactly.
+   ============================================================ */
+.text-token-success { color: var(--success); }
+.text-token-danger  { color: var(--danger); }
+.text-token-warning { color: var(--warning); }
+.text-token-info    { color: var(--info); }
+.text-token-muted   { color: var(--text-muted); }
+.border-token-danger { border-color: var(--danger); }
+
+.w-60 { width: 60px; }
+.w-70 { width: 70px; }
+.w-80 { width: 80px; }
+
+.fs-9   { font-size: 9px; }
+.fs-10  { font-size: 10px; }
+.fs-11  { font-size: 11px; }
+.fs-12  { font-size: 12px; }
+.fs-1-1 { font-size: 1.1rem; }
+
+.h-6px { height: 6px; }
+.h-8px { height: 8px; }
+
+.top-1rem { top: 1rem; }
+
+.inline-bar {
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.border-left-amber { border-left: 4px solid #F59E0B; }
+
+.pdf-heading { font-size: 11pt; font-weight: 600; color: #0B1220; margin-top: 24px; }
 
 /* ============================================================
    PRINT

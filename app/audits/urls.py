@@ -7,7 +7,7 @@ from .views import (
     ControlTestListView, ControlTestCreateView, ControlTestUpdateView,
     FindingListView, FindingDetailView, FindingCreateView, FindingUpdateView,
     ActionItemListView, ActionItemDetailView, ActionItemCreateView, ActionItemUpdateView,
-    action_mark_complete,
+    action_mark_complete, finding_verify,
 )
 
 app_name = 'audits'
@@ -44,6 +44,7 @@ urlpatterns = [
     # Finding routes
     path('findings/<int:pk>/', FindingDetailView.as_view(), name='finding_detail'),
     path('findings/<int:pk>/edit/', FindingUpdateView.as_view(), name='finding_update'),
+    path('findings/<int:pk>/verify/', finding_verify, name='finding_verify'),
 
     # Action routes
     path('actions/<int:pk>/', ActionItemDetailView.as_view(), name='action_detail'),

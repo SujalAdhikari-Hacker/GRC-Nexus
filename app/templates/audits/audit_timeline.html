@@ -39,12 +39,12 @@
                         <a href="{% url 'audits:detail' a.pk %}" class="fw-bold" style="font-size:12.5px;">{{ a.name|truncatechars:40 }}</a>
                     </div>
                     <div class="mb-2">
-                        {% if a.audit_type == 'external' %}<span class="badge bg-danger" style="font-size:9px;">External</span>
-                        {% elif a.audit_type == 'internal' %}<span class="badge bg-info text-dark" style="font-size:9px;">Internal</span>
-                        {% else %}<span class="badge bg-secondary" style="font-size:9px;">Self-Assess</span>{% endif %}
-                        {% if a.finding_count %}<span class="badge bg-warning text-dark" style="font-size:9px;">{{ a.finding_count }} finding{{ a.finding_count|pluralize }}</span>{% endif %}
+                        {% if a.audit_type == 'external' %}<span class="badge bg-danger fs-9">External</span>
+                        {% elif a.audit_type == 'internal' %}<span class="badge bg-info text-dark fs-9">Internal</span>
+                        {% else %}<span class="badge bg-secondary fs-9">Self-Assess</span>{% endif %}
+                        {% if a.finding_count %}<span class="badge bg-warning text-dark fs-9">{{ a.finding_count }} finding{{ a.finding_count|pluralize }}</span>{% endif %}
                     </div>
-                    <div class="small text-muted" style="font-size:11px;">
+                    <div class="small text-muted fs-11">
                         {% if a.auditor_lead %}<i class="bi bi-person"></i> {{ a.auditor_lead.username }}<br>{% endif %}
                         {% if a.start_date %}<i class="bi bi-calendar"></i> {{ a.start_date|date:"M j" }} → {{ a.end_date|date:"M j"|default:"ongoing" }}{% endif %}
                     </div>

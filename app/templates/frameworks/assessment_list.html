@@ -12,9 +12,9 @@
 {% block content %}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-clipboard-check"></i> Total assessments</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#6B7280;">{{ draft_count }}</div><div class="label"><i class="bi bi-pencil"></i> Drafts</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#0284C7;">{{ in_progress_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> In Progress</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ completed_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Completed</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-muted">{{ draft_count }}</div><div class="label"><i class="bi bi-pencil"></i> Drafts</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-info">{{ in_progress_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> In Progress</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-success">{{ completed_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Completed</div></div></div>
 </div>
 
 <div class="card">
@@ -57,11 +57,11 @@
                     <td><small>{{ a.assessment_date }}</small></td>
                     <td>
                         <div class="d-flex align-items-center gap-2">
-                            <div class="progress flex-grow-1" style="height:8px;">
+                            <div class="progress flex-grow-1 h-8px">
                                 <div class="progress-bar {% if a.readiness_percent >= 75 %}bg-success{% elif a.readiness_percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
                                      style="width:{{ a.readiness_percent }}%;"></div>
                             </div>
-                            <strong style="font-size:12px;">{{ a.readiness_percent }}%</strong>
+                            <strong class="fs-12">{{ a.readiness_percent }}%</strong>
                         </div>
                         <div class="small text-muted mt-1">{{ a.compliant_count }}✓ · {{ a.partial_count }}~ · {{ a.non_compliant_count }}✗ · {{ a.not_assessed_count }} open</div>
                     </td>

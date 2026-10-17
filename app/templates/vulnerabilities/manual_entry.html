@@ -23,8 +23,8 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Recorded by</label>
-                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
-                                <i class="bi bi-person-check" style="color: #0284C7;"></i>
+                            <div class="form-control inline-bar">
+                                <i class="bi bi-person-check text-token-info"></i>
                                 <strong>{{ request.user.username }}</strong>
                             </div>
                             <div class="form-text small">
@@ -34,8 +34,8 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Recorded at</label>
-                            <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
-                                <i class="bi bi-clock" style="color: #6B7280;"></i>
+                            <div class="form-control inline-bar">
+                                <i class="bi bi-clock text-token-muted"></i>
                                 <strong>{% now "Y-m-d H:i" %}</strong>
                             </div>
                             <div class="form-text small">
@@ -149,7 +149,7 @@
     </div>
 
     <div class="col-md-4">
-        <div class="card sticky-top" style="top:1rem;">
+        <div class="card sticky-top top-1rem">
             <div class="card-header bg-white"><strong>SLA reference</strong></div>
             <div class="card-body small">
                 <p class="mb-2">If you leave the SLA date blank, it auto-computes from severity:</p>

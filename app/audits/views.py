@@ -16,9 +16,11 @@ from django.views.generic import (
 )
 
 from core.mixins import (
+    BulkActionsMixin,
     CsvExportMixin,
     DepartmentCreateMixin,
     DepartmentScopedMixin,
+    SavedViewsMixin,
     scope_queryset,
     user_can_access,
 )
@@ -366,12 +368,30 @@ class ControlTestUpdateView(DepartmentScopedMixin, UpdateView):
 # AUDIT FINDINGS
 # ==================================================================
 
-class FindingListView(DepartmentScopedMixin, CsvExportMixin, ListView):
+class FindingListView(BulkActionsMixin, SavedViewsMixin, DepartmentScopedMixin, CsvExportMixin, ListView):
     model = AuditFinding
     template_name = 'audits/finding_list.html'
     context_object_name = 'findings'
     paginate_by = 25
     department_field = 'owner_dept'
+
+    # Bulk edits never offer 'closed': closure must go through the verification
+    # loop, which a bulk queryset.update() would bypass.
+    bulk_actions = {
+        'set_severity': {
+            'label': 'Set severity',
+            'field': 'severity',
+            'choices': AuditFinding.SEVERITY_CHOICES,
+        },
+        'set_status': {
+            'label': 'Set status',
+            'field': 'status',
+            'choices': lambda: [
+                choice for choice in AuditFinding.STATUS_CHOICES
+                if choice[0] != 'closed'
+            ],
+        },
+    }
 
     csv_filename = 'audit_findings.csv'
     csv_fields = [
@@ -597,6 +617,53 @@ def action_mark_complete(request, pk):
     action.save()
     messages.success(request, f'{action.action_id} marked complete.')
     return redirect('audits:action_detail', pk=pk)
+
+
+@login_required
+@require_POST
+def finding_verify(request, pk):
+    """Close the loop on a resolved finding: verify the fix, or reject it.
+
+    Verifying requires a department head or superuser — the person who owns the
+    remediation should not be the only one signing it off. Verification is only
+    offered on a *resolved* finding, and a verified finding is closed in the
+    same step. A rejection sends the finding back to ``in_progress``.
+    """
+    finding = get_object_or_404(AuditFinding, pk=pk)
+    if not user_can_access(request.user, finding):
+        raise PermissionDenied
+    if not (request.user.is_superuser or request.user.is_hod):
+        raise PermissionDenied
+
+    decision = request.POST.get('decision')
+    notes = (request.POST.get('verification_notes') or '').strip()[:2000]
+
+    if decision == 'verified':
+        if finding.status != 'resolved':
+            messages.error(request, 'Only a resolved finding can be verified.')
+            return redirect('audits:finding_detail', pk=pk)
+        finding.verification_status = 'verified'
+        finding.verified_by = request.user
+        finding.verified_at = timezone.now()
+        finding.verification_notes = notes
+        finding.status = 'closed'
+        finding.save()
+        messages.success(request, 'Remediation verified — finding closed.')
+    elif decision == 'rejected':
+        finding.verification_status = 'rejected'
+        finding.verified_by = request.user
+        finding.verified_at = timezone.now()
+        finding.verification_notes = notes
+        if finding.status in ('resolved', 'closed'):
+            finding.status = 'in_progress'
+        finding.save()
+        messages.warning(
+            request, 'Verification rejected — finding returned for remediation.'
+        )
+    else:
+        messages.error(request, 'Unknown verification decision.')
+
+    return redirect('audits:finding_detail', pk=pk)
 
 
 # ============================================================

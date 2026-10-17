@@ -5,12 +5,12 @@
 {% block content %}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-speedometer"></i> Total KRIs</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ rag_counts.green }}</div><div class="label"><i class="bi bi-circle-fill" style="color:#059669;"></i> Within appetite</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#D97706;">{{ rag_counts.amber }}</div><div class="label"><i class="bi bi-circle-fill" style="color:#D97706;"></i> Approaching tolerance</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-success">{{ rag_counts.green }}</div><div class="label"><i class="bi bi-circle-fill text-token-success"></i> Within appetite</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-warning">{{ rag_counts.amber }}</div><div class="label"><i class="bi bi-circle-fill text-token-warning"></i> Approaching tolerance</div></div></div>
     <div class="col-md-3">
         <div class="stat-card" {% if rag_counts.red %}style="border-color:#DC2626;"{% endif %}>
             <div class="value text-danger">{{ rag_counts.red }}</div>
-            <div class="label"><i class="bi bi-circle-fill" style="color:#DC2626;"></i> Tolerance breached</div>
+            <div class="label"><i class="bi bi-circle-fill text-token-danger"></i> Tolerance breached</div>
         </div>
     </div>
 </div>
@@ -65,9 +65,9 @@
                         <span class="badge" style="background:{{ k.rag_color }};color:#fff;padding:4px 10px;">{{ k.rag_status|upper }}</span>
                     </td>
                     <td class="text-center">
-                        {% if k.trend == 'increasing' %}<i class="bi bi-arrow-up-right" style="color:#DC2626;"></i>
-                        {% elif k.trend == 'decreasing' %}<i class="bi bi-arrow-down-right" style="color:#059669;"></i>
-                        {% else %}<i class="bi bi-dash" style="color:#6B7280;"></i>{% endif %}
+                        {% if k.trend == 'increasing' %}<i class="bi bi-arrow-up-right text-token-danger"></i>
+                        {% elif k.trend == 'decreasing' %}<i class="bi bi-arrow-down-right text-token-success"></i>
+                        {% else %}<i class="bi bi-dash text-token-muted"></i>{% endif %}
                     </td>
                     <td><small>{{ k.owner_user|default:k.owner_dept.name }}</small></td>
                     <td class="text-end"><a href="{% url 'kris:detail' k.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>

@@ -13,7 +13,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h4 class="mb-0">
-            <code style="color:#0284C7;">AUD-{{ audit.pk|stringformat:"04d" }}</code>
+            <code class="text-token-info">AUD-{{ audit.pk|stringformat:"04d" }}</code>
             {{ audit.name }}
         </h4>
         <small class="text-muted">
@@ -35,8 +35,8 @@
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="font-size:1.1rem;">{{ audit.get_audit_type_display }}</div><div class="label">Audit type</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="font-size:1.1rem;">{{ audit.get_status_display }}</div><div class="label">Status</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value fs-1-1">{{ audit.get_audit_type_display }}</div><div class="label">Audit type</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value fs-1-1">{{ audit.get_status_display }}</div><div class="label">Status</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ audit.findings.count }}</div><div class="label">Findings ({{ audit.open_finding_count }} open)</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ audit.evidence_items.count }}</div><div class="label">Evidence items</div></div></div>
 </div>

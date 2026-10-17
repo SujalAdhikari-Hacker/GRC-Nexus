@@ -28,7 +28,7 @@
 {# ---------- Stats ---------- #}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_synced }}</div><div class="label"><i class="bi bi-database"></i> Total synced CVEs</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#0284C7;">{{ last_7_days }}</div><div class="label"><i class="bi bi-calendar-week"></i> Last 7 days</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-info">{{ last_7_days }}</div><div class="label"><i class="bi bi-calendar-week"></i> Last 7 days</div></div></div>
     <div class="col-md-3"><div class="stat-card" {% if critical_7d %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ critical_7d }}</div><div class="label"><i class="bi bi-exclamation-octagon"></i> Critical (7d)</div></div></div>
     <div class="col-md-3"><div class="stat-card" {% if kev_7d %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ kev_7d }}</div><div class="label"><i class="bi bi-fire"></i> KEV in last 7d</div></div></div>
 </div>
@@ -69,8 +69,8 @@
                 <tr>
                     <th>CVE ID</th>
                     <th>Description</th>
-                    <th class="text-center" style="width:80px;">CVSS</th>
-                    <th class="text-center" style="width:60px;">KEV</th>
+                    <th class="text-center w-80">CVSS</th>
+                    <th class="text-center w-60">KEV</th>
                     <th class="text-center" style="width:110px;">Published</th>
                     <th style="width:100px;"></th>
                 </tr>
@@ -115,7 +115,7 @@
                         <i class="bi bi-cloud-slash" style="font-size:2.5rem; opacity:.3;"></i>
                         <p class="mt-2 mb-1">No synced CVEs yet.</p>
                         <p class="small mb-2">Run the sync command to populate the feed:</p>
-                        <code style="font-size:12px;">docker compose exec web python manage.py sync_recent_cves --days 30</code>
+                        <code class="fs-12">docker compose exec web python manage.py sync_recent_cves --days 30</code>
                     </td>
                 </tr>
             {% endfor %}

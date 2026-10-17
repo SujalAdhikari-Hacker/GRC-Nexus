@@ -44,7 +44,7 @@
     </div>
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="value" style="font-size:1.1rem;">
+            <div class="value fs-1-1">
                 {% if assessment.vendor_tier == 1 %}Tier 1 — Critical
                 {% elif assessment.vendor_tier == 2 %}Tier 2 — Important
                 {% else %}Tier 3 — Standard{% endif %}
@@ -54,7 +54,7 @@
     </div>
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="value" style="font-size:1.1rem;">{{ assessment.status|title }}</div>
+            <div class="value fs-1-1">{{ assessment.status|title }}</div>
             <div class="label"><i class="bi bi-flag"></i> Status</div>
         </div>
     </div>
@@ -76,7 +76,7 @@
                                 {% else %}<span class="badge bg-danger">{{ dim.value }}/25</span>{% endif %}
                             </strong>
                         </div>
-                        <div class="progress" style="height:8px;">
+                        <div class="progress h-8px">
                             <div class="progress-bar" style="width: {% widthratio dim.value 25 100 %}%; background: {% if dim.value >= 20 %}#DC2626{% elif dim.value >= 13 %}#EA580C{% elif dim.value >= 6 %}#D97706{% else %}#059669{% endif %};"></div>
                         </div>
                     </div>

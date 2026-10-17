@@ -5,7 +5,7 @@
 {% block content %}
 <div class="row g-3 mb-4">
     <div class="col-md-4"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-truck"></i> Total vendors</div></div></div>
-    <div class="col-md-4"><div class="stat-card"><div class="value" style="color:#059669;">{{ active_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Active</div></div></div>
+    <div class="col-md-4"><div class="stat-card"><div class="value text-token-success">{{ active_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Active</div></div></div>
     <div class="col-md-4"><div class="stat-card" {% if critical_count %}style="border-color:#DC2626;"{% endif %}><div class="value text-danger">{{ critical_count }}</div><div class="label"><i class="bi bi-shield-exclamation"></i> Tier 1 — Critical</div></div></div>
 </div>
 

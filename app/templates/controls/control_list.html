@@ -5,8 +5,8 @@
 {% block content %}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-shield-check"></i> Total controls</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ effective_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Effective</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#D97706;">{{ not_tested_count }}</div><div class="label"><i class="bi bi-question-circle"></i> Not tested</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-success">{{ effective_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Effective</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-warning">{{ not_tested_count }}</div><div class="label"><i class="bi bi-question-circle"></i> Not tested</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ operational_count }}</div><div class="label"><i class="bi bi-play-circle"></i> Operational+</div></div></div>
 </div>
 

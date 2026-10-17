@@ -71,7 +71,7 @@
                         {% for g in u.groups.all %}<span class="badge bg-dark me-1">{{ g.name }}</span>{% empty %}<span class="text-muted small">—</span>{% endfor %}
                     </td>
                     <td class="text-center">
-                        {% if u.is_active %}<i class="bi bi-check-circle-fill" style="color:#059669;"></i>
+                        {% if u.is_active %}<i class="bi bi-check-circle-fill text-token-success"></i>
                         {% else %}<i class="bi bi-x-circle-fill text-danger"></i>{% endif %}
                     </td>
                     <td class="text-end">

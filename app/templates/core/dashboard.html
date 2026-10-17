@@ -73,7 +73,7 @@
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between small">
-                        <span><i class="bi bi-person-check" style="color:#0284C7;"></i> {{ ticket_my_count }} assigned to me</span>
+                        <span><i class="bi bi-person-check text-token-info"></i> {{ ticket_my_count }} assigned to me</span>
                         {% if ticket_overdue_count %}
                             <span class="text-danger"><i class="bi bi-exclamation-triangle"></i> {{ ticket_overdue_count }} overdue</span>
                         {% endif %}
@@ -139,7 +139,7 @@
                     <tbody>
                     {% for row in heatmap %}
                         <tr>
-                            <td class="text-center align-middle bg-light fw-bold" style="width:60px;">
+                            <td class="text-center align-middle bg-light fw-bold w-60">
                                 I{{ row.0.impact }}
                             </td>
                             {% for cell in row %}
@@ -185,7 +185,7 @@
                         <span><i class="bi bi-circle-fill" style="color:#dc3545;"></i> Critical (20–25)</span>
                         <strong>{{ severity_summary.critical }}</strong>
                     </div>
-                    <div class="progress" style="height:8px;">
+                    <div class="progress h-8px">
                         <div class="progress-bar bg-danger" style="width: {% widthratio severity_summary.critical risk_count 100 %}%"></div>
                     </div>
                 </div>
@@ -194,7 +194,7 @@
                         <span><i class="bi bi-circle-fill" style="color:#fd7e14;"></i> High (12–19)</span>
                         <strong>{{ severity_summary.high }}</strong>
                     </div>
-                    <div class="progress" style="height:8px;">
+                    <div class="progress h-8px">
                         <div class="progress-bar" style="background:#fd7e14; width: {% widthratio severity_summary.high risk_count 100 %}%"></div>
                     </div>
                 </div>
@@ -203,7 +203,7 @@
                         <span><i class="bi bi-circle-fill" style="color:#ffc107;"></i> Medium (6–11)</span>
                         <strong>{{ severity_summary.medium }}</strong>
                     </div>
-                    <div class="progress" style="height:8px;">
+                    <div class="progress h-8px">
                         <div class="progress-bar bg-warning" style="width: {% widthratio severity_summary.medium risk_count 100 %}%"></div>
                     </div>
                 </div>
@@ -212,7 +212,7 @@
                         <span><i class="bi bi-circle-fill" style="color:#198754;"></i> Low (1–5)</span>
                         <strong>{{ severity_summary.low }}</strong>
                     </div>
-                    <div class="progress" style="height:8px;">
+                    <div class="progress h-8px">
                         <div class="progress-bar bg-success" style="width: {% widthratio severity_summary.low risk_count 100 %}%"></div>
                     </div>
                 </div>
@@ -292,7 +292,7 @@
                             <td><a href="{% url 'assets:detail' row.asset.pk %}"><code>{{ row.asset.asset_id }}</code></a></td>
                             <td>
                                 <a href="{% url 'assets:detail' row.asset.pk %}"><strong>{{ row.asset.name|truncatechars:50 }}</strong></a>
-                                {% if row.breached %}<span class="badge bg-danger ms-1" style="font-size:10px;">Breach</span>{% endif %}
+                                {% if row.breached %}<span class="badge bg-danger ms-1 fs-10">Breach</span>{% endif %}
                             </td>
                             <td><small>{{ row.asset.owner_dept.name }}</small></td>
                             <td class="text-center">
@@ -438,7 +438,7 @@
                             <a href="{% url 'frameworks:detail' fw.pk %}">{{ fw.name }} {{ fw.version }}</a>
                             <span>{{ cov.covered }}/{{ cov.total }} · <strong>{{ cov.percent }}%</strong></span>
                         </div>
-                        <div class="progress" style="height:8px;">
+                        <div class="progress h-8px">
                             <div class="progress-bar {% if cov.percent >= 75 %}bg-success{% elif cov.percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
                                  role="progressbar" style="width: {{ cov.percent }}%;"></div>
                         </div>

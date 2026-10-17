@@ -56,6 +56,36 @@
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Closed date</span><span>{{ finding.closed_date|default:"—" }}</span></li>
             </ul>
         </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong>Verification</strong></div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Status</span>
+                    {% if finding.verification_status == 'verified' %}<span class="badge bg-success">Verified</span>
+                    {% elif finding.verification_status == 'rejected' %}<span class="badge bg-danger">Rejected</span>
+                    {% else %}<span class="badge bg-secondary">Pending</span>{% endif %}
+                </li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Verified by</span><span>{{ finding.verified_by|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Verified at</span><span>{{ finding.verified_at|default:"—" }}</span></li>
+                {% if finding.verification_notes %}
+                <li class="list-group-item"><div class="text-muted small">Notes</div>{{ finding.verification_notes|linebreaksbr }}</li>
+                {% endif %}
+            </ul>
+            {% if finding.awaiting_verification and user.is_hod or finding.awaiting_verification and user.is_superuser %}
+            <div class="card-body border-top">
+                <form method="post" action="{% url 'audits:finding_verify' finding.pk %}">
+                    {% csrf_token %}
+                    <label class="form-label small mb-1" for="verification_notes">Verification notes</label>
+                    <textarea name="verification_notes" id="verification_notes" rows="2" class="form-control form-control-sm mb-2" placeholder="What did you check?"></textarea>
+                    <div class="d-flex gap-2">
+                        <button name="decision" value="verified" class="btn btn-sm btn-success flex-grow-1">Verify &amp; close</button>
+                        <button name="decision" value="rejected" class="btn btn-sm btn-outline-danger flex-grow-1">Reject</button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+        </div>
     </div>
     <div class="col-md-8">
         <div class="card">
@@ -106,7 +136,7 @@
                                 </small>
                             </td>
                             <td>
-                                <div class="progress" style="height:6px;">
+                                <div class="progress h-6px">
                                     <div class="progress-bar" style="width:{{ a.progress_percent }}%; background:{{ a.status_color }};"></div>
                                 </div>
                             </td>
@@ -121,6 +151,12 @@
                 </table>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
+    <div class="col-12">
+        {% include 'includes/_share_panel.html' with obj=finding %}
     </div>
 </div>
 {% endblock %}

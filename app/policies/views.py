@@ -4,13 +4,13 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from core.correlation import get_full_policy_context
-from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin
+from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, SavedViewsMixin
 
 from .forms import PolicyForm
 from .models import Policy, PolicyCategory
 
 
-class PolicyListView(DepartmentScopedMixin, CsvExportMixin, ListView):
+class PolicyListView(SavedViewsMixin, DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Policy
     template_name = 'policies/policy_list.html'
     context_object_name = 'policies'

@@ -25,8 +25,8 @@
 {# ---------- Stats ---------- #}
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_controls }}</div><div class="label"><i class="bi bi-shield-check"></i> Total controls</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#D97706;">{{ early_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> In early stages</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ operational_count }}</div><div class="label"><i class="bi bi-play-circle"></i> Operational+</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-warning">{{ early_count }}</div><div class="label"><i class="bi bi-hourglass-split"></i> In early stages</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-success">{{ operational_count }}</div><div class="label"><i class="bi bi-play-circle"></i> Operational+</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ retired_count }}</div><div class="label"><i class="bi bi-archive"></i> Retired</div></div></div>
 </div>
 
@@ -84,24 +84,24 @@
                     <div class="small text-muted mb-2"><code>{{ c.code }}</code> · {{ c.get_category_display }}</div>
 
                     <div class="d-flex gap-1 align-items-center mb-2">
-                        {% if c.effectiveness_rating == 'effective' %}<span class="badge bg-success" style="font-size:9px;">Effective</span>
-                        {% elif c.effectiveness_rating == 'partially_effective' %}<span class="badge bg-warning text-dark" style="font-size:9px;">Partial</span>
-                        {% elif c.effectiveness_rating == 'ineffective' %}<span class="badge bg-danger" style="font-size:9px;">Ineffective</span>
-                        {% else %}<span class="badge bg-secondary" style="font-size:9px;">Untested</span>{% endif %}
-                        {% if c.risks.count %}<span class="badge bg-dark" style="font-size:9px;" title="{{ c.risks.count }} risks">{{ c.risks.count }}R</span>{% endif %}
-                        {% if c.framework_controls.count %}<span class="badge bg-info text-dark" style="font-size:9px;" title="{{ c.framework_controls.count }} framework mappings">{{ c.framework_controls.count }}F</span>{% endif %}
+                        {% if c.effectiveness_rating == 'effective' %}<span class="badge bg-success fs-9">Effective</span>
+                        {% elif c.effectiveness_rating == 'partially_effective' %}<span class="badge bg-warning text-dark fs-9">Partial</span>
+                        {% elif c.effectiveness_rating == 'ineffective' %}<span class="badge bg-danger fs-9">Ineffective</span>
+                        {% else %}<span class="badge bg-secondary fs-9">Untested</span>{% endif %}
+                        {% if c.risks.count %}<span class="badge bg-dark fs-9" title="{{ c.risks.count }} risks">{{ c.risks.count }}R</span>{% endif %}
+                        {% if c.framework_controls.count %}<span class="badge bg-info text-dark fs-9" title="{{ c.framework_controls.count }} framework mappings">{{ c.framework_controls.count }}F</span>{% endif %}
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center">
                         <small class="text-muted" style="font-size:10.5px;">{{ c.owner_dept.name|truncatechars:14 }}</small>
                         <div class="btn-group btn-group-sm">
-                            <form method="post" action="{% url 'controls:lifecycle_regress' c.pk %}" style="margin:0;">
+                            <form class="m-0" method="post" action="{% url 'controls:lifecycle_regress' c.pk %}">
                                 {% csrf_token %}
                                 <button type="submit" class="kanban-nav-btn" title="Move back">
                                     <i class="bi bi-arrow-left"></i>
                                 </button>
                             </form>
-                            <form method="post" action="{% url 'controls:lifecycle_advance' c.pk %}" style="margin:0;">
+                            <form class="m-0" method="post" action="{% url 'controls:lifecycle_advance' c.pk %}">
                                 {% csrf_token %}
                                 <button type="submit" class="kanban-nav-btn" title="Advance">
                                     <i class="bi bi-arrow-right"></i>

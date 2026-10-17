@@ -25,9 +25,9 @@
 {# ---------- Rating breakdown ---------- #}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-clipboard-data"></i> Scored items</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ excellent_count }}</div><div class="label"><i class="bi bi-star-fill"></i> Excellent (90+)</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#0284C7;">{{ good_count }}</div><div class="label"><i class="bi bi-star-half"></i> Good (75–89)</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#D97706;">{{ partial_count }}</div><div class="label"><i class="bi bi-star"></i> Partial (50–74)</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-success">{{ excellent_count }}</div><div class="label"><i class="bi bi-star-fill"></i> Excellent (90+)</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-info">{{ good_count }}</div><div class="label"><i class="bi bi-star-half"></i> Good (75–89)</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-warning">{{ partial_count }}</div><div class="label"><i class="bi bi-star"></i> Partial (50–74)</div></div></div>
 </div>
 
 {# ---------- Filters ---------- #}
@@ -58,12 +58,12 @@
                 <tr>
                     <th style="min-width:180px;">Evidence name</th>
                     <th style="min-width:130px;">Linked Control</th>
-                    <th class="text-center" style="width:70px;" title="Relevance — does it directly support the control?">Rel.<br><small class="text-muted">0–20</small></th>
-                    <th class="text-center" style="width:70px;" title="Completeness — is it comprehensive enough?">Comp.<br><small class="text-muted">0–20</small></th>
-                    <th class="text-center" style="width:70px;" title="Timeliness — is it current and within audit period?">Time.<br><small class="text-muted">0–20</small></th>
-                    <th class="text-center" style="width:70px;" title="Reliability — is the source trustworthy?">Relia.<br><small class="text-muted">0–20</small></th>
-                    <th class="text-center" style="width:70px;" title="Sufficiency — enough to satisfy the auditor?">Suff.<br><small class="text-muted">0–20</small></th>
-                    <th class="text-center" style="width:80px;">Total</th>
+                    <th class="text-center w-70" title="Relevance — does it directly support the control?">Rel.<br><small class="text-muted">0–20</small></th>
+                    <th class="text-center w-70" title="Completeness — is it comprehensive enough?">Comp.<br><small class="text-muted">0–20</small></th>
+                    <th class="text-center w-70" title="Timeliness — is it current and within audit period?">Time.<br><small class="text-muted">0–20</small></th>
+                    <th class="text-center w-70" title="Reliability — is the source trustworthy?">Relia.<br><small class="text-muted">0–20</small></th>
+                    <th class="text-center w-70" title="Sufficiency — enough to satisfy the auditor?">Suff.<br><small class="text-muted">0–20</small></th>
+                    <th class="text-center w-80">Total</th>
                     <th>Assessor Notes</th>
                     <th style="width:50px;"></th>
                 </tr>
@@ -87,10 +87,10 @@
                     <td class="text-center">{{ s.reliability }}</td>
                     <td class="text-center">{{ s.sufficiency }}</td>
                     <td class="text-center">
-                        {% if s.total_score >= 90 %}<span class="badge bg-success" style="font-size:11px;">{{ s.total_score }}</span>
-                        {% elif s.total_score >= 75 %}<span class="badge bg-info text-dark" style="font-size:11px;">{{ s.total_score }}</span>
-                        {% elif s.total_score >= 50 %}<span class="badge bg-warning text-dark" style="font-size:11px;">{{ s.total_score }}</span>
-                        {% else %}<span class="badge bg-danger" style="font-size:11px;">{{ s.total_score }}</span>{% endif %}
+                        {% if s.total_score >= 90 %}<span class="badge bg-success fs-11">{{ s.total_score }}</span>
+                        {% elif s.total_score >= 75 %}<span class="badge bg-info text-dark fs-11">{{ s.total_score }}</span>
+                        {% elif s.total_score >= 50 %}<span class="badge bg-warning text-dark fs-11">{{ s.total_score }}</span>
+                        {% else %}<span class="badge bg-danger fs-11">{{ s.total_score }}</span>{% endif %}
                     </td>
                     <td><small class="text-muted">{{ s.assessor_notes|truncatechars:80|default:"—" }}</small></td>
                     <td class="text-end">

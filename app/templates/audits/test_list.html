@@ -12,8 +12,8 @@
 {% block content %}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-clipboard-check"></i> Total tests</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#059669;">{{ pass_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Passed</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="color:#D97706;">{{ partial_count }}</div><div class="label"><i class="bi bi-exclamation-circle"></i> Partial</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-success">{{ pass_count }}</div><div class="label"><i class="bi bi-check-circle"></i> Passed</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-warning">{{ partial_count }}</div><div class="label"><i class="bi bi-exclamation-circle"></i> Partial</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value text-danger">{{ fail_count }}</div><div class="label"><i class="bi bi-x-circle"></i> Failed</div></div></div>
 </div>
 

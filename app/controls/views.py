@@ -15,7 +15,7 @@ from django.views.generic import (
 )
 
 from core.correlation import get_framework_coverage, get_full_control_context
-from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, scope_queryset, user_can_access
+from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, SavedViewsMixin, scope_queryset, user_can_access
 
 from .forms import ControlEvidenceForm, ControlForm, ControlFrameworkMappingForm
 from .models import Control, ControlEvidence, ControlFrameworkMapping
@@ -28,7 +28,7 @@ def _get_control_or_403(request, pk):
     return control
 
 
-class ControlListView(DepartmentScopedMixin, CsvExportMixin, ListView):
+class ControlListView(SavedViewsMixin, DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Control
     template_name = 'controls/control_list.html'
     context_object_name = 'controls'

@@ -1,0 +1,76 @@
+{% if bulk_action_defs %}
+<form method="post" id="bulkForm" action="{{ request.get_full_path }}"
+      class="bulk-toolbar d-flex flex-wrap align-items-center gap-2 px-3 py-2 bg-light border-bottom"
+      aria-label="Bulk actions">
+  {% csrf_token %}
+  <span class="text-muted small" aria-live="polite">
+    <span data-bulk-count>0</span> selected
+  </span>
+
+  <select name="bulk_action" class="form-select form-select-sm w-auto" required data-bulk-action
+          aria-label="Bulk action">
+    <option value="">Bulk action…</option>
+    {% for a in bulk_action_defs %}
+      <option value="{{ a.key }}">{{ a.label }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="bulk_value" class="form-select form-select-sm w-auto d-none" data-bulk-value
+          aria-label="Value"></select>
+
+  <button class="btn btn-sm btn-dark text-nowrap" type="submit">Apply</button>
+
+  {% for a in bulk_action_defs %}
+    {% if a.has_value %}
+      <select class="d-none" data-bulk-choices="{{ a.key }}" aria-hidden="true" tabindex="-1">
+        {% for val, label in a.choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+      </select>
+    {% endif %}
+  {% endfor %}
+
+  <script>
+  (function () {
+    var form = document.getElementById('bulkForm');
+    if (!form) return;
+    var action = form.querySelector('[data-bulk-action]');
+    var value = form.querySelector('[data-bulk-value]');
+    var boxes = 'input[type="checkbox"][form="bulkForm"]';
+
+    function refreshValue() {
+      var key = action.value;
+      var src = key && document.querySelector('[data-bulk-choices="' + key + '"]');
+      value.innerHTML = '';
+      if (src) {
+        Array.prototype.forEach.call(src.options, function (o) {
+          var opt = document.createElement('option');
+          opt.value = o.value;
+          opt.textContent = o.textContent;
+          value.appendChild(opt);
+        });
+        value.classList.remove('d-none');
+      } else {
+        value.classList.add('d-none');
+      }
+    }
+
+    function refreshCount() {
+      var n = document.querySelectorAll(boxes + ':checked').length;
+      document.querySelectorAll('[data-bulk-count]').forEach(function (el) { el.textContent = n; });
+    }
+
+    action.addEventListener('change', refreshValue);
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.matches(boxes)) refreshCount();
+    });
+    var all = document.querySelector('[data-bulk-select-all]');
+    if (all) {
+      all.addEventListener('change', function () {
+        document.querySelectorAll(boxes).forEach(function (cb) { cb.checked = all.checked; });
+        refreshCount();
+      });
+    }
+    refreshCount();
+  })();
+  </script>
+</form>
+{% endif %}

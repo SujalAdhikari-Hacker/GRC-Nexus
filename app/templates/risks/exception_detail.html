@@ -21,13 +21,13 @@
     <div class="d-flex gap-2">
         <a href="{% url 'risks:exception_update' exception.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
         {% if exception.status == 'pending' %}
-            <form method="post" action="{% url 'risks:exception_approve' exception.pk %}" style="margin:0;">
+            <form class="m-0" method="post" action="{% url 'risks:exception_approve' exception.pk %}">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-sm btn-success">Approve</button>
             </form>
         {% endif %}
         {% if exception.status != 'revoked' %}
-            <form method="post" action="{% url 'risks:exception_revoke' exception.pk %}" style="margin:0;">
+            <form class="m-0" method="post" action="{% url 'risks:exception_revoke' exception.pk %}">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>
             </form>
@@ -60,19 +60,19 @@
     </div>
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="value" style="font-size:1.1rem;">{{ exception.approver|default:"—" }}</div>
+            <div class="value fs-1-1">{{ exception.approver|default:"—" }}</div>
             <div class="label"><i class="bi bi-person-check"></i> Approver</div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="value" style="font-size:1.1rem;">{{ exception.approval_date|default:"—" }}</div>
+            <div class="value fs-1-1">{{ exception.approval_date|default:"—" }}</div>
             <div class="label"><i class="bi bi-calendar-check"></i> Approval date</div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stat-card" {% if exception.is_expiring_soon %}style="border-color:#D97706;"{% elif exception.is_expired %}style="border-color:#DC2626;"{% endif %}>
-            <div class="value" style="font-size:1.1rem;">{{ exception.expiry_date }}</div>
+            <div class="value fs-1-1">{{ exception.expiry_date }}</div>
             <div class="label">
                 <i class="bi bi-clock-history"></i> Expires
                 {% if exception.days_until_expiry is not None %}

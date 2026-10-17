@@ -33,8 +33,8 @@
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="stat-card"><div class="value" style="color:{{ ticket.status_color }}; font-size:1.1rem;">{{ ticket.get_status_display }}</div><div class="label"><i class="bi bi-flag"></i> Status</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value" style="color:{{ ticket.priority_color }}; font-size:1.1rem;">{{ ticket.get_priority_display }}</div><div class="label"><i class="bi bi-exclamation-circle"></i> Priority</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="font-size:1.1rem;">{{ ticket.assigned_to.username|default:"Unassigned" }}</div><div class="label"><i class="bi bi-person"></i> Assigned to</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="font-size:1.1rem;">{{ ticket.due_date|default:"—" }}</div><div class="label"><i class="bi bi-calendar"></i> Due date</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value fs-1-1">{{ ticket.assigned_to.username|default:"Unassigned" }}</div><div class="label"><i class="bi bi-person"></i> Assigned to</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value fs-1-1">{{ ticket.due_date|default:"—" }}</div><div class="label"><i class="bi bi-calendar"></i> Due date</div></div></div>
 </div>
 
 <div class="row g-3">
@@ -78,7 +78,7 @@
 
     <div class="col-md-4">
         {% if not ticket.assigned_to_id and ticket.status == 'open' %}
-            <div class="card mb-3" style="border-left: 4px solid #F59E0B;">
+            <div class="card mb-3 border-left-amber">
                 <div class="card-header bg-white"><strong><i class="bi bi-person-plus"></i> Available to claim</strong></div>
                 <div class="card-body">
                     <p class="small text-muted">This ticket is unassigned. Claim it to become the owner.</p>

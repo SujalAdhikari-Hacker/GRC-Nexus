@@ -24,7 +24,7 @@
         <small class="text-muted">{{ finding.vulnerability.title }}</small>
     </div>
     <div class="d-flex gap-2">
-        <form method="post" action="{% url 'vulnerabilities:finding_cascade' finding.pk %}" style="margin:0;">
+        <form class="m-0" method="post" action="{% url 'vulnerabilities:finding_cascade' finding.pk %}">
             {% csrf_token %}
             <button type="submit" class="btn btn-sm btn-outline-dark"><i class="bi bi-exclamation-triangle"></i> Create linked Risk</button>
         </form>
@@ -50,8 +50,8 @@
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ finding.vulnerability.cvss_score }}</div><div class="label">CVSS score</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value">{{ finding.composite_score }}</div><div class="label">Composite risk score</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="font-size:1.1rem;">{{ finding.sla_due_date|default:"—" }}</div><div class="label">SLA due date</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value" style="font-size:1.1rem;">{% if finding.assigned_to %}{{ finding.assigned_to.username }}{% elif finding.assigned_team %}{{ finding.assigned_team.name }}{% else %}—{% endif %}</div><div class="label">Assigned to</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value fs-1-1">{{ finding.sla_due_date|default:"—" }}</div><div class="label">SLA due date</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value fs-1-1">{% if finding.assigned_to %}{{ finding.assigned_to.username }}{% elif finding.assigned_team %}{{ finding.assigned_team.name }}{% else %}—{% endif %}</div><div class="label">Assigned to</div></div></div>
 </div>
 
 <div class="row g-3">

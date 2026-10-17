@@ -19,8 +19,8 @@
                 <form method="post">
                                         <div class="mb-3">
                         <label class="form-label">Tester</label>
-                        <div class="form-control" style="background: var(--surface-2); display: flex; align-items: center; gap: 8px;">
-                            <i class="bi bi-person-check" style="color: #059669;"></i>
+                        <div class="form-control inline-bar">
+                            <i class="bi bi-person-check text-token-success"></i>
                             <strong>{{ form.instance.tester.username|default:request.user.username }}</strong>
                         </div>
                         <div class="form-text small">Recorded automatically.</div>

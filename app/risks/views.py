@@ -16,7 +16,7 @@ from django.views.generic import (
 )
 
 from core.correlation import get_full_risk_context
-from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, HODOrSuperuserMixin, scope_queryset, user_can_access
+from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, HODOrSuperuserMixin, SavedViewsMixin, scope_queryset, user_can_access
 from core.models import Department
 from core.reports import ReportMixin
 
@@ -35,7 +35,7 @@ from .services import calculate_residual_from_controls, recalculate_risk, severi
 # RISK REGISTER
 # ==================================================================
 
-class RiskListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListView):
+class RiskListView(SavedViewsMixin, ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListView):
     model = Risk
     template_name = 'risks/risk_list.html'
     context_object_name = 'risks'
