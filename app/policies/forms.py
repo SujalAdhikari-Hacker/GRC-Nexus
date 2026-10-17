@@ -1,5 +1,7 @@
 from django import forms
 
+from core.validators import validate_evidence_file
+
 from .models import Policy
 
 
@@ -44,6 +46,9 @@ class PolicyForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Policy documents are user uploads served back through core.media;
+        # restrict them to the same vetted types and size cap as evidence.
+        self.fields['document'].validators.append(validate_evidence_file)
         policy = self.instance
         if policy and policy.pk:
             allowed = policy.allowed_transitions() | {policy.status}

@@ -15,7 +15,7 @@ from core.mixins import (
     CsvExportMixin,
     DepartmentScopedMixin,
     scope_queryset,
-    user_can_access,
+    user_can_change,
 )
 from core.reports import ReportMixin
 
@@ -206,7 +206,7 @@ def enrich_vulnerability_view(request, pk):
 @require_POST
 def cascade_finding_view(request, pk):
     finding = get_object_or_404(Finding, pk=pk)
-    if not user_can_access(request.user, finding):
+    if not user_can_change(request.user, finding):
         raise PermissionDenied
     risk, created = cascade_finding_to_risk(finding)
     if created:
@@ -283,7 +283,7 @@ class ManualVulnerabilityCreateView(LoginRequiredMixin, FormView):
     def form_valid(self, form):
         data = form.cleaned_data
         asset = data['asset']
-        if not user_can_access(self.request.user, asset):
+        if not user_can_change(self.request.user, asset):
             raise PermissionDenied
 
         existing = data.get('existing_vulnerability')

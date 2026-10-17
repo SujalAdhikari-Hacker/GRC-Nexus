@@ -16,13 +16,15 @@ from django.views.generic import (
 )
 
 from core.mixins import (
+    ChangeScopedMixin,
     BulkActionsMixin,
     CsvExportMixin,
     DepartmentCreateMixin,
+    DepartmentPinnedMixin,
     DepartmentScopedMixin,
     SavedViewsMixin,
     scope_queryset,
-    user_can_access,
+    user_can_change,
 )
 from core.reports import render_pdf
 
@@ -121,7 +123,7 @@ class AuditCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
         return initial
 
 
-class AuditUpdateView(DepartmentScopedMixin, UpdateView):
+class AuditUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = Audit
     form_class = AuditForm
     template_name = 'audits/audit_form.html'
@@ -234,7 +236,7 @@ class EvidenceCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateVie
         return initial
 
 
-class EvidenceUpdateView(DepartmentScopedMixin, UpdateView):
+class EvidenceUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = EvidenceItem
     form_class = EvidenceItemForm
     template_name = 'audits/evidence_form.html'
@@ -251,7 +253,7 @@ class EvidenceScoreCreateView(LoginRequiredMixin, CreateView):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
         self.evidence = get_object_or_404(EvidenceItem, pk=kwargs['evidence_pk'])
-        if not user_can_access(request.user, self.evidence):
+        if not user_can_change(request.user, self.evidence):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
@@ -269,7 +271,7 @@ class EvidenceScoreCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
 
-class EvidenceScoreUpdateView(DepartmentScopedMixin, UpdateView):
+class EvidenceScoreUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = EvidenceScore
     form_class = EvidenceScoreForm
     template_name = 'audits/evidence_score_form.html'
@@ -356,7 +358,7 @@ class ControlTestCreateView(DepartmentCreateMixin, DepartmentScopedMixin, Create
         return super().form_valid(form)
 
 
-class ControlTestUpdateView(DepartmentScopedMixin, UpdateView):
+class ControlTestUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = ControlTest
     form_class = ControlTestForm
     template_name = 'audits/test_form.html'
@@ -463,7 +465,7 @@ class FindingCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView
         return initial
 
 
-class FindingUpdateView(DepartmentScopedMixin, UpdateView):
+class FindingUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = AuditFinding
     form_class = AuditFindingForm
     template_name = 'audits/finding_form.html'
@@ -578,7 +580,7 @@ class ActionItemCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateV
         finding_pk = self.request.GET.get('finding')
         if finding_pk:
             finding = AuditFinding.objects.filter(pk=finding_pk).first()
-            if finding and user_can_access(self.request.user, finding):
+            if finding and user_can_change(self.request.user, finding):
                 initial['finding'] = finding
                 initial['owner_dept'] = finding.owner_dept
         return initial
@@ -588,14 +590,14 @@ class ActionItemCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateV
 
     def form_valid(self, form):
         finding = form.cleaned_data.get('finding')
-        if finding and not user_can_access(self.request.user, finding):
+        if finding and not user_can_change(self.request.user, finding):
             raise PermissionDenied
         response = super().form_valid(form)
         messages.success(self.request, f'Action item {self.object.action_id} created.')
         return response
 
 
-class ActionItemUpdateView(DepartmentScopedMixin, UpdateView):
+class ActionItemUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = ActionItem
     form_class = ActionItemForm
     template_name = 'audits/action_form.html'
@@ -609,7 +611,7 @@ class ActionItemUpdateView(DepartmentScopedMixin, UpdateView):
 @require_POST
 def action_mark_complete(request, pk):
     action = get_object_or_404(ActionItem, pk=pk)
-    if not user_can_access(request.user, action):
+    if not user_can_change(request.user, action):
         raise PermissionDenied
     action.status = 'completed'
     action.progress_percent = 100
@@ -630,7 +632,7 @@ def finding_verify(request, pk):
     same step. A rejection sends the finding back to ``in_progress``.
     """
     finding = get_object_or_404(AuditFinding, pk=pk)
-    if not user_can_access(request.user, finding):
+    if not user_can_change(request.user, finding):
         raise PermissionDenied
     if not (request.user.is_superuser or request.user.is_hod):
         raise PermissionDenied

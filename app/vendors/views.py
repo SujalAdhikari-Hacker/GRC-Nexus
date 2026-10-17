@@ -9,11 +9,13 @@ from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from core.correlation import get_full_vendor_context
 from core.mixins import (
+    ChangeScopedMixin,
     CsvExportMixin,
     DepartmentCreateMixin,
+    DepartmentPinnedMixin,
     DepartmentScopedMixin,
     scope_queryset,
-    user_can_access,
+    user_can_change,
 )
 
 from .forms import VendorAssessmentForm, VendorForm
@@ -117,7 +119,7 @@ class VendorCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView)
         return response
 
 
-class VendorUpdateView(DepartmentScopedMixin, UpdateView):
+class VendorUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = Vendor
     form_class = VendorForm
     template_name = 'vendors/vendor_form.html'
@@ -197,7 +199,7 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
         vendor_pk = kwargs.get('vendor_pk')
         if vendor_pk:
             self.vendor = get_object_or_404(Vendor, pk=vendor_pk)
-            if not user_can_access(request.user, self.vendor):
+            if not user_can_change(request.user, self.vendor):
                 raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
@@ -223,7 +225,7 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         if self.vendor:
             form.instance.vendor = self.vendor
-        if not user_can_access(self.request.user, form.instance.vendor):
+        if not user_can_change(self.request.user, form.instance.vendor):
             raise PermissionDenied
         form.instance.assessor = self.request.user
         form.instance.created_by = self.request.user
@@ -239,7 +241,7 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
 
-class VendorAssessmentUpdateView(DepartmentScopedMixin, UpdateView):
+class VendorAssessmentUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = VendorAssessment
     form_class = VendorAssessmentForm
     template_name = 'vendors/assessment_form.html'

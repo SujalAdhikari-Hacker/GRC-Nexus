@@ -1,5 +1,7 @@
 from django import forms
 
+from core.validators import validate_evidence_file
+
 from .models import (
     Audit, EvidenceItem, EvidenceScore, ControlTest,
     AuditFinding, ActionItem,
@@ -53,6 +55,12 @@ class EvidenceItemForm(forms.ModelForm):
         widgets = {
             'notes': forms.Textarea(attrs={'rows': 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Attachments are attacker-reachable uploads; same allowlist + size cap
+        # as control evidence, so a .html/.exe payload cannot be stored here.
+        self.fields['attachment'].validators.append(validate_evidence_file)
 
 
 class EvidenceScoreForm(forms.ModelForm):

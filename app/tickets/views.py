@@ -15,11 +15,13 @@ from django.views.generic import (
 
 from core.emails import email_pref_allows, send_email, site_url
 from core.mixins import (
+    ChangeScopedMixin,
     DepartmentCreateMixin,
+    DepartmentPinnedMixin,
     DepartmentScopedMixin,
     HODOrSuperuserMixin,
     scope_queryset,
-    user_can_access,
+    user_can_change,
 )
 from core.models import User
 
@@ -27,10 +29,14 @@ from .forms import TicketCommentForm, TicketForm
 from .models import Ticket
 
 
-def _get_ticket_or_403(request, pk):
-    """Fetch a ticket and enforce object-level access for the requester."""
+def _get_ticket_for_change_or_403(request, pk):
+    """Resolve a ticket for a *write* endpoint, enforcing write access.
+
+    Commenting, assigning and status changes all go through here, so a
+    read-only share must not be enough.
+    """
     ticket = get_object_or_404(Ticket, pk=pk)
-    if not user_can_access(request.user, ticket):
+    if not user_can_change(request.user, ticket):
         raise PermissionDenied
     return ticket
 
@@ -192,7 +198,7 @@ class TicketCreateView(DepartmentCreateMixin, HODOrSuperuserMixin, CreateView):
         return reverse_lazy('tickets:detail', kwargs={'pk': self.object.pk})
 
 
-class TicketUpdateView(DepartmentScopedMixin, UpdateView):
+class TicketUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = Ticket
     form_class = TicketForm
     template_name = 'tickets/ticket_form.html'
@@ -222,7 +228,7 @@ class TicketUpdateView(DepartmentScopedMixin, UpdateView):
 @require_POST
 def ticket_claim(request, pk):
     """User claims an unassigned ticket for themselves."""
-    ticket = _get_ticket_or_403(request, pk)
+    ticket = _get_ticket_for_change_or_403(request, pk)
 
     if ticket.assigned_to_id:
         messages.warning(request, f'{ticket.ticket_id} is already assigned to {ticket.assigned_to}.')
@@ -244,7 +250,7 @@ def ticket_assign(request, pk):
     """HOD/admin assigns a ticket to a specific user."""
     if not (request.user.is_superuser or request.user.is_hod):
         raise PermissionDenied
-    ticket = _get_ticket_or_403(request, pk)
+    ticket = _get_ticket_for_change_or_403(request, pk)
 
     user_id = request.POST.get('assigned_to')
     if not user_id:
@@ -300,7 +306,7 @@ def ticket_assign(request, pk):
 @require_POST
 def ticket_update_status(request, pk):
     """Quick inline status update."""
-    ticket = _get_ticket_or_403(request, pk)
+    ticket = _get_ticket_for_change_or_403(request, pk)
     new_status = request.POST.get('status')
 
     valid = [s[0] for s in Ticket.STATUS_CHOICES]
@@ -323,7 +329,7 @@ def ticket_update_status(request, pk):
 @login_required
 @require_POST
 def ticket_add_comment(request, pk):
-    ticket = _get_ticket_or_403(request, pk)
+    ticket = _get_ticket_for_change_or_403(request, pk)
     form = TicketCommentForm(request.POST)
 
     if form.is_valid():

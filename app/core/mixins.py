@@ -88,8 +88,40 @@ def scope_queryset(queryset, user, field='owner_dept'):
     return queryset.filter(condition)
 
 
+def writable_queryset(queryset, user, field='owner_dept'):
+    """Narrow ``queryset`` to rows ``user`` may *change*.
+
+    Unlike :func:`scope_queryset`, this excludes read-only shares and the
+    org-wide ``is_shared`` flag: those widen *visibility*, not authority.
+    Keep in sync with :func:`user_can_change`.
+    """
+    if not getattr(user, 'is_authenticated', False):
+        return queryset.none()
+    if user.is_superuser:
+        return queryset
+    model = getattr(queryset, 'model', None)
+
+    condition = Q()
+    if getattr(user, 'department_id', None):
+        condition |= Q(**{field: user.department})
+    if model is not None:
+        from .permissions import granted_object_ids
+
+        change_pks = list(
+            granted_object_ids(model, user, perms=('change',)).values_list(
+                'pk', flat=True
+            )
+        )
+        if change_pks:
+            condition |= Q(pk__in=change_pks)
+
+    if not condition:
+        return queryset.none()
+    return queryset.filter(condition)
+
+
 def user_can_access(user, obj, field='owner_dept'):
-    """Object-level counterpart to :func:`scope_queryset`."""
+    """Object-level counterpart to :func:`scope_queryset` (read access)."""
     if not getattr(user, 'is_authenticated', False):
         return False
     if user.is_superuser:
@@ -103,6 +135,33 @@ def user_can_access(user, obj, field='owner_dept'):
     from .permissions import user_has_object_perm
 
     return user_has_object_perm(user, obj)
+
+
+def user_can_change(user, obj, field='owner_dept'):
+    """Object-level **write** counterpart to :func:`user_can_access`.
+
+    Writing requires membership of the record's own department, or an explicit
+    ``change`` object grant. Two things deliberately do **not** grant write:
+
+    * a read-only (``view``) share — "share for visibility" must never silently
+      hand over edit rights; and
+    * the org-wide ``is_shared`` read flag, which exists so a shared control can
+      be *seen* across departments, not edited by them.
+
+    Global model permissions are ignored: this answers "may *this user* change
+    *this object*?", and department membership already covers the normal case.
+    """
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    if user.is_superuser:
+        return True
+    obj_dept_id = getattr(obj, f'{field}_id', None)
+    if user.department_id and obj_dept_id == user.department_id:
+        return True
+
+    from .permissions import user_has_object_perm
+
+    return user_has_object_perm(user, obj, perms=('change',))
 
 
 def csv_safe(value):
@@ -145,6 +204,22 @@ class DepartmentScopedMixin(LoginRequiredMixin):
         return super().get_paginate_by(queryset)
 
 
+class ChangeScopedMixin(DepartmentScopedMixin):
+    """Scope *write* views (update / delete) to objects the user may change.
+
+    ``DepartmentScopedMixin`` unions in read-only shares and ``is_shared``,
+    which is correct for lists and detail pages but wrong for a mutation: a
+    view-only share must never open an edit form, a delete confirmation, or a
+    status endpoint. This narrows the queryset to the user's own department
+    plus explicit ``change`` grants.
+    """
+
+    def get_queryset(self):
+        return writable_queryset(
+            super().get_queryset(), self.request.user, self.department_field
+        )
+
+
 class HODOrSuperuserMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Only department heads and superusers."""
 
@@ -153,22 +228,58 @@ class HODOrSuperuserMixin(LoginRequiredMixin, UserPassesTestMixin):
         return user.is_authenticated and (user.is_superuser or user.is_hod)
 
 
-class DepartmentCreateMixin:
-    """Pin a created record's ``owner_dept`` to the creator's department.
+class DepartmentPinnedMixin:
+    """Keep a record's owning department under the server's control.
 
-    Non-superusers could otherwise pick any department from the form's
-    dropdown and write data into a department they do not belong to. Place
-    this *before* other mixins in the MRO so its ``form_valid`` runs.
+    On **create**, a non-superuser's record is pinned to their own department,
+    so a crafted form cannot write into another team's data.
+
+    On **update**, the department recorded in the database is restored, so an
+    edit can never *re-parent* a record. A field that let a user move a record
+    (and therefore hide it from its real owners) is a data-integrity bug, not a
+    feature.
+
+    The original value is snapshotted in ``get_object`` — *before* form
+    validation — because ``form.instance`` **is** ``self.object`` on an
+    ``UpdateView``, so by ``form_valid`` time it already holds the tampered
+    value.
+
+    Handles both the usual ``owner_dept`` field and the ``department`` field
+    used by e.g. risk appetites. Place this *before* other view mixins in the
+    MRO so its ``form_valid`` runs.
     """
+
+    dept_fields = ('owner_dept', 'department')
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset=queryset)
+        field = next((f for f in self.dept_fields if hasattr(obj, f'{f}_id')), None)
+        self._pinned_field = field
+        self._pinned_original_id = getattr(obj, f'{field}_id') if field else None
+        return obj
 
     def form_valid(self, form):
         user = self.request.user
-        if (
-            not getattr(user, 'is_superuser', False)
-            and hasattr(form.instance, 'owner_dept_id')
-        ):
-            form.instance.owner_dept = user.department
+        if not getattr(user, 'is_superuser', False):
+            field = getattr(self, '_pinned_field', None)
+            if field is not None:
+                # Update: restore the department that was in the database.
+                setattr(form.instance, f'{field}_id', self._pinned_original_id)
+            else:
+                # Create: pin to the creator's own department.
+                instance = form.instance
+                field = next(
+                    (f for f in self.dept_fields if hasattr(instance, f'{f}_id')),
+                    None,
+                )
+                if field is not None:
+                    setattr(instance, field, user.department)
         return super().form_valid(form)
+
+
+# Back-compat alias — the mixin now guards updates as well as creates, so every
+# existing ``DepartmentCreateMixin`` create view inherits the stricter rules.
+DepartmentCreateMixin = DepartmentPinnedMixin
 
 
 class SuperuserOnlyMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -296,7 +407,9 @@ class BulkActionsMixin:
             messages.error(request, 'Unknown bulk action.')
             return redirect(request.get_full_path())
 
-        queryset = self.get_queryset().filter(pk__in=request.POST.getlist('selected'))
+        queryset = writable_queryset(
+            self.get_queryset(), request.user, self.department_field
+        ).filter(pk__in=request.POST.getlist('selected'))
         if not queryset.exists():
             messages.warning(request, 'No records were selected.')
             return redirect(request.get_full_path())

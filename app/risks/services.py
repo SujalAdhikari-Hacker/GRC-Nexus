@@ -256,26 +256,51 @@ def recalculate_residual_for_control(control):
         recalculate_risk(risk)
 
 
+# Treatments in these states are actively (or finally) mitigating the risk.
+TREATMENT_ACTIVE_STATUSES = ('planned', 'in_progress')
+TREATMENT_MITIGATING_STATUSES = TREATMENT_ACTIVE_STATUSES + ('completed',)
+
+
 def sync_risk_from_treatment(treatment):
     """Keep the parent risk consistent with a saved treatment.
 
-    Two long-standing gaps this closes:
+    Three long-standing gaps this closes:
 
     * **Residual recompute** — residual risk is computed from
-      ``Risk.controls``, but controls are usually chosen on the *treatment*.
-      Without promoting them onto the risk the residual score never moves
-      (``Risk.controls.add`` fires the m2m signal that recalculates).
-    * **Status sync** — completing the treatment closes the risk, so the
-      status no longer has to be updated in two places.
+      ``Risk.controls``, but controls are usually chosen on the *treatment*, so
+      they are promoted onto the risk (``Risk.controls.add`` fires the m2m
+      signal that recalculates).
+    * **Cancellation releases mitigation** — a cancelled treatment's controls
+      are removed from the risk, so an abandoned plan cannot keep the residual
+      artificially low for ever.
+    * **Status sync** — the risk is closed only once *every* treatment on it is
+      resolved (completed or cancelled) and at least one actually completed;
+      conversely, putting a treatment back into an active state reopens a
+      closed risk.
+
+    Idempotent: re-running recomputes the same state.
     """
     risk = treatment.risk
-
     controls = list(treatment.controls.all())
-    if controls:
-        risk.controls.add(*controls)
 
-    if treatment.status == 'completed' and risk.status != 'closed':
-        if risk.can_transition_to('closed'):
+    if treatment.status in TREATMENT_MITIGATING_STATUSES:
+        if controls:
+            risk.controls.add(*controls)
+    elif controls:
+        # Cancelled (or any future non-mitigating state): stop crediting it.
+        risk.controls.remove(*controls)
+
+    treatments = list(risk.treatments.all())
+    any_active = any(t.status in TREATMENT_ACTIVE_STATUSES for t in treatments)
+    any_completed = any(t.status == 'completed' for t in treatments)
+
+    if any_active:
+        # Something is still in flight — a closed risk would be misleading.
+        if risk.status == 'closed' and risk.can_transition_to('identified'):
+            risk.status = 'identified'
+            risk.save()
+    elif any_completed:
+        if risk.status != 'closed' and risk.can_transition_to('closed'):
             risk.status = 'closed'
             risk.save()
 

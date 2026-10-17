@@ -17,22 +17,29 @@ from django.views.generic import (
 
 from core.correlation import get_framework_coverage, get_full_control_context
 from core.mixins import (
+    ChangeScopedMixin,
     CsvExportMixin,
     DepartmentCreateMixin,
+    DepartmentPinnedMixin,
     DepartmentScopedMixin,
     HODOrSuperuserMixin,
     SavedViewsMixin,
     scope_queryset,
-    user_can_access,
+    user_can_change,
 )
 
 from .forms import ControlEvidenceForm, ControlForm, ControlFrameworkMappingForm
 from .models import Control, ControlEvidence, ControlFrameworkMapping
 
 
-def _get_control_or_403(request, pk):
+def _get_control_for_change_or_403(request, pk):
+    """Resolve a control for a *write* endpoint, enforcing write access.
+
+    Every caller of this helper creates or mutates data, so it requires
+    :func:`user_can_change` — a read-only share must not authorise it.
+    """
     control = get_object_or_404(Control, pk=pk)
-    if not user_can_access(request.user, control):
+    if not user_can_change(request.user, control):
         raise PermissionDenied
     return control
 
@@ -114,7 +121,25 @@ class ControlDetailView(DepartmentScopedMixin, DetailView):
         return ctx
 
 
-class ControlCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
+class _ControlSharingGateMixin:
+    """Only HODs/superusers may publish a control org-wide (``is_shared``).
+
+    Removing the field from the form (rather than trusting the template) means
+    a crafted POST from a regular user cannot flag a control — and its
+    evidence — as visible to every department.
+    """
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        user = self.request.user
+        if not (user.is_superuser or getattr(user, 'is_hod', False)):
+            form.fields.pop('is_shared', None)
+        return form
+
+
+class ControlCreateView(
+    _ControlSharingGateMixin, DepartmentCreateMixin, DepartmentScopedMixin, CreateView
+):
     model = Control
     form_class = ControlForm
     template_name = 'controls/control_form.html'
@@ -135,7 +160,9 @@ class ControlCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView
         return _framework_context(self, super().get_context_data(**kwargs))
 
 
-class ControlUpdateView(DepartmentScopedMixin, UpdateView):
+class ControlUpdateView(
+    _ControlSharingGateMixin, DepartmentPinnedMixin, ChangeScopedMixin, UpdateView
+):
     model = Control
     form_class = ControlForm
     template_name = 'controls/control_form.html'
@@ -149,7 +176,7 @@ class ControlUpdateView(DepartmentScopedMixin, UpdateView):
         return _framework_context(self, super().get_context_data(**kwargs))
 
 
-class ControlDeleteView(HODOrSuperuserMixin, DepartmentScopedMixin, DeleteView):
+class ControlDeleteView(HODOrSuperuserMixin, ChangeScopedMixin, DeleteView):
     model = Control
     template_name = 'core/confirm_delete.html'
     success_url = reverse_lazy('controls:list')
@@ -184,7 +211,7 @@ class ControlEvidenceCreateView(LoginRequiredMixin, CreateView):
         # (404) — an enumeration oracle — and would skip the login redirect.
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        self.control = _get_control_or_403(request, kwargs['control_pk'])
+        self.control = _get_control_for_change_or_403(request, kwargs['control_pk'])
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -209,7 +236,7 @@ class ControlFrameworkMappingCreateView(LoginRequiredMixin, CreateView):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        self.control = _get_control_or_403(request, kwargs['control_pk'])
+        self.control = _get_control_for_change_or_403(request, kwargs['control_pk'])
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -305,7 +332,7 @@ class ControlLifecycleView(DepartmentScopedMixin, TemplateView):
 @login_required
 @require_POST
 def advance_lifecycle_view(request, pk):
-    control = _get_control_or_403(request, pk)
+    control = _get_control_for_change_or_403(request, pk)
     stages = [s[0] for s in Control.LIFECYCLE_CHOICES]
     idx = stages.index(control.lifecycle_status) if control.lifecycle_status in stages else 0
     if idx < len(stages) - 1:
@@ -321,7 +348,7 @@ def advance_lifecycle_view(request, pk):
 @login_required
 @require_POST
 def regress_lifecycle_view(request, pk):
-    control = _get_control_or_403(request, pk)
+    control = _get_control_for_change_or_403(request, pk)
     stages = [s[0] for s in Control.LIFECYCLE_CHOICES]
     idx = stages.index(control.lifecycle_status) if control.lifecycle_status in stages else 0
     if idx > 0:
@@ -337,7 +364,7 @@ def regress_lifecycle_view(request, pk):
 @login_required
 @require_POST
 def set_lifecycle_view(request, pk):
-    control = _get_control_or_403(request, pk)
+    control = _get_control_for_change_or_403(request, pk)
     target = request.POST.get('target')
     valid = [s[0] for s in Control.LIFECYCLE_CHOICES]
     if target in valid:

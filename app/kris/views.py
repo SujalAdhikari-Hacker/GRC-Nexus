@@ -2,7 +2,14 @@ from django.db.models import Q
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, SavedViewsMixin
+from core.mixins import (
+    ChangeScopedMixin,
+    CsvExportMixin,
+    DepartmentCreateMixin,
+    DepartmentPinnedMixin,
+    DepartmentScopedMixin,
+    SavedViewsMixin,
+)
 from .models import KRI
 
 
@@ -95,7 +102,7 @@ class KRICreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
         return initial
 
 
-class KRIUpdateView(DepartmentScopedMixin, UpdateView):
+class KRIUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = KRI
     template_name = 'kris/kri_form.html'
     fields = [

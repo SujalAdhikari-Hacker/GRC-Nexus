@@ -272,8 +272,22 @@ def close_risks_for_finding(finding):
 
 
 def sync_finding_cascade(finding):
-    """Signal entry point: cascade or close depending on the finding's status."""
+    """Signal entry point: cascade or close depending on the finding's status.
+
+    Only *open* findings that meet the escalation rule (``should_cascade``)
+    raise a risk. A remediated/false-positive finding closes any risk it
+    previously raised, and later enrichment of the CVE can no longer
+    resurrect a risk for a finding that is already closed.
+    """
+    from risks.models import Risk
+
     if finding.status in ('remediated', 'false_positive'):
-        close_risks_for_finding(finding)
-    else:
-        cascade_finding_to_risk(finding)
+        return close_risks_for_finding(finding)
+
+    already_raised = Risk.objects.filter(source_finding=finding).exists()
+    if should_cascade(finding) or already_raised:
+        # Score when the finding qualifies, and keep an already-raised risk in
+        # sync if the intel later drifts out of the escalation band (we do not
+        # silently drop a risk that someone may be treating).
+        return cascade_finding_to_risk(finding)
+    return None

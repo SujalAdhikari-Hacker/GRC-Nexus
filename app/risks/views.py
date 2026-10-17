@@ -17,7 +17,18 @@ from django.views.generic import (
 )
 
 from core.correlation import get_full_risk_context
-from core.mixins import CsvExportMixin, DepartmentCreateMixin, DepartmentScopedMixin, HODOrSuperuserMixin, SavedViewsMixin, scope_queryset, user_can_access
+from core.mixins import (
+    ChangeScopedMixin,
+    CsvExportMixin,
+    DepartmentCreateMixin,
+    DepartmentPinnedMixin,
+    DepartmentScopedMixin,
+    HODOrSuperuserMixin,
+    SavedViewsMixin,
+    scope_queryset,
+    user_can_access,
+    user_can_change,
+)
 from core.models import Department
 from core.reports import ReportMixin
 
@@ -33,7 +44,6 @@ from .services import (
     calculate_residual_from_controls,
     recalculate_risk,
     severity_band,
-    sync_risk_from_treatment,
 )
 
 
@@ -186,7 +196,7 @@ class RiskCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
         return response
 
 
-class RiskUpdateView(DepartmentScopedMixin, UpdateView):
+class RiskUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = Risk
     form_class = RiskForm
     template_name = 'risks/risk_form.html'
@@ -199,7 +209,7 @@ class RiskUpdateView(DepartmentScopedMixin, UpdateView):
         return response
 
 
-class RiskDeleteView(HODOrSuperuserMixin, DepartmentScopedMixin, DeleteView):
+class RiskDeleteView(HODOrSuperuserMixin, ChangeScopedMixin, DeleteView):
     model = Risk
     template_name = 'core/confirm_delete.html'
     success_url = reverse_lazy('risks:list')
@@ -377,7 +387,7 @@ class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
         self.risk = get_object_or_404(Risk, pk=kwargs['risk_pk'])
-        if not user_can_access(request.user, self.risk):
+        if not user_can_change(request.user, self.risk):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
@@ -385,9 +395,9 @@ class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
         form.instance.risk = self.risk
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
-        response = super().form_valid(form)
-        sync_risk_from_treatment(self.object)
-        return response
+        # The risk is re-synced by the RiskTreatment signals (post_save +
+        # m2m_changed), which also cover edits made outside this view.
+        return super().form_valid(form)
 
     def get_success_url(self):
         return reverse_lazy('risks:detail', kwargs={'pk': self.risk.pk})
@@ -398,7 +408,7 @@ class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
 
-class RiskTreatmentUpdateView(DepartmentScopedMixin, UpdateView):
+class RiskTreatmentUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = RiskTreatment
     form_class = RiskTreatmentUpdateForm
     template_name = 'risks/treatment_form.html'
@@ -406,9 +416,8 @@ class RiskTreatmentUpdateView(DepartmentScopedMixin, UpdateView):
 
     def form_valid(self, form):
         form.instance.updated_by = self.request.user
-        response = super().form_valid(form)
-        sync_risk_from_treatment(self.object)
-        return response
+        # Re-sync handled by the RiskTreatment signals.
+        return super().form_valid(form)
 
     def get_success_url(self):
         return reverse_lazy('risks:detail', kwargs={'pk': self.object.risk.pk})
@@ -471,7 +480,7 @@ class RiskAppetiteCreateView(HODOrSuperuserMixin, CreateView):
         return super().form_valid(form)
 
 
-class RiskAppetiteUpdateView(HODOrSuperuserMixin, DepartmentScopedMixin, UpdateView):
+class RiskAppetiteUpdateView(HODOrSuperuserMixin, DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = RiskAppetite
     form_class = RiskAppetiteForm
     template_name = 'risks/appetite_form.html'
@@ -560,7 +569,7 @@ class RiskExceptionCreateView(LoginRequiredMixin, CreateView):
         return initial
 
     def form_valid(self, form):
-        if not user_can_access(self.request.user, form.instance.risk):
+        if not user_can_change(self.request.user, form.instance.risk):
             raise PermissionDenied
         if not form.instance.requested_by_id:
             form.instance.requested_by = self.request.user
@@ -572,14 +581,14 @@ class RiskExceptionCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy('risks:exception_detail', kwargs={'pk': self.object.pk})
 
 
-class RiskExceptionUpdateView(DepartmentScopedMixin, UpdateView):
+class RiskExceptionUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = RiskException
     form_class = RiskExceptionForm
     template_name = 'risks/exception_form.html'
     department_field = 'risk__owner_dept'
 
     def form_valid(self, form):
-        if not user_can_access(self.request.user, form.instance.risk):
+        if not user_can_change(self.request.user, form.instance.risk):
             raise PermissionDenied
         response = super().form_valid(form)
         _notify_exception_approver(self.object)
@@ -593,7 +602,7 @@ class RiskExceptionUpdateView(DepartmentScopedMixin, UpdateView):
 @require_POST
 def exception_approve(request, pk):
     exc = get_object_or_404(RiskException, pk=pk)
-    if not user_can_access(request.user, exc.risk):
+    if not user_can_change(request.user, exc.risk):
         raise PermissionDenied
 
     # The person *named* as approver is the one who must accept the risk.
@@ -633,7 +642,7 @@ def exception_revoke(request, pk):
     if not (request.user.is_superuser or request.user.is_hod):
         raise PermissionDenied
     exc = get_object_or_404(RiskException, pk=pk)
-    if not user_can_access(request.user, exc.risk):
+    if not user_can_change(request.user, exc.risk):
         raise PermissionDenied
     exc.status = 'revoked'
     exc.save()

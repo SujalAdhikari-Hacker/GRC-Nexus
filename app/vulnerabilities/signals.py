@@ -20,8 +20,10 @@ def vulnerability_enrich_cascade(sender, instance, **kwargs):
     """Re-score the risks of every finding when the CVE's intel changes.
 
     Keeps the register honest when a CVE is later added to KEV or its EPSS
-    score moves.
+    score moves. Delegates to ``sync_finding_cascade`` so a finding that is
+    already remediated (or that never met the escalation rule) is *not*
+    re-cascaded into a fresh open risk.
     """
-    from .services import cascade_finding_to_risk
+    from .services import sync_finding_cascade
     for finding in instance.findings.all():
-        cascade_finding_to_risk(finding)
+        sync_finding_cascade(finding)

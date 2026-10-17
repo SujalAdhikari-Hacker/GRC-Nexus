@@ -7,9 +7,11 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, T
 
 from core.correlation import get_full_asset_context, get_policies_for_asset
 from core.mixins import (
+    ChangeScopedMixin,
     BulkActionsMixin,
     CsvExportMixin,
     DepartmentCreateMixin,
+    DepartmentPinnedMixin,
     DepartmentScopedMixin,
     HODOrSuperuserMixin,
     SavedViewsMixin,
@@ -47,7 +49,7 @@ class AssetCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
         return response
 
 
-class AssetUpdateView(DepartmentScopedMixin, UpdateView):
+class AssetUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = Asset
     form_class = AssetForm
     template_name = 'assets/asset_form.html'
@@ -62,7 +64,7 @@ class AssetUpdateView(DepartmentScopedMixin, UpdateView):
         return response
 
 
-class AssetDeleteView(HODOrSuperuserMixin, DepartmentScopedMixin, DeleteView):
+class AssetDeleteView(HODOrSuperuserMixin, ChangeScopedMixin, DeleteView):
     """Delete an asset (HOD or superuser). Cascade-linked records follow the
     model's FK rules; the confirmation page warns before committing."""
     model = Asset

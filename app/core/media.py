@@ -51,6 +51,22 @@ def _candidate_querysets(user):
     yield scope_queryset(EvidenceItem.objects.all(), user), 'attachment'
 
 
+# Content types that are safe to render *inline* in the browser. Anything
+# else is forced to download as an opaque octet-stream: an upload named
+# ``payload.html`` (or a scriptable ``.svg``, which is no longer accepted)
+# must never be served as same-origin HTML, or it would run with the
+# viewer's session and could read their CSRF token.
+_INLINE_TYPES = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.pdf': 'application/pdf',
+}
+
+
 def _serve(rel_path):
     full_path = os.path.join(settings.MEDIA_ROOT, rel_path)
     if not os.path.isfile(full_path):
@@ -59,11 +75,25 @@ def _serve(rel_path):
     real_root = os.path.realpath(settings.MEDIA_ROOT)
     if not os.path.realpath(full_path).startswith(real_root):
         raise Http404('File not found')
-    return FileResponse(
+
+    name = posixpath.basename(rel_path)
+    ext = posixpath.splitext(name)[1].lower()
+    content_type = _INLINE_TYPES.get(ext)
+    inline = content_type is not None
+
+    response = FileResponse(
         open(full_path, 'rb'),
-        as_attachment=False,
-        filename=posixpath.basename(rel_path),
+        as_attachment=not inline,
+        filename=name,
+        content_type=content_type or 'application/octet-stream',
     )
+    # Stop the browser from second-guessing the type we just declared.
+    response['X-Content-Type-Options'] = 'nosniff'
+    if inline:
+        # Belt-and-braces: even if a file slipped through, neutralise any
+        # markup/script it might carry by sandboxing the response origin.
+        response['Content-Security-Policy'] = "default-src 'none'; sandbox"
+    return response
 
 
 @login_required

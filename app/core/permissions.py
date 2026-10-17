@@ -30,7 +30,9 @@ SHAREABLE_MODELS = frozenset({
     'tickets.ticket',
 })
 
-# The two permissions a share can carry.
+# The two permissions a share can carry. A share may grant either one: "view"
+# is read-only, "change" additionally permits edits (see
+# ``core.mixins.user_can_change``).
 SHARE_PERMS = ('view', 'change')
 
 
@@ -94,6 +96,11 @@ def user_has_object_perm(user, obj, perms=SHARE_PERMS):
     Global permissions are ignored on purpose — this answers "was this specific
     object shared with them?", not "are they allowed to change things in
     general?". Department access is handled separately in ``core.mixins``.
+
+    ``accept_global_perms=False`` is essential here: ``user.has_perm(codename,
+    obj)`` alone would return ``True`` for anyone holding the *global*
+    ``change_x`` permission, silently turning an object check into a
+    model-wide one.
     """
     if not getattr(user, 'is_authenticated', False):
         return False
@@ -101,23 +108,39 @@ def user_has_object_perm(user, obj, perms=SHARE_PERMS):
     if not is_shareable(model):
         return False
     codenames = model_perm_codenames(model)
-    return any(user.has_perm(codenames[perm], obj) for perm in perms if perm in codenames)
+    wanted = [codenames[perm] for perm in perms if perm in codenames]
+    if not wanted:
+        return False
+
+    from guardian.shortcuts import get_objects_for_user
+
+    return get_objects_for_user(
+        user,
+        wanted,
+        klass=model,
+        any_perm=True,
+        accept_global_perms=False,
+    ).filter(pk=obj.pk).exists()
 
 
-def granted_object_ids(model, user):
+def granted_object_ids(model, user, perms=SHARE_PERMS):
     """PKs of ``model`` this user was explicitly granted object access to.
 
     ``accept_global_perms=False`` is important: without it, a user holding the
-    *global* ``change_x`` permission would be handed every row.
+    *global* ``change_x`` permission would be handed every row. Pass
+    ``perms=('change',)`` to ask "which rows may this user *write*?".
     """
     if not is_shareable(model):
         return model.objects.none()
+    codenames = model_perm_codenames(model)
+    wanted = [codenames[perm] for perm in perms if perm in codenames]
+    if not wanted:
+        return model.objects.none()
     from guardian.shortcuts import get_objects_for_user
 
-    codenames = model_perm_codenames(model)
     return get_objects_for_user(
         user,
-        list(codenames.values()),
+        wanted,
         klass=model,
         any_perm=True,
         accept_global_perms=False,

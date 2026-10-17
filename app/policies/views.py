@@ -5,8 +5,10 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, U
 
 from core.correlation import get_full_policy_context
 from core.mixins import (
+    ChangeScopedMixin,
     CsvExportMixin,
     DepartmentCreateMixin,
+    DepartmentPinnedMixin,
     DepartmentScopedMixin,
     HODOrSuperuserMixin,
     SavedViewsMixin,
@@ -98,7 +100,7 @@ class PolicyCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView)
         return response
 
 
-class PolicyUpdateView(DepartmentScopedMixin, UpdateView):
+class PolicyUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = Policy
     form_class = PolicyForm
     template_name = 'policies/policy_form.html'
@@ -114,7 +116,7 @@ class PolicyUpdateView(DepartmentScopedMixin, UpdateView):
         return response
 
 
-class PolicyDeleteView(HODOrSuperuserMixin, DepartmentScopedMixin, DeleteView):
+class PolicyDeleteView(HODOrSuperuserMixin, ChangeScopedMixin, DeleteView):
     model = Policy
     template_name = 'core/confirm_delete.html'
     success_url = reverse_lazy('policies:list')

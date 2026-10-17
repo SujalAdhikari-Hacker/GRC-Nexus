@@ -1580,3 +1580,505 @@ class AuditFindingDueDateTests(TestCase):
 
     def test_days_overdue_counts_the_slip(self):
         self.assertEqual(self._finding().days_overdue, 3)
+
+
+# ==================================================================
+# SECURITY: a read-only share grants read, never write
+# ==================================================================
+
+class WriteAuthorizationTests(TestCase):
+    """A view-only object share must not authorise a mutation.
+
+    Regression: ``user_can_access`` accepted *any* object permission, so a
+    record shared "for visibility only" also handed the recipient edit,
+    delete and status-change rights across ~15 endpoints.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        from core.mixins import user_can_change  # noqa: F401  (documented below)
+
+        cls.dept_a = Department.objects.create(name='Write A')
+        cls.dept_b = Department.objects.create(name='Write B')
+        cls.user_a = User.objects.create_user(
+            'wa', 'wa@e.com', 'pw', department=cls.dept_a,
+        )
+        cls.hod_a = User.objects.create_user(
+            'wa_hod', 'wah@e.com', 'pw', department=cls.dept_a, is_hod=True,
+        )
+        cls.superuser = User.objects.create_superuser('write_su', 'wsu@e.com', 'pw')
+        cls.cat = RiskCategory.objects.create(name='Write Cat')
+
+        cls.risk_b = Risk.objects.create(
+            title='B risk', category=cls.cat, owner_dept=cls.dept_b,
+        )
+        cls.control_a = Control.objects.create(
+            code='WA-A1', name='A control', owner_dept=cls.dept_a,
+        )
+        cls.control_b = Control.objects.create(
+            code='WA-B1', name='B control', owner_dept=cls.dept_b,
+        )
+        cls.control_shared = Control.objects.create(
+            code='WA-S1', name='Org-wide control', owner_dept=cls.dept_b,
+            is_shared=True,
+        )
+        cls.finding_b = AuditFinding.objects.create(
+            title='B finding', owner_dept=cls.dept_b, severity='low',
+        )
+
+    def _fresh(self, user):
+        return User.objects.get(pk=user.pk)
+
+    def test_read_only_share_can_be_read_but_not_changed(self):
+        from core.mixins import user_can_change
+        from core.permissions import grant_object_perms
+
+        grant_object_perms(self.risk_b, user=self.user_a, perms=('view',))
+        user = self._fresh(self.user_a)
+        self.assertTrue(user_can_access(user, self.risk_b))
+        self.assertFalse(user_can_change(user, self.risk_b))
+
+    def test_change_share_grants_write(self):
+        from core.mixins import user_can_change
+        from core.permissions import grant_object_perms
+
+        grant_object_perms(self.risk_b, user=self.user_a, perms=('view', 'change'))
+        self.assertTrue(user_can_change(self._fresh(self.user_a), self.risk_b))
+
+    def test_is_shared_flag_is_read_only(self):
+        """The org-wide ``is_shared`` flag widens visibility, not authority."""
+        from core.mixins import user_can_change
+
+        self.assertTrue(user_can_access(self.user_a, self.control_shared))
+        self.assertFalse(user_can_change(self.user_a, self.control_shared))
+
+    def test_same_department_may_change(self):
+        from core.mixins import user_can_change
+
+        self.assertTrue(user_can_change(self.user_a, self.control_a))
+
+    def test_global_permission_does_not_grant_object_write(self):
+        """Holding the *global* change_risk permission must not imply write on
+        an object that was never granted to the user."""
+        from django.contrib.auth.models import Permission
+        from core.mixins import user_can_change
+
+        perm = Permission.objects.get(codename='change_risk')
+        self.user_a.user_permissions.add(perm)
+        self.assertFalse(user_can_change(self._fresh(self.user_a), self.risk_b))
+
+    def test_view_only_share_cannot_open_edit_form(self):
+        from core.permissions import grant_object_perms
+
+        grant_object_perms(self.risk_b, user=self.user_a, perms=('view',))
+        self.client.force_login(self.user_a)
+        self.assertEqual(
+            self.client.get(f'/risks/{self.risk_b.pk}/edit/').status_code, 404
+        )
+
+    def test_change_share_can_open_edit_form(self):
+        from core.permissions import grant_object_perms
+
+        grant_object_perms(self.risk_b, user=self.user_a, perms=('view', 'change'))
+        self.client.force_login(self.user_a)
+        self.assertEqual(
+            self.client.get(f'/risks/{self.risk_b.pk}/edit/').status_code, 200
+        )
+
+    def test_view_only_share_cannot_post_a_status_change(self):
+        from core.permissions import grant_object_perms
+
+        grant_object_perms(self.control_b, user=self.user_a, perms=('view',))
+        self.client.force_login(self.user_a)
+        response = self.client.post(f'/controls/{self.control_b.pk}/advance/')
+        self.assertEqual(response.status_code, 403)
+        self.control_b.refresh_from_db()
+        self.assertEqual(self.control_b.lifecycle_status, 'proposed')
+
+    def test_change_share_can_post_a_status_change(self):
+        from core.permissions import grant_object_perms
+
+        grant_object_perms(self.control_b, user=self.user_a, perms=('view', 'change'))
+        self.client.force_login(self.user_a)
+        response = self.client.post(f'/controls/{self.control_b.pk}/advance/')
+        self.assertEqual(response.status_code, 302)
+        self.control_b.refresh_from_db()
+        self.assertNotEqual(self.control_b.lifecycle_status, 'proposed')
+
+    def test_view_only_share_cannot_bulk_edit(self):
+        from core.permissions import grant_object_perms
+
+        grant_object_perms(self.finding_b, user=self.hod_a, perms=('view',))
+        self.client.force_login(self.hod_a)
+        self.client.post('/audits/findings/', {
+            'bulk_action': 'set_severity',
+            'bulk_value': 'critical',
+            'selected': [self.finding_b.pk],
+        })
+        self.finding_b.refresh_from_db()
+        self.assertEqual(self.finding_b.severity, 'low')
+
+    def test_writable_queryset_excludes_read_only_rows(self):
+        from core.mixins import writable_queryset
+        from core.permissions import grant_object_perms
+
+        grant_object_perms(self.risk_b, user=self.user_a, perms=('view',))
+        visible = set(
+            scope_queryset(Risk.objects.all(), self._fresh(self.user_a))
+            .values_list('pk', flat=True)
+        )
+        writable = set(
+            writable_queryset(Risk.objects.all(), self._fresh(self.user_a))
+            .values_list('pk', flat=True)
+        )
+        self.assertIn(self.risk_b.pk, visible)
+        self.assertNotIn(self.risk_b.pk, writable)
+
+
+# ==================================================================
+# SECURITY: uploaded evidence / policy documents
+# ==================================================================
+
+class UploadValidationTests(TestCase):
+    """The same allowlist + size cap guards every user upload."""
+
+    def test_html_and_svg_are_rejected(self):
+        from django.core.exceptions import ValidationError
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.validators import validate_evidence_file
+
+        for name in ('payload.html', 'script.svg', 'evil.exe', 'x.php'):
+            with self.subTest(name=name):
+                with self.assertRaises(ValidationError):
+                    validate_evidence_file(SimpleUploadedFile(name, b'<script>'))
+
+    def test_pdf_and_png_are_accepted(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.validators import validate_evidence_file
+
+        for name in ('report.pdf', 'screenshot.png', 'notes.txt'):
+            with self.subTest(name=name):
+                validate_evidence_file(SimpleUploadedFile(name, b'data'))
+
+    def test_oversize_upload_is_rejected(self):
+        from django.core.exceptions import ValidationError
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.validators import MAX_UPLOAD_SIZE, validate_evidence_file
+
+        big = SimpleUploadedFile('big.pdf', b'x' * (MAX_UPLOAD_SIZE + 1))
+        with self.assertRaises(ValidationError):
+            validate_evidence_file(big)
+
+    def test_evidence_and_policy_forms_carry_the_validator(self):
+        from audits.forms import EvidenceItemForm
+        from core.validators import validate_evidence_file
+        from policies.forms import PolicyForm
+
+        self.assertIn(
+            validate_evidence_file, EvidenceItemForm().fields['attachment'].validators
+        )
+        self.assertIn(
+            validate_evidence_file, PolicyForm().fields['document'].validators
+        )
+
+
+class MediaDispositionTests(TestCase):
+    """Non-image uploads download; they are never rendered same-origin."""
+
+    @classmethod
+    def setUpClass(cls):
+        import tempfile
+        from django.test import override_settings
+
+        cls._media = tempfile.mkdtemp()
+        cls._override = override_settings(MEDIA_ROOT=cls._media)
+        cls._override.enable()
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        import shutil
+
+        cls._override.disable()
+        shutil.rmtree(cls._media, ignore_errors=True)
+        super().tearDownClass()
+
+    @classmethod
+    def setUpTestData(cls):
+        from django.core.files.base import ContentFile
+        from policies.models import Policy
+
+        cls.dept = Department.objects.create(name='Disposition Dept')
+        cls.user = User.objects.create_user(
+            'disp', 'disp@e.com', 'pw', department=cls.dept,
+        )
+        cls.policy = Policy.objects.create(
+            code='QA-DISP', title='Disposition policy', owner_dept=cls.dept,
+        )
+        cls.policy.document.save('payload.html', ContentFile(b'<script>1</script>'), save=True)
+        cls.html_path = cls.policy.document.name
+
+        cls.policy2 = Policy.objects.create(
+            code='QA-DISP2', title='Image policy', owner_dept=cls.dept,
+        )
+        cls.policy2.document.save('shot.png', ContentFile(b'\x89PNG\r\n'), save=True)
+        cls.png_path = cls.policy2.document.name
+
+    def test_html_upload_is_forced_to_download(self):
+        self.client.force_login(self.user)
+        response = self.client.get(f'/media/{self.html_path}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/octet-stream')
+        self.assertIn('attachment', response['Content-Disposition'])
+        self.assertEqual(response['X-Content-Type-Options'], 'nosniff')
+
+    def test_image_upload_stays_inline(self):
+        self.client.force_login(self.user)
+        response = self.client.get(f'/media/{self.png_path}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'image/png')
+        self.assertIn('inline', response['Content-Disposition'])
+
+
+# ==================================================================
+# An edit may never re-parent a record to another department
+# ==================================================================
+
+class DepartmentPinningTests(TestCase):
+    """``owner_dept`` is server-controlled on create *and* update."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept_a = Department.objects.create(name='Pin A')
+        cls.dept_b = Department.objects.create(name='Pin B')
+        cls.user_a = User.objects.create_user(
+            'pin_a', 'pina@e.com', 'pw', department=cls.dept_a, is_hod=True,
+        )
+
+    def test_asset_edit_cannot_move_it_to_another_department(self):
+        asset = Asset.objects.create(
+            asset_id='PIN-1', name='Pin me', owner_dept=self.dept_a,
+            description='A description long enough to pass validation.',
+        )
+        payload = {
+            'name': asset.name,
+            'hostname': asset.hostname or '',
+            'ip_address': asset.ip_address or '',
+            'fqdn': asset.fqdn or '',
+            'asset_type': asset.asset_type,
+            'hosting': asset.hosting,
+            'cloud_provider': asset.cloud_provider or '',
+            'cloud_region': asset.cloud_region or '',
+            'location': asset.location or '',
+            'os_family': asset.os_family or '',
+            'os_version': asset.os_version or '',
+            'vendor': asset.vendor_id or '',
+            'classification': asset.classification,
+            'environment': asset.environment,
+            'owner_dept': self.dept_b.pk,          # the tampered value
+            'owner_user': asset.owner_user_id or '',
+            'is_active': 'on',
+            'criticality': asset.criticality,
+            'confidentiality': asset.confidentiality,
+            'integrity': asset.integrity,
+            'availability': asset.availability,
+            'value': str(asset.value),
+            'category': asset.category_id or '',
+            'description': asset.description or '',
+        }
+        self.client.force_login(self.user_a)
+        response = self.client.post(f'/assets/{asset.pk}/edit/', payload)
+        self.assertEqual(response.status_code, 302)  # saved successfully
+        asset.refresh_from_db()
+        self.assertEqual(asset.owner_dept_id, self.dept_a.pk)
+
+
+# ==================================================================
+# CASCADE: deleting a control must raise the residual again
+# ==================================================================
+
+class ControlDeleteRecascadeTests(TestCase):
+    """Deleting a control re-scores every risk it mitigated.
+
+    Regression: the delete removed the ``Risk.controls`` through-rows without
+    firing ``m2m_changed``, leaving the residual permanently, silently low.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Ctrl Del Dept')
+        cls.cat = RiskCategory.objects.create(name='Ctrl Del Cat')
+
+    def test_deleting_a_control_raises_the_residual(self):
+        risk = Risk.objects.create(
+            title='Mitigated risk', category=self.cat, owner_dept=self.dept,
+            likelihood=4, impact=4, status='treating',
+        )
+        ctl = Control.objects.create(
+            code='CD-1', name='Preventive control', owner_dept=self.dept,
+            status='implemented', lifecycle_status='operational',
+            effectiveness_rating='effective', control_type='preventive',
+        )
+        risk.controls.add(ctl)
+        risk.refresh_from_db()
+        mitigated = risk.residual_score
+        self.assertLess(mitigated, risk.inherent_score)
+
+        ctl.delete()
+        risk.refresh_from_db()
+        self.assertEqual(risk.residual_score, risk.inherent_score)
+        self.assertGreater(risk.residual_score, mitigated)
+
+
+# ==================================================================
+# CASCADE: treatment status drives controls and risk status
+# ==================================================================
+
+class TreatmentLifecycleCascadeTests(TestCase):
+    """Treatment signals keep the risk's controls and status honest."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Treat Life Dept')
+        cls.cat = RiskCategory.objects.create(name='Treat Life Cat')
+
+    def _risk(self, **kw):
+        defaults = dict(
+            title='Treat-life risk', category=self.cat, owner_dept=self.dept,
+            likelihood=3, impact=3, status='treating',
+        )
+        defaults.update(kw)
+        return Risk.objects.create(**defaults)
+
+    def _control(self, code):
+        return Control.objects.create(
+            code=code, name='Detective', owner_dept=self.dept,
+            status='implemented', lifecycle_status='operational',
+            effectiveness_rating='effective', control_type='detective',
+        )
+
+    def test_cancelling_a_treatment_releases_its_controls(self):
+        risk = self._risk()
+        treatment = RiskTreatment.objects.create(risk=risk, action_plan='Plan')
+        ctl = self._control('TL-1')
+        treatment.controls.add(ctl)           # signal syncs the risk
+        self.assertIn(ctl, risk.controls.all())
+
+        treatment.status = 'cancelled'
+        treatment.save()                      # no view call — signal only
+        self.assertNotIn(ctl, risk.controls.all())
+
+    def test_shell_status_change_syncs_without_the_view(self):
+        risk = self._risk()
+        treatment = RiskTreatment.objects.create(risk=risk, action_plan='Plan')
+        treatment.status = 'completed'
+        treatment.save()                      # out-of-band edit
+        risk.refresh_from_db()
+        self.assertEqual(risk.status, 'closed')
+
+    def test_risk_stays_open_while_another_treatment_is_active(self):
+        risk = self._risk()
+        first = RiskTreatment.objects.create(risk=risk, action_plan='A')
+        second = RiskTreatment.objects.create(risk=risk, action_plan='B')
+
+        first.status = 'completed'
+        first.save()
+        risk.refresh_from_db()
+        self.assertNotEqual(risk.status, 'closed')
+
+        second.status = 'completed'
+        second.save()
+        risk.refresh_from_db()
+        self.assertEqual(risk.status, 'closed')
+
+    def test_deleting_a_treatment_releases_its_controls(self):
+        risk = self._risk()
+        treatment = RiskTreatment.objects.create(risk=risk, action_plan='Plan')
+        ctl = self._control('TL-2')
+        treatment.controls.add(ctl)
+        self.assertIn(ctl, risk.controls.all())
+
+        treatment.delete()
+        self.assertNotIn(ctl, risk.controls.all())
+
+    def test_reopening_a_treatment_reopens_the_risk(self):
+        risk = self._risk()
+        treatment = RiskTreatment.objects.create(risk=risk, action_plan='Plan')
+        treatment.status = 'completed'
+        treatment.save()
+        risk.refresh_from_db()
+        self.assertEqual(risk.status, 'closed')
+
+        treatment.status = 'in_progress'
+        treatment.save()
+        risk.refresh_from_db()
+        self.assertNotEqual(risk.status, 'closed')
+
+
+# ==================================================================
+# CASCADE: vulnerability enrichment respects the finding's lifecycle
+# ==================================================================
+
+class VulnerabilityCascadeStatusTests(TestCase):
+    """Enrichment must not resurrect a risk for a remediated finding."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from vulnerabilities.models import Vulnerability
+
+        cls.dept = Department.objects.create(name='Vuln Cascade Dept')
+        cls.asset = Asset.objects.create(
+            asset_id='VC-1', name='critical host', owner_dept=cls.dept,
+            criticality=3,
+        )
+        cls.vuln = Vulnerability.objects.create(
+            cve_id='CVE-2099-7777', title='Cascading CVE',
+            cvss_score='9.8', cvss_severity='critical', kev_status=True,
+        )
+
+    def _finding(self, **kw):
+        from vulnerabilities.models import Finding
+
+        defaults = dict(
+            vulnerability=self.vuln, asset=self.asset, owner_dept=self.dept,
+            discovered_date=timezone.localdate(),
+        )
+        defaults.update(kw)
+        return Finding.objects.create(**defaults)
+
+    def test_a_severe_finding_raises_a_risk(self):
+        finding = self._finding()
+        self.assertTrue(
+            Risk.objects.filter(source_finding=finding).exists()
+        )
+
+    def test_enrichment_does_not_reopen_a_remediated_finding(self):
+        finding = self._finding()
+        risk = Risk.objects.get(source_finding=finding)
+
+        finding.status = 'remediated'
+        finding.save()
+        risk.refresh_from_db()
+        self.assertEqual(risk.status, 'closed')
+
+        # Later CVE enrichment re-saves the vulnerability, which cascades to
+        # every finding — it must leave the closed risk alone.
+        self.vuln.title = 'Cascading CVE (updated)'
+        self.vuln.save()
+
+        self.assertEqual(Risk.objects.filter(source_finding=finding).count(), 1)
+        risk.refresh_from_db()
+        self.assertEqual(risk.status, 'closed')
+
+    def test_a_low_severity_finding_never_cascades(self):
+        from vulnerabilities.models import Finding, Vulnerability
+
+        low = Vulnerability.objects.create(
+            cve_id='CVE-2099-8888', title='Low CVE',
+            cvss_score='3.1', cvss_severity='low', kev_status=False,
+        )
+        finding = Finding.objects.create(
+            vulnerability=low, asset=self.asset, owner_dept=self.dept,
+            discovered_date=timezone.localdate(),
+        )
+        self.assertFalse(Risk.objects.filter(source_finding=finding).exists())

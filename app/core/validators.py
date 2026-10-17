@@ -11,7 +11,7 @@ from django.core.exceptions import ValidationError
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 
 ALLOWED_EVIDENCE_EXTENSIONS = {
-    '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg',
+    '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp',
     '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt', '.md', '.json',
     '.zip', '.log', '.eml', '.msg', '.pcap', '.xml', '.yaml', '.yml',
 }

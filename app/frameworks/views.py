@@ -16,7 +16,14 @@ from core.correlation import (
     get_control_coverage_by_control_for_framework,
     get_framework_coverage,
 )
-from core.mixins import DepartmentCreateMixin, DepartmentScopedMixin, SuperuserOnlyMixin, user_can_access
+from core.mixins import (
+    ChangeScopedMixin,
+    DepartmentCreateMixin,
+    DepartmentPinnedMixin,
+    DepartmentScopedMixin,
+    SuperuserOnlyMixin,
+    user_can_change,
+)
 
 from .forms import (
     ComplianceAssessmentForm,
@@ -266,7 +273,7 @@ class ComplianceAssessmentCreateView(DepartmentCreateMixin, DepartmentScopedMixi
         return reverse_lazy('frameworks:assessment_detail', kwargs={'pk': self.object.pk})
 
 
-class ComplianceAssessmentUpdateView(DepartmentScopedMixin, UpdateView):
+class ComplianceAssessmentUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = ComplianceAssessment
     form_class = ComplianceAssessmentForm
     template_name = 'frameworks/assessment_form.html'
@@ -276,7 +283,7 @@ class ComplianceAssessmentUpdateView(DepartmentScopedMixin, UpdateView):
         return reverse_lazy('frameworks:assessment_detail', kwargs={'pk': self.object.pk})
 
 
-class ComplianceAssessmentItemUpdateView(DepartmentScopedMixin, UpdateView):
+class ComplianceAssessmentItemUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = ComplianceAssessmentItem
     form_class = ComplianceAssessmentItemForm
     template_name = 'frameworks/assessment_item_form.html'
@@ -299,7 +306,7 @@ def assessment_item_quick_status(request, pk):
     item = get_object_or_404(
         ComplianceAssessmentItem.objects.select_related('assessment'), pk=pk
     )
-    if not user_can_access(request.user, item.assessment):
+    if not user_can_change(request.user, item.assessment):
         raise PermissionDenied
     new_status = request.POST.get('status')
     valid = [s[0] for s in ComplianceAssessmentItem.STATUS_CHOICES]

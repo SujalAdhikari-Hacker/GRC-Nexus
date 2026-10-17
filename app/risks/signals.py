@@ -1,9 +1,9 @@
-from django.db.models.signals import m2m_changed, post_delete, post_save
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_delete
 from django.dispatch import receiver
 
 from assets.models import Asset
 
-from .models import Risk, RiskAppetite
+from .models import Risk, RiskAppetite, RiskTreatment
 
 
 # ==================================================================
@@ -91,3 +91,57 @@ def risk_assets_changed(sender, instance, action, pk_set, **kwargs):
         from .services import resolve_baseline_risk_for_asset
         for asset in Asset.objects.filter(pk__in=pk_set):
             resolve_baseline_risk_for_asset(asset, except_risk=instance)
+
+
+# ==================================================================
+# TREATMENT → risk (controls promoted, status synced)
+# ==================================================================
+
+@receiver(post_save, sender=RiskTreatment)
+def treatment_saved_sync_risk(sender, instance, **kwargs):
+    """CASCADE #6: a saved treatment re-syncs the parent risk.
+
+    Catches status changes made outside the treatment form (admin, shell,
+    bulk update). Control changes are additionally caught by the m2m receiver
+    below, because ``post_save`` fires *before* a ModelForm's m2m data is
+    written.
+    """
+    from .services import sync_risk_from_treatment
+    sync_risk_from_treatment(instance)
+
+
+@receiver(m2m_changed, sender=RiskTreatment.controls.through)
+def treatment_controls_changed(sender, instance, action, **kwargs):
+    """The treatment's control set changed → re-sync the parent risk."""
+    if action in ('post_add', 'post_remove', 'post_clear'):
+        from .services import sync_risk_from_treatment
+        sync_risk_from_treatment(instance)
+
+
+@receiver(pre_delete, sender=RiskTreatment)
+def cache_treatment_before_delete(sender, instance, **kwargs):
+    instance._grc_risk_pk = instance.risk_id
+    instance._grc_control_pks = list(instance.controls.values_list('pk', flat=True))
+
+
+@receiver(post_delete, sender=RiskTreatment)
+def treatment_deleted_release_controls(sender, instance, **kwargs):
+    """Deleting a treatment releases controls no other treatment still credits."""
+    risk_pk = getattr(instance, '_grc_risk_pk', None)
+    control_pks = getattr(instance, '_grc_control_pks', None) or []
+    if not risk_pk or not control_pks:
+        return
+    from .services import TREATMENT_MITIGATING_STATUSES, recalculate_risk
+
+    risk = Risk.objects.filter(pk=risk_pk).first()
+    if risk is None:
+        return
+    still_credited = set(
+        RiskTreatment.objects.filter(
+            risk=risk, status__in=TREATMENT_MITIGATING_STATUSES
+        ).values_list('controls__pk', flat=True)
+    )
+    release = [pk for pk in control_pks if pk not in still_credited]
+    if release:
+        risk.controls.remove(*release)
+    recalculate_risk(risk)
