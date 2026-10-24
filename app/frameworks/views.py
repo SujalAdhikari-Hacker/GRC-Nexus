@@ -228,7 +228,7 @@ class ComplianceAssessmentDetailView(DepartmentScopedMixin, DetailView):
         ctx['items'] = items
         ctx['total_items'] = self.object.total_items
         ctx['status_filter'] = status_filter or ''
-        ctx['now_date'] = timezone.now().date()
+        ctx['now_date'] = timezone.localdate()
         return ctx
 
 
@@ -244,7 +244,7 @@ class ComplianceAssessmentCreateView(DepartmentCreateMixin, DepartmentScopedMixi
         if user.department_id:
             initial['owner_dept'] = user.department
         initial['assessor'] = user
-        initial['assessment_date'] = timezone.now().date()
+        initial['assessment_date'] = timezone.localdate()
         return initial
 
     def form_valid(self, form):

@@ -7,12 +7,15 @@ returns True, the notification is marked as cleared.
 Evaluated lazily: on every count/list render, so we don't need to
 touch every save signal in the whole app.
 """
+import logging
 from datetime import timedelta
 
 from django.apps import apps
 from django.utils import timezone
 
 from .notifications import Notification
+
+logger = logging.getLogger(__name__)
 
 
 def _risk_assessed(obj):
@@ -26,7 +29,7 @@ def _policy_not_draft(obj):
 def _policy_review_ok(obj):
     if not obj.next_review_date:
         return True
-    return obj.next_review_date > (timezone.now().date() + timedelta(days=30))
+    return obj.next_review_date > (timezone.localdate() + timedelta(days=30))
 
 
 def _control_tested(obj):
@@ -38,7 +41,7 @@ def _control_mapped(obj):
 
 
 def _kri_has_recent_reading(obj):
-    cutoff = timezone.now().date() - timedelta(days=30)
+    cutoff = timezone.localdate() - timedelta(days=30)
     return obj.readings.filter(reading_date__gte=cutoff).exists()
 
 
@@ -61,6 +64,16 @@ def _vendor_contract_ok(obj):
     return not (obj.is_contract_expired or obj.is_renewal_due_soon)
 
 
+def _exception_no_longer_awaiting(obj):
+    """Clear once the exception stopped waiting on its named approver.
+
+    The notification is addressed to whoever was *named* as approver, so it
+    clears as soon as the exception is no longer pending their decision —
+    approved, rejected, revoked or expired all count.
+    """
+    return obj.status != 'pending'
+
+
 CLEAR_RULES = {
     'asset_needs_vendor':      lambda o: o.vendors.exists(),
     'asset_needs_owner':       lambda o: o.owner_user_id is not None,
@@ -78,6 +91,7 @@ CLEAR_RULES = {
     'finding_needs_actions':   lambda o: o.action_items.exists(),
     'action_needs_owner':      lambda o: o.owner_user_id is not None,
     'ticket_unassigned':       _ticket_assigned,
+    'exception_approval_needed': _exception_no_longer_awaiting,
     # Escalations clear as soon as the underlying condition is resolved.
     'risk_escalated':          lambda o: not o.escalated,
     'risk_overdue':            lambda o: not o.is_overdue,
@@ -122,11 +136,15 @@ def refresh_notifications(dept=None, is_super=False):
             app_label, model_name = ref_model.split('.')
             Model = apps.get_model(app_label, model_name)
         except Exception:
+            logger.exception(
+                'notification ref_model %r is not a resolvable model', ref_model
+            )
             loaded[ref_model] = {}
             continue
         try:
             loaded[ref_model] = Model.objects.in_bulk(ids)
         except Exception:
+            logger.exception('could not batch-load %r rows', ref_model)
             loaded[ref_model] = {}
 
     cleared_count = 0
@@ -140,13 +158,20 @@ def refresh_notifications(dept=None, is_super=False):
             continue
         rule = CLEAR_RULES.get(n.kind)
         if rule is None:
+            logger.warning(
+                'notification kind %r has no clear rule — it will never '
+                'auto-clear', n.kind,
+            )
             continue
         try:
             if rule(obj):
                 n.mark_cleared()
                 cleared_count += 1
         except Exception:
-            continue
+            logger.exception(
+                'clear rule for kind %r (ref %s/%s) failed',
+                n.kind, n.ref_model, n.ref_id,
+            )
 
     return cleared_count
 

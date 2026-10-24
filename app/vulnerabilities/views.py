@@ -240,7 +240,7 @@ class LiveCVEFeedView(LoginRequiredMixin, ListView):
         days = self.request.GET.get('days')
         if days:
             try:
-                cutoff = timezone.now().date() - timedelta(days=int(days))
+                cutoff = timezone.localdate() - timedelta(days=int(days))
                 qs = qs.filter(published_date__gte=cutoff)
             except ValueError:
                 pass
@@ -255,7 +255,7 @@ class LiveCVEFeedView(LoginRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
 
         base = Vulnerability.objects.filter(source='nvd').exclude(cve_id__isnull=True)
-        recent = base.filter(published_date__gte=timezone.now().date() - timedelta(days=7))
+        recent = base.filter(published_date__gte=timezone.localdate() - timedelta(days=7))
 
         ctx['total_synced'] = base.count()
         ctx['last_7_days'] = recent.count()
@@ -330,7 +330,7 @@ class ManualVulnerabilityCreateView(LoginRequiredMixin, FormView):
 
     def get_initial(self):
         return {
-            'discovered_date': timezone.now().date(),
+            'discovered_date': timezone.localdate(),
             'status': 'new',
             'cvss_severity': 'medium',
             'cvss_score': 5.0,

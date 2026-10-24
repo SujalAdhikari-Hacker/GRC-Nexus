@@ -14,7 +14,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.MIGRATE_HEADING('Seeding vulnerabilities...'))
 
-        today = timezone.now().date()
+        today = timezone.localdate()
 
         # (cve_id, title, cvss, severity, epss, kev, published)
         vulns = [

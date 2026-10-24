@@ -176,8 +176,8 @@ class Command(BaseCommand):
                     'data_sensitivity': sens,
                     'owner_dept': departments[dept_name],
                     'contact_email': f'contact@{vname.lower().replace(" ", "")}.example',
-                    'contract_start': timezone.now().date() - timedelta(days=365),
-                    'contract_renewal_date': timezone.now().date() + timedelta(days=365),
+                    'contract_start': timezone.localdate() - timedelta(days=365),
+                    'contract_renewal_date': timezone.localdate() + timedelta(days=365),
                 }
             )
             if created:
@@ -191,7 +191,7 @@ class Command(BaseCommand):
                 # Create an assessment
                 VendorAssessment.objects.create(
                     vendor=vendor,
-                    assessment_date=timezone.now().date() - timedelta(days=30),
+                    assessment_date=timezone.localdate() - timedelta(days=30),
                     security_score=per_dim,
                     compliance_score=per_dim,
                     financial_score=per_dim,
@@ -237,8 +237,8 @@ class Command(BaseCommand):
                     'status': status,
                     'version': '1.0',
                     'description': f'{title} for the organization.',
-                    'approval_date': timezone.now().date() - timedelta(days=90) if status == 'approved' else None,
-                    'next_review_date': timezone.now().date() + timedelta(days=275) if status == 'approved' else None,
+                    'approval_date': timezone.localdate() - timedelta(days=90) if status == 'approved' else None,
+                    'next_review_date': timezone.localdate() + timedelta(days=275) if status == 'approved' else None,
                 }
             )
             if created:
@@ -348,7 +348,7 @@ class Command(BaseCommand):
                     'impact': imp,
                     'treatment_strategy': strat,
                     'status': status,
-                    'identified_date': timezone.now().date() - timedelta(days=60),
+                    'identified_date': timezone.localdate() - timedelta(days=60),
                 }
             )
             if created:

@@ -15,7 +15,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING('Seeding KRIs...'))
 
         depts = {d.name: d for d in Department.objects.all()}
-        today = timezone.now().date()
+        today = timezone.localdate()
 
         # (name, category, type, unit, direction, amber, red, frequency, trend, dept, current)
         kri_data = [

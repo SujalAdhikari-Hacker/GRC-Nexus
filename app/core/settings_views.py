@@ -28,7 +28,7 @@ def settings_view(request):
         'form': form,
         'pref': pref,
         'timezone_now': timezone.now(),
-        'today_preview': timezone.now().date(),
+        'today_preview': timezone.localdate(),
         'user_timezone': timezone.get_current_timezone(),
         'server_timezone': timezone.get_default_timezone(),
     }

@@ -623,7 +623,7 @@ def exception_approve(request, pk):
     exc.status = 'active'
     if not exc.approver_id:
         exc.approver = request.user
-    exc.approval_date = timezone.now().date()
+    exc.approval_date = timezone.localdate()
     exc.save()
 
     # Clear the pending-approval notification now that it is actioned.

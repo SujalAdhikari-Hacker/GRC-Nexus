@@ -24,17 +24,12 @@ from django.dispatch import receiver
 
 logger = logging.getLogger(__name__)
 
-# One scan per process per window is plenty — the dashboard also refreshes
-# tickets, and a management command exists for scheduled runs.
-SCAN_THROTTLE_SECONDS = 60
-_THROTTLE_KEY = 'grc:login-alert-scan'
-
 
 def run_login_alert_scan():
     """Run one alert scan, always releasing this thread's DB connection."""
     try:
-        from .alerts import scan_and_create_tickets
-        scan_and_create_tickets(verbose=False)
+        from .alerts import scan_and_create_tickets_throttled
+        scan_and_create_tickets_throttled()
     except Exception:
         logger.exception('Login-triggered ticket alert scan failed')
     finally:
@@ -45,7 +40,10 @@ def run_login_alert_scan():
 def trigger_scan_on_login(sender, request, user, **kwargs):
     if not getattr(settings, 'LOGIN_ALERT_SCAN', True):
         return
-    if cache.get(_THROTTLE_KEY) is not None:
+    # Shared with the dashboard's scan so one full walk per window, not two.
+    from .alerts import SCAN_THROTTLE_KEY, SCAN_THROTTLE_SECONDS
+
+    if cache.get(SCAN_THROTTLE_KEY) is not None:
         return
-    cache.set(_THROTTLE_KEY, 1, SCAN_THROTTLE_SECONDS)
+    cache.set(SCAN_THROTTLE_KEY, 1, SCAN_THROTTLE_SECONDS)
     threading.Thread(target=run_login_alert_scan, daemon=True).start()

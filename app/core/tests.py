@@ -2082,3 +2082,231 @@ class VulnerabilityCascadeStatusTests(TestCase):
             discovered_date=timezone.localdate(),
         )
         self.assertFalse(Risk.objects.filter(source_finding=finding).exists())
+
+
+# ==================================================================
+# DATE LOGIC: business dates use the configured local timezone
+# ==================================================================
+
+class LocalDateConsistencyTests(TestCase):
+    """Business "today" is the logged-in team's timezone, not the server's UTC.
+
+    Regression: overdue / expiry maths mixed ``timezone.now().date()`` (UTC)
+    with ``timezone.localdate()``. Under ``USE_TZ`` they differ for one part of
+    every day whenever ``TIME_ZONE`` is not UTC, so a risk would open as
+    overdue for a few hours before anyone could see it — and the escalations
+    module, which already used ``localdate()``, disagreed with the models it
+    read from.
+    """
+
+    def _modules_with_date_logic(self):
+        import assets.models
+        import controls.models
+        import kris.models
+        import risks.models
+        import tickets.models
+        import vendors.models
+        import vulnerabilities.models
+
+        return (
+            assets.models, controls.models, kris.models, risks.models,
+            tickets.models, vendors.models, vulnerabilities.models,
+        )
+
+    def test_date_comparisons_use_the_local_today(self):
+        """The overdue/expiry properties never compute "today" in UTC."""
+        import inspect
+
+        offenders = []
+        for module in self._modules_with_date_logic():
+            targets = [
+                (obj.__name__, func)
+                for obj in vars(module).values()
+                if inspect.isclass(obj) and obj.__module__ == module.__name__
+                for func in vars(obj).values()
+                if inspect.isfunction(func)
+            ]
+            for class_name, func in targets:
+                try:
+                    source = inspect.getsource(func)
+                except (OSError, TypeError):
+                    continue
+                if 'timezone.now().date()' in source:
+                    offenders.append(f'{module.__name__}.{class_name}')
+        self.assertEqual([], offenders)
+
+    def test_vendor_renewal_compares_against_the_local_date(self):
+        """Writer and comparator agree under a non-UTC timezone.
+
+        The source-scan test above is the hard guarantee; this confirms the
+        behaviour end to end with a timezone where UTC and local diverge for
+        most of the day.
+        """
+        from django.test import override_settings
+        from vendors.models import Vendor
+
+        with override_settings(TIME_ZONE='Asia/Kathmandu'):
+            dept = Department.objects.create(name='Tz Dept')
+            Vendor.objects.create(
+                vendor_id='TZ-1', name='Tz vendor', owner_dept=dept,
+                contract_renewal_date=timezone.localdate(),
+            )
+            vendor = Vendor.objects.get(vendor_id='TZ-1')
+            self.assertEqual(vendor.days_to_renewal, 0)
+
+    def test_risk_overdue_and_exception_expiry_use_the_local_date(self):
+        from django.test import override_settings
+
+        with override_settings(TIME_ZONE='Asia/Kathmandu'):
+            dept = Department.objects.create(name='Tz Failure Dept')
+            cat = RiskCategory.objects.create(name='Tz Failure Cat')
+            user = User.objects.create_user(
+                'tz_user', 'tz@e.com', 'pw', department=dept,
+            )
+            risk = Risk.objects.create(
+                title='Tz risk', category=cat, owner_dept=dept,
+                likelihood=3, impact=3,
+                target_close_date=timezone.localdate() - _dt.timedelta(days=1),
+            )
+            self.assertTrue(risk.is_overdue)
+            self.assertEqual(risk.days_overdue, 1)
+
+            exc = RiskException.objects.create(
+                risk=risk, title='Accept it',
+                justification='Mitigation is not feasible this quarter.',
+                requested_by=user,
+                expiry_date=timezone.localdate() + _dt.timedelta(days=5),
+            )
+            self.assertEqual(exc.days_until_expiry, 5)
+
+
+# ==================================================================
+# NOTIFICATIONS: every kind resolves and every kind clears
+# ==================================================================
+
+class NotificationClearRuleTests(TestCase):
+    """A notification kind without a clear rule lingers for ever.
+
+    Regression: ``exception_approval_needed`` had no entry in ``CLEAR_RULES``,
+    so the named approver's bell never emptied no matter what they did.
+    """
+
+    def test_every_notification_kind_has_a_clear_rule(self):
+        from core.notifications import Notification
+        from core.notification_registry import CLEAR_RULES
+
+        missing = [
+            kind for kind, _label in Notification.KIND_CHOICES
+            if kind not in CLEAR_RULES
+        ]
+        self.assertEqual([], missing)
+
+    def test_ruleless_kind_is_detected_by_the_guard(self):
+        """The guard above would actually catch a new rule-less kind."""
+        from core.notifications import Notification
+        from core.notification_registry import CLEAR_RULES
+
+        self.assertIn('exception_approval_needed', CLEAR_RULES)
+        self.assertTrue(Notification.KIND_CHOICES)
+
+    def test_exception_approval_clears_when_no_longer_pending(self):
+        from core.notification_registry import refresh_notifications
+        from core.notifications import Notification
+
+        dept = Department.objects.create(name='Approval Dept')
+        cat = RiskCategory.objects.create(name='Approval Cat')
+        user = User.objects.create_user('appr', 'appr@e.com', 'pw', department=dept)
+        risk = Risk.objects.create(
+            title='Approval risk', category=cat, owner_dept=dept,
+            likelihood=2, impact=2,
+        )
+        exc = RiskException.objects.create(
+            risk=risk, title='Accept it',
+            justification='Mitigation is not feasible this quarter.',
+            requested_by=user, approver=user,
+            expiry_date=timezone.localdate() + _dt.timedelta(days=30),
+        )
+        self.assertEqual(exc.status, 'pending')
+
+        note = Notification.objects.create(
+            kind='exception_approval_needed',
+            title='Approval required',
+            action_url=f'/risks/exceptions/{exc.pk}/',
+            owner_dept=dept, recipient=user,
+            ref_model='risks.riskexception', ref_id=exc.pk,
+        )
+
+        refresh_notifications(dept=dept)
+        note.refresh_from_db()
+        self.assertFalse(note.is_cleared)
+
+        exc.status = 'approved'
+        exc.save()
+        refresh_notifications(dept=dept)
+        note.refresh_from_db()
+        self.assertTrue(note.is_cleared)
+
+
+# ==================================================================
+# LINKS: no stored scriptable URLs in evidence locations
+# ==================================================================
+
+class ExternalUrlSafetyTests(TestCase):
+    """``EvidenceItem.url_location`` may never link to ``javascript:``."""
+
+    def test_scriptable_schemes_are_rejected(self):
+        from django.core.exceptions import ValidationError
+        from core.validators import is_safe_external_url, validate_external_url
+
+        for bad in (
+            'javascript:alert(1)', 'JaVaScRiPt:alert(1)',
+            'data:text/html,<script>1</script>', 'vbscript:msgbox(1)',
+        ):
+            with self.subTest(bad=bad):
+                self.assertFalse(is_safe_external_url(bad))
+                with self.assertRaises(ValidationError):
+                    validate_external_url(bad)
+
+    def test_normals_urls_and_paths_are_accepted(self):
+        from core.validators import is_safe_external_url
+
+        for good in (
+            'https://example.com/report', 'http://intranet.local/doc.pdf',
+            '/media/audit_evidence/x.pdf', 'C:\\evidence\\x.pdf',
+            '\\\\server\\share\\log.txt',
+        ):
+            with self.subTest(good=good):
+                self.assertTrue(is_safe_external_url(good))
+
+    def test_existing_unsafe_row_is_never_rendered_as_a_link(self):
+        from audits.models import EvidenceItem
+
+        dept = Department.objects.create(name='Unsafe URL Dept')
+        item = EvidenceItem.objects.create(
+            title='Unsafe evidence', owner_dept=dept,
+        )
+        # Rows written before the validator existed are not re-validated on
+        # read — Update must not silently rewrite stored data.
+        EvidenceItem.objects.filter(pk=item.pk).update(
+            url_location='javascript:alert(document.cookie)'
+        )
+        item.refresh_from_db()
+        self.assertEqual(item.safe_url_location, '')
+        self.assertTrue(item.url_location)  # raw value is untouched, just not linked
+
+    def test_form_rejects_a_javascript_url(self):
+        from audits.forms import EvidenceItemForm
+
+        dept = Department.objects.create(name='URL Form Dept')
+        form = EvidenceItemForm(data={
+            'title': 'Bad link', 'evidence_type': 'document',
+            'owner_dept': dept.pk, 'url_location': 'javascript:alert(1)',
+        })
+        self.assertFalse(form.is_valid())
+        rendered = str(form['url_location'].errors)
+        self.assertTrue(rendered)
+        self.assertIn('not allowed', rendered)
+        # ...and the safe-scheme validator is what rejected it.
+        self.assertEqual(['unsafe_url_scheme'], [
+            each.code for each in form.errors['url_location'].data
+        ])

@@ -93,7 +93,7 @@ class VendorDetailView(DepartmentScopedMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_vendor_context(self.object))
-        ctx['now_date'] = timezone.now().date()
+        ctx['now_date'] = timezone.localdate()
         return ctx
 
 
@@ -182,8 +182,8 @@ class VendorAssessmentListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ctx['total_count'] = base.count()
         ctx['high_risk_count'] = base.filter(overall_risk_rating__in=['high', 'critical']).count()
         ctx['pending_count'] = base.filter(status='pending').count()
-        ctx['now_date'] = timezone.now().date()
-        ctx['overdue_count'] = base.filter(next_assessment_date__lt=timezone.now().date()).count()
+        ctx['now_date'] = timezone.localdate()
+        ctx['overdue_count'] = base.filter(next_assessment_date__lt=timezone.localdate()).count()
         return ctx
 
 
@@ -205,7 +205,7 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        initial['assessment_date'] = timezone.now().date()
+        initial['assessment_date'] = timezone.localdate()
         if self.vendor:
             initial['vendor'] = self.vendor
             initial['vendor_tier'] = self.vendor.tier
@@ -277,5 +277,5 @@ class VendorAssessmentDetailView(DepartmentScopedMixin, DetailView):
             {'label': 'Reputation',   'value': a.reputation_score,   'max': 25},
             {'label': 'Operational',  'value': a.operational_score,  'max': 25},
         ]
-        ctx['now_date'] = timezone.now().date()
+        ctx['now_date'] = timezone.localdate()
         return ctx

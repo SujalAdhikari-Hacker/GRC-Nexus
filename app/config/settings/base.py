@@ -139,7 +139,11 @@ AUTHENTICATION_BACKENDS = (
 # i18n / tz
 # --------------------------------------------------------------------------
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+# The timezone the *business* runs in. All date-based business logic uses
+# ``timezone.localdate()``, so this switches when a risk becomes overdue, when
+# a control's next test is due, and the date stamped on a closure — set it to
+# the team's local zone (e.g. ``Asia/Kathmandu``) rather than leaving UTC.
+TIME_ZONE = config('TIME_ZONE', default='UTC')
 USE_I18N = True
 USE_TZ = True
 

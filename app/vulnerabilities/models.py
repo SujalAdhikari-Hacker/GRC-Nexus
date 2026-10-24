@@ -200,7 +200,7 @@ class Finding(models.Model):
 
         # Auto-set dates when status transitions
         from django.utils import timezone
-        today = timezone.now().date()
+        today = timezone.localdate()
         if self.status == 'remediated' and not self.remediated_date:
             self.remediated_date = today
         if self.status == 'remediated' and not self.verified_date:
@@ -216,7 +216,7 @@ class Finding(models.Model):
         if not self.sla_due_date:
             return False
         from django.utils import timezone
-        return self.sla_due_date < timezone.now().date()
+        return self.sla_due_date < timezone.localdate()
 
     @property
     def is_due_soon(self):
@@ -225,7 +225,7 @@ class Finding(models.Model):
         if not self.sla_due_date:
             return False
         from django.utils import timezone
-        days_left = (self.sla_due_date - timezone.now().date()).days
+        days_left = (self.sla_due_date - timezone.localdate()).days
         return 0 <= days_left <= 3
 
     @property
@@ -233,7 +233,7 @@ class Finding(models.Model):
         if not self.sla_due_date:
             return None
         from django.utils import timezone
-        return (self.sla_due_date - timezone.now().date()).days
+        return (self.sla_due_date - timezone.localdate()).days
 
     @property
     def status_color(self):

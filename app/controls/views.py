@@ -329,6 +329,25 @@ class ControlLifecycleView(DepartmentScopedMixin, TemplateView):
         return ctx
 
 
+def _redirect_back(request, fallback='controls:list'):
+    """Return to the referring page, but never to an off-site URL.
+
+    An unvalidated ``HTTP_REFERER`` is an open redirect: an attacker can craft
+    a link carrying their own ``Referer`` and bounce the user to their site
+    after a legitimate action. Same rule as ``core.object_views._redirect_back``.
+    """
+    from django.utils.http import url_has_allowed_host_and_scheme
+
+    candidate = request.META.get('HTTP_REFERER')
+    if candidate and url_has_allowed_host_and_scheme(
+        candidate,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(candidate)
+    return redirect(fallback)
+
+
 @login_required
 @require_POST
 def advance_lifecycle_view(request, pk):
@@ -342,7 +361,7 @@ def advance_lifecycle_view(request, pk):
         messages.success(request, f'{control.code} advanced to "{control.get_lifecycle_status_display()}".')
     else:
         messages.info(request, f'{control.code} is already at the final stage.')
-    return redirect(request.META.get('HTTP_REFERER') or 'controls:list')
+    return _redirect_back(request)
 
 
 @login_required
@@ -358,7 +377,7 @@ def regress_lifecycle_view(request, pk):
         messages.warning(request, f'{control.code} moved back to "{control.get_lifecycle_status_display()}".')
     else:
         messages.info(request, f'{control.code} is already at the first stage.')
-    return redirect(request.META.get('HTTP_REFERER') or 'controls:list')
+    return _redirect_back(request)
 
 
 @login_required
@@ -372,7 +391,7 @@ def set_lifecycle_view(request, pk):
         control.updated_by = request.user
         control.save()
         messages.success(request, f'{control.code} set to "{control.get_lifecycle_status_display()}".')
-    return redirect(request.META.get('HTTP_REFERER') or 'controls:list')
+    return _redirect_back(request)
 
 
 class ControlEffectivenessView(DepartmentScopedMixin, TemplateView):

@@ -306,7 +306,7 @@ class Risk(models.Model):
         # Keep closed_date consistent with status.
         if self.status == 'closed':
             if not self.closed_date:
-                self.closed_date = timezone.now().date()
+                self.closed_date = timezone.localdate()
             if self.approved_by_id and not self.approved_at:
                 self.approved_at = timezone.now()
         else:
@@ -359,19 +359,19 @@ class Risk(models.Model):
         """A non-closed risk whose target close date has passed."""
         if self.status == 'closed' or not self.target_close_date:
             return False
-        return self.target_close_date < timezone.now().date()
+        return self.target_close_date < timezone.localdate()
 
     @property
     def days_overdue(self):
         if not self.is_overdue:
             return 0
-        return (timezone.now().date() - self.target_close_date).days
+        return (timezone.localdate() - self.target_close_date).days
 
     @property
     def review_due(self):
         if not self.next_review_date:
             return False
-        return self.next_review_date <= timezone.now().date()
+        return self.next_review_date <= timezone.localdate()
 
     @property
     def risk_statement(self):
@@ -536,7 +536,7 @@ class RiskException(models.Model):
             self.exception_id = f'EXC-{next_num:04d}'
 
         from django.utils import timezone
-        today = timezone.now().date()
+        today = timezone.localdate()
         if self.status == 'active' and self.expiry_date and self.expiry_date < today:
             self.status = 'expired'
 
@@ -558,7 +558,7 @@ class RiskException(models.Model):
         from django.utils import timezone
         if not self.expiry_date:
             return None
-        return (self.expiry_date - timezone.now().date()).days
+        return (self.expiry_date - timezone.localdate()).days
 
     @property
     def is_expired(self):

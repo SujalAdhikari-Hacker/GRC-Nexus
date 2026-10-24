@@ -90,7 +90,7 @@ class Command(BaseCommand):
     # SEED
     # ------------------------------------------------------------------
     def _seed(self):
-        today = timezone.now().date()
+        today = timezone.localdate()
         now = timezone.now()
 
         # ---- Reference data (reuse existing) ----

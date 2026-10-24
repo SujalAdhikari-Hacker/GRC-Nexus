@@ -39,7 +39,7 @@ def pending_assets(dept=None, is_super=False):
 
 def pending_vendors(dept=None, is_super=False):
     from vendors.models import Vendor, VendorAssessment
-    twelve_months_ago = timezone.now().date() - timedelta(days=365)
+    twelve_months_ago = timezone.localdate() - timedelta(days=365)
     recent_ids = VendorAssessment.objects.filter(
         assessment_date__gte=twelve_months_ago
     ).values_list('vendor_id', flat=True)
@@ -53,7 +53,7 @@ def pending_vendors(dept=None, is_super=False):
 
 def pending_policies(dept=None, is_super=False):
     from policies.models import Policy
-    today = timezone.now().date()
+    today = timezone.localdate()
     threshold = today + timedelta(days=30)
     qs = _scoped(
         Policy.objects.filter(
@@ -95,7 +95,7 @@ def pending_risks(dept=None, is_super=False):
 
 def pending_kris(dept=None, is_super=False):
     from kris.models import KRI, KRIReading
-    thirty_days_ago = timezone.now().date() - timedelta(days=30)
+    thirty_days_ago = timezone.localdate() - timedelta(days=30)
     recent_ids = KRIReading.objects.filter(
         reading_date__gte=thirty_days_ago
     ).values_list('kri_id', flat=True)

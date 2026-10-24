@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from simple_history.models import HistoricalRecords
 from core.models import Department
+from core.validators import is_safe_external_url, validate_external_url
 
 
 class Audit(models.Model):
@@ -107,7 +108,8 @@ class EvidenceItem(models.Model):
 
     url_location = models.CharField(
         max_length=500, blank=True,
-        help_text='External URL or file path if not uploaded'
+        validators=[validate_external_url],
+        help_text='External URL or file path if not uploaded (http/https only)'
     )
     attachment = models.FileField(
         upload_to='audit_evidence/', null=True, blank=True
@@ -140,6 +142,19 @@ class EvidenceItem(models.Model):
     @property
     def score(self):
         return getattr(self, 'scoring', None)
+
+    @property
+    def safe_url_location(self):
+        """``url_location`` only when it is safe to render as a link target.
+
+        Rows written before :func:`validate_external_url` existed are not
+        re-validated (Django does not re-clean stored data), so the template
+        asks for this filtered value instead of the raw field.
+        """
+        value = (self.url_location or '').strip()
+        if is_safe_external_url(value):
+            return value
+        return ''
 
 
 class EvidenceScore(models.Model):
@@ -368,7 +383,7 @@ class AuditFinding(models.Model):
         from django.utils import timezone
         if not self.due_date:
             return None
-        return (self.due_date - timezone.now().date()).days
+        return (self.due_date - timezone.localdate()).days
 
     @property
     def is_overdue(self):
@@ -399,7 +414,7 @@ class AuditFinding(models.Model):
             )
         if self.status == 'closed' and not self.closed_date:
             from django.utils import timezone
-            self.closed_date = timezone.now().date()
+            self.closed_date = timezone.localdate()
         super().save(*args, **kwargs)
 
 
@@ -498,11 +513,11 @@ class ActionItem(models.Model):
             self.progress_percent = 100
             if not self.completed_date:
                 from django.utils import timezone
-                self.completed_date = timezone.now().date()
+                self.completed_date = timezone.localdate()
         elif self.status == 'cancelled':
             if not self.completed_date:
                 from django.utils import timezone
-                self.completed_date = timezone.now().date()
+                self.completed_date = timezone.localdate()
 
         # Clamp progress
         if self.progress_percent < 0:
@@ -545,7 +560,7 @@ class ActionItem(models.Model):
         from django.utils import timezone
         if not self.due_date:
             return None
-        return (self.due_date - timezone.now().date()).days
+        return (self.due_date - timezone.localdate()).days
 
     @property
     def is_overdue(self):

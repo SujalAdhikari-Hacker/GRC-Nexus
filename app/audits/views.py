@@ -119,7 +119,7 @@ class AuditCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
         initial = super().get_initial()
         if self.request.user.department_id:
             initial['owner_dept'] = self.request.user.department
-        initial['start_date'] = timezone.now().date()
+        initial['start_date'] = timezone.localdate()
         return initial
 
 
@@ -427,14 +427,14 @@ class FindingListView(BulkActionsMixin, SavedViewsMixin, DepartmentScopedMixin, 
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_severity'] = self.request.GET.get('severity', '')
         ctx['selected_status'] = self.request.GET.get('status', '')
-        ctx['now_date'] = timezone.now().date()
+        ctx['now_date'] = timezone.localdate()
 
         base = scope_queryset(AuditFinding.objects.all(), self.request.user)
         ctx['total_count'] = base.count()
         ctx['open_count'] = base.filter(status='open').count()
         ctx['critical_count'] = base.filter(severity='critical').count()
         ctx['overdue_count'] = base.filter(
-            due_date__lt=timezone.now().date()
+            due_date__lt=timezone.localdate()
         ).exclude(status__in=['resolved', 'closed', 'accepted']).count()
         return ctx
 
@@ -615,7 +615,7 @@ def action_mark_complete(request, pk):
         raise PermissionDenied
     action.status = 'completed'
     action.progress_percent = 100
-    action.completed_date = timezone.now().date()
+    action.completed_date = timezone.localdate()
     action.save()
     messages.success(request, f'{action.action_id} marked complete.')
     return redirect('audits:action_detail', pk=pk)

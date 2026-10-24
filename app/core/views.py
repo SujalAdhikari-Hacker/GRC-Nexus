@@ -47,9 +47,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         # Refresh ticket alerts. Best-effort: a failure here must never take
         # the dashboard down, but it must be logged rather than swallowed.
+        # Throttled — a full scan on every dashboard load would re-walk the
+        # risk/control/finding set for every page view.
         try:
-            from tickets.alerts import scan_and_create_tickets
-            scan_and_create_tickets(verbose=False)
+            from tickets.alerts import scan_and_create_tickets_throttled
+            scan_and_create_tickets_throttled()
         except Exception:
             logger.exception('Ticket alert scan failed during dashboard render')
 
@@ -104,7 +106,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         # Trends (6 calendar months). This also supplies the "risks added"
         # chart — the two were previously computed with separate loops, which
         # doubled the query cost for identical numbers.
-        today = timezone.now().date()
+        today = timezone.localdate()
         trends = compute_trends(risks, findings, actions, months=6)
         month_labels = trends['trend_labels']
         month_values = trends['risks_created_trend']

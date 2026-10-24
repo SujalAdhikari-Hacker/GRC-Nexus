@@ -208,7 +208,7 @@ class RiskAppetiteForm(forms.ModelForm):
     def clean_review_date(self):
         from django.utils import timezone
         review_date = self.cleaned_data.get('review_date')
-        if review_date and review_date < timezone.now().date():
+        if review_date and review_date < timezone.localdate():
             if not self.instance.pk:
                 raise forms.ValidationError(
                     'Review date must be in the future for a new appetite record.'

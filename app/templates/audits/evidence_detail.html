@@ -43,7 +43,8 @@
         <div class="card mt-3">
             <div class="card-header bg-white"><strong>Location</strong></div>
             <div class="card-body">
-                {% if item.url_location %}<div><a href="{{ item.url_location }}" target="_blank">{{ item.url_location }}</a></div>{% endif %}
+                {% if item.safe_url_location %}<div><a href="{{ item.safe_url_location }}" target="_blank" rel="noopener noreferrer">{{ item.url_location }}</a></div>
+                {% elif item.url_location %}<div><span class="text-muted">{{ item.url_location }}</span> <small class="text-muted">(link withheld — unsafe URL scheme)</small></div>{% endif %}
                 {% if item.attachment %}<div class="mt-2"><a href="{% url 'core:secure_media' path=item.attachment.name %}" target="_blank" class="btn btn-sm btn-outline-dark"><i class="bi bi-paperclip"></i> Download attachment</a></div>{% endif %}
             </div>
         </div>

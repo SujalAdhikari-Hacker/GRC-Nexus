@@ -104,7 +104,7 @@ def build_executive_report(user):
     # ---------- Trend data ----------
     # Cohort averages per real calendar month (see core.dashboard_data for why
     # 30-day arithmetic and cumulative snapshots were wrong).
-    today = timezone.now().date()
+    today = timezone.localdate()
     trend_labels = []
     inherent_trend = []
     residual_trend = []

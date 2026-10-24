@@ -66,7 +66,7 @@ def compute_trends(risks, findings, actions, months=6):
     Five GROUP BY queries in total (one per metric), rather than five queries
     per month: the previous implementation issued ~30 queries per page load.
     """
-    today = timezone.now().date()
+    today = timezone.localdate()
 
     created = _per_month(
         risks, 'created_at',

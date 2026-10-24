@@ -159,7 +159,7 @@ def rule_kri_red():
 def rule_action_item_overdue():
     """Action items past their due date."""
     from audits.models import ActionItem
-    today = timezone.now().date()
+    today = timezone.localdate()
     events = []
     qs = ActionItem.objects.filter(due_date__lt=today).exclude(
         status__in=['completed', 'cancelled']
@@ -188,7 +188,7 @@ def rule_action_item_overdue():
 def rule_audit_finding_overdue():
     """Audit findings past their remediation due date."""
     from audits.models import AuditFinding
-    today = timezone.now().date()
+    today = timezone.localdate()
     events = []
     qs = AuditFinding.objects.filter(due_date__lt=today).exclude(
         status__in=['resolved', 'closed', 'accepted']
@@ -249,7 +249,7 @@ def rule_vendor_high_risk():
 def rule_policy_review_due():
     """Approved policies with review dates within 30 days (or overdue)."""
     from policies.models import Policy
-    today = timezone.now().date()
+    today = timezone.localdate()
     threshold = today + timedelta(days=30)
     events = []
     qs = Policy.objects.filter(
@@ -348,3 +348,25 @@ def scan_and_create_tickets(verbose=False):
         results[rule_name] = {'events_found': len(events), 'tickets_created': created}
 
     return results
+
+
+# The scan walks the whole risk/control/finding/action set and creates tickets.
+# The dashboard loads it on *every* page view and the login hook fires it on
+# every login, so runs share one cache window — otherwise a busy deployment
+# re-walks everything each time two tabs are refreshed in succession.
+SCAN_THROTTLE_SECONDS = 60
+SCAN_THROTTLE_KEY = 'grc:alert-scan'
+
+
+def scan_and_create_tickets_throttled(force=False):
+    """Run the alert scan at most once per :data:`SCAN_THROTTLE_SECONDS`.
+
+    Returns the scan result dict, or ``None`` when this call was skipped
+    because another one ran inside the window.
+    """
+    from django.core.cache import cache
+
+    if not force and cache.get(SCAN_THROTTLE_KEY) is not None:
+        return None
+    cache.set(SCAN_THROTTLE_KEY, 1, SCAN_THROTTLE_SECONDS)
+    return scan_and_create_tickets(verbose=False)

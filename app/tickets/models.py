@@ -154,7 +154,7 @@ class Ticket(models.Model):
         if not self.due_date:
             return False
         from django.utils import timezone
-        return self.due_date < timezone.now().date()
+        return self.due_date < timezone.localdate()
 
     @property
     def is_open(self):
