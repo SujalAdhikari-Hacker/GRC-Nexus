@@ -12,7 +12,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon-32.png' %}">
     <link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any">
     <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
-    <script>
+    <script nonce="{{ csp_nonce }}">
         (function(){
             try {
                 var t = localStorage.getItem('grcnexus-theme');
@@ -38,7 +38,7 @@
     </p>
     <div style="display:flex; gap:10px; justify-content:center;">
         <a href="{% url 'core:dashboard' %}" class="btn btn-dark">Back to dashboard</a>
-        <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">Reload page</button>
+        <a href="{{ request_path|default:'/' }}" class="btn btn-outline-secondary">Reload page</a>
     </div>
     <div style="margin-top:40px; font-size:12px; color:var(--text-faint);">
         GRC Nexus · Governance, Risk &amp; Compliance Platform

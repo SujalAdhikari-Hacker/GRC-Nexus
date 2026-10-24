@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Your backup codes{% endblock %}
+{% block meta_description %}One-time backup codes for GRC Nexus two-factor authentication.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header bg-white"><strong><i class="bi bi-key"></i> Save your backup codes</strong></div>
+      <div class="card-body">
+        <div class="alert alert-warning small">
+          These codes are shown <strong>once</strong>. Each code can be used a
+          single time if you lose access to your authenticator app. Store them
+          in a password manager or a locked safe — not in your email.
+        </div>
+
+        <div class="row row-cols-2 g-2 mb-4">
+          {% for code in codes %}
+            <div class="col"><code class="d-block p-2 bg-light border rounded text-center">{{ code }}</code></div>
+          {% endfor %}
+        </div>
+
+        <p class="text-muted small">
+          You can generate a fresh set later from
+          <a href="{% url 'core:mfa_setup' %}">Settings → Two-factor authentication</a>.
+        </p>
+
+        <a href="{% url 'core:settings' %}" class="btn btn-dark">I've saved these codes</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -11,3 +11,5 @@ staticfiles/
 media/
 postgres_data/
 .vscode/.env
+backup_before_rls.sql
+.role_setup.sql

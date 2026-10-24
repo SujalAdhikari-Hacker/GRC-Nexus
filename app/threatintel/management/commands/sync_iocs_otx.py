@@ -10,8 +10,8 @@ Usage:
     python manage.py sync_iocs_otx --api-key YOUR_KEY
 """
 import os
-import requests
 from django.core.management.base import BaseCommand
+from core.safe_http import safe_get
 from django.utils import timezone
 
 from threatintel.models import IOC, IOCFeedSync
@@ -65,7 +65,7 @@ class Command(BaseCommand):
         ))
 
         try:
-            r = requests.get(
+            r = safe_get(
                 API_URL,
                 headers={'X-OTX-API-KEY': api_key},
                 params={'limit': options['pulses']},

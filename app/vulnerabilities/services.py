@@ -8,9 +8,9 @@ APIs used (all free, no auth):
 
 NVD rate limit: 5 requests per 30 seconds without API key.
 """
-import requests
 from datetime import datetime
 from django.utils import timezone
+from core.safe_http import safe_get
 from django.db import transaction
 
 from .models import Vulnerability, Finding, compute_composite_score
@@ -41,7 +41,7 @@ def enrich_from_nvd(vuln):
         return {'ok': False, 'error': 'No CVE ID set'}
 
     try:
-        r = requests.get(NVD_URL, params={'cveId': vuln.cve_id}, timeout=HTTP_TIMEOUT)
+        r = safe_get(NVD_URL, params={'cveId': vuln.cve_id}, timeout=HTTP_TIMEOUT)
         r.raise_for_status()
         data = r.json()
     except Exception as e:
@@ -103,7 +103,7 @@ def enrich_from_epss(vuln):
         return {'ok': False, 'error': 'No CVE ID set'}
 
     try:
-        r = requests.get(EPSS_URL, params={'cve': vuln.cve_id}, timeout=HTTP_TIMEOUT)
+        r = safe_get(EPSS_URL, params={'cve': vuln.cve_id}, timeout=HTTP_TIMEOUT)
         r.raise_for_status()
         data = r.json()
     except Exception as e:
@@ -128,7 +128,7 @@ def check_cisa_kev(vuln):
         return {'ok': False, 'error': 'No CVE ID set'}
 
     try:
-        r = requests.get(KEV_URL, timeout=HTTP_TIMEOUT)
+        r = safe_get(KEV_URL, timeout=HTTP_TIMEOUT)
         r.raise_for_status()
         data = r.json()
     except Exception as e:

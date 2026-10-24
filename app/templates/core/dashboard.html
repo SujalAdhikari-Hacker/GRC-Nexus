@@ -543,7 +543,7 @@
 {{ actions_completed_trend|json_script:"dash-actions-completed" }}
 {{ risks_created_trend|json_script:"dash-risks-created" }}
 {{ risks_closed_trend|json_script:"dash-risks-closed" }}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
     'use strict';
 

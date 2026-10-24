@@ -5,9 +5,9 @@ Requires a free Auth-Key from https://auth.abuse.ch/
 Set it as ABUSECH_AUTH_KEY in your .env file.
 """
 import os
-import requests
 from datetime import datetime, timezone as dt_timezone
 from django.core.management.base import BaseCommand
+from core.safe_http import safe_post
 from django.utils import timezone
 
 from threatintel.models import IOC, IOCFeedSync
@@ -87,7 +87,7 @@ class Command(BaseCommand):
         ))
 
         try:
-            r = requests.post(
+            r = safe_post(
                 API_URL,
                 json={'query': 'get_iocs', 'days': days},
                 headers={'Auth-Key': auth_key},

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Department
+from .models import User, Department, UserMFA
 from simple_history.admin import SimpleHistoryAdmin
 from .models import OrganisationProfile
 
@@ -12,11 +12,33 @@ class DepartmentAdmin(SimpleHistoryAdmin):
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'department', 'is_hod', 'is_staff')
-    list_filter = ('department', 'is_hod', 'is_staff')
-    fieldsets = UserAdmin.fieldsets + (
-        ('GRC Info', {'fields': ('department', 'is_hod')}),
+    list_display = (
+        'username', 'email', 'department', 'is_hod', 'is_staff',
+        'must_change_password',
     )
+    list_filter = ('department', 'is_hod', 'is_staff', 'must_change_password')
+    fieldsets = UserAdmin.fieldsets + (
+        ('GRC Info', {
+            'fields': ('department', 'is_hod', 'must_change_password'),
+        }),
+    )
+
+
+@admin.register(UserMFA)
+class UserMFAAdmin(admin.ModelAdmin):
+    """Metadata-only view; secrets and backup codes are never displayed."""
+
+    list_display = ('user', 'enabled', 'confirmed_at', 'last_used_at')
+    list_filter = ('enabled',)
+    search_fields = ('user__username', 'user__email')
+    readonly_fields = (
+        'user', 'enabled', 'created_at', 'confirmed_at', 'last_used_at',
+    )
+    exclude = ('secret', 'backup_codes')
+
+    def has_add_permission(self, request):
+        # Enrolment must happen through the authenticated setup flow.
+        return False
 
 
 @admin.register(OrganisationProfile)

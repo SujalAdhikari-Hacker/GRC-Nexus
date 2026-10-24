@@ -22,11 +22,30 @@ class User(AbstractUser):
         on_delete=models.SET_NULL, related_name='users'
     )
     is_hod = models.BooleanField(default=False)
+    # Seeded/default-password accounts must rotate before using the app.
+    must_change_password = models.BooleanField(default=False)
 
     history = HistoricalRecords()
 
     def __str__(self):
         return self.username
+
+
+class UserMFA(models.Model):
+    """Per-user TOTP second factor and hashed one-time backup codes."""
+
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name='mfa'
+    )
+    secret = models.CharField(max_length=64)
+    enabled = models.BooleanField(default=False)
+    backup_codes = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f'MFA for {self.user.username} ({"on" if self.enabled else "off"})'
 
 
 class OrganisationProfile(models.Model):

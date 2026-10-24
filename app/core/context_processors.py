@@ -170,6 +170,15 @@ def notification_sections(request):
     return {k: v for k, v in snap.items() if k.startswith('notif_')}
 
 
+def security_context(request):
+    """Expose the per-response CSP nonce to templates.
+
+    Inline ``<script>`` blocks must carry ``nonce="{{ csp_nonce }}"``; the
+    security middleware sets the matching nonce in the response header.
+    """
+    return {'csp_nonce': getattr(request, 'csp_nonce', '')}
+
+
 def user_preference_context(request):
     """Expose the current user's preferences to every template."""
     empty = {

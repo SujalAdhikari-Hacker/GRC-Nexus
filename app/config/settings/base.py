@@ -8,6 +8,7 @@ from pathlib import Path
 from sys import argv as _argv
 
 from decouple import Csv, config
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -21,6 +22,20 @@ _IS_TEST = 'test' in _argv
 # --------------------------------------------------------------------------
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
+
+# A short or well-known signing key makes password-reset tokens, sessions and
+# the MFA helpers forgeable. Fail closed outside DEBUG instead of silently
+# shipping a weak key.
+_WEAK_SECRET_MARKERS = ('django-insecure', 'changeme', 'change-me', 'secret-key', 'password')
+if not DEBUG and (
+    len(SECRET_KEY) < 50
+    or any(marker in SECRET_KEY.lower() for marker in _WEAK_SECRET_MARKERS)
+):
+    raise ImproperlyConfigured(
+        'SECRET_KEY must be at least 50 characters and must not contain a '
+        'well-known placeholder. Generate one with: '
+        "python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+    )
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
     default='localhost,127.0.0.1',
@@ -62,11 +77,20 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'core.middleware.SecurityHeadersMiddleware',
+    'core.middleware.CorsLockdownMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Set the PostgreSQL RLS context before any view query runs.
+    'core.middleware.RLSMiddleware',
+    # Rate limits, MFA and forced password rotation run after authentication
+    # so they can key on the user as well as the client address.
+    'core.middleware.RateLimitMiddleware',
+    'core.middleware.MFAEnforcementMiddleware',
+    'core.middleware.ForcePasswordChangeMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.UserTimezoneMiddleware',
@@ -94,6 +118,7 @@ TEMPLATES = [
                 'core.context_processors.recent_notifications_context',
                 'core.context_processors.notification_sections',
                 'core.context_processors.user_preference_context',
+                'core.context_processors.security_context',
             ],
         },
     },
@@ -111,10 +136,18 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': config('POSTGRES_DB'),
-        'USER': config('POSTGRES_USER'),
-        'PASSWORD': config('POSTGRES_PASSWORD'),
+        # The application must connect as the non-superuser runtime role. The
+        # POSTGRES_* role is the bootstrap/break-glass superuser used by the
+        # database container and by operators; falling back to it here would
+        # silently disable row-level security (superusers bypass FORCE RLS).
+        'USER': config('DB_APP_USER'),
+        'PASSWORD': config('DB_APP_PASSWORD'),
         'HOST': config('POSTGRES_HOST', default='db'),
         'PORT': config('POSTGRES_PORT', default='5432'),
+        # Every Django connection starts with RLS bypassed so migrations and
+        # management commands can operate. RLSMiddleware switches it off for
+        # normal authenticated requests and restores it afterwards.
+        'OPTIONS': {'options': '-c app.bypass_rls=on'},
         'CONN_MAX_AGE': 0 if _IS_TEST else config('DB_CONN_MAX_AGE', default=60, cast=int),
     }
 }
@@ -127,15 +160,30 @@ AUTH_USER_MODEL = 'core.User'
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-     'OPTIONS': {'min_length': 10}},
+     'OPTIONS': {'min_length': 12}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
+
+# Explicitly keep the salted, deliberately-slow PBKDF2 hasher first. Django
+# re-hashes legacy/weaker hashes on the next successful sign-in, so existing
+# accounts are upgraded transparently.
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+]
+
+# Password-reset links are single-use and short-lived.
+PASSWORD_RESET_TIMEOUT = config('PASSWORD_RESET_TIMEOUT', default=3600, cast=int)
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
     'guardian.backends.ObjectPermissionBackend',
 )
+
+# Multi-factor authentication (TOTP). MFA is opt-in per user; set
+# MFA_REQUIRED_FOR_STAFF=true to force every staff/superuser to enrol.
+MFA_ISSUER = config('MFA_ISSUER', default='GRC Nexus')
+MFA_REQUIRED_FOR_STAFF = config('MFA_REQUIRED_FOR_STAFF', default=False, cast=bool)
 
 # --------------------------------------------------------------------------
 # i18n / tz
@@ -233,10 +281,56 @@ ESCALATION_WARN_DAYS = config('ESCALATION_WARN_DAYS', default=14, cast=int)
 # --------------------------------------------------------------------------
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = config('SESSION_COOKIE_SAMESITE', default='Lax')
+# Eight hours: long enough for a working day, short enough that a stolen
+# session does not remain valid for Django's two-week default.
+SESSION_COOKIE_AGE = config('SESSION_COOKIE_AGE', default=8 * 60 * 60, cast=int)
 CSRF_COOKIE_SAMESITE = 'Lax'
+# The CSRF cookie is intentionally readable by same-origin JavaScript so the
+# HTMX header can echo it. It is not an authentication token.
+CSRF_COOKIE_HTTPONLY = False
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = 'same-origin'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 X_FRAME_OPTIONS = 'DENY'
+CSRF_FAILURE_VIEW = 'core.views.csrf_failure'
+
+# No cross-origin browser API is exposed. Keep this list empty unless a
+# deliberate, reviewed integration needs it; credentials are never allowed.
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='', cast=Csv())
+
+# Application-layer rate limits (per process; point CACHES at Redis for a
+# multi-worker deployment). Disabled under the test runner so the suite is
+# deterministic; individual tests override RATE_LIMIT_ENABLED.
+RATE_LIMIT_ENABLED = config(
+    'RATE_LIMIT_ENABLED', default=not _IS_TEST, cast=bool
+)
+RATE_LIMIT_AUTH = config('RATE_LIMIT_AUTH', default=20, cast=int)
+RATE_LIMIT_SEARCH = config('RATE_LIMIT_SEARCH', default=60, cast=int)
+RATE_LIMIT_MEDIA = config('RATE_LIMIT_MEDIA', default=120, cast=int)
+RATE_LIMIT_WRITE = config('RATE_LIMIT_WRITE', default=120, cast=int)
+RATE_LIMIT_READ = config('RATE_LIMIT_READ', default=1200, cast=int)
+RATE_LIMIT_WINDOW = config('RATE_LIMIT_WINDOW', default=60, cast=int)
+
+# Outbound fetches (threat-intel / vulnerability enrichment) are restricted to
+# these hosts. This is a defence-in-depth allowlist on top of the private-IP
+# and redirect checks in core.safe_http.
+SAFE_HTTP_ALLOWED_HOSTS = config(
+    'SAFE_HTTP_ALLOWED_HOSTS',
+    default=(
+        'raw.githubusercontent.com,otx.alienvault.com,threatcluster.io,'
+        'threatfox-api.abuse.ch,services.nvd.nist.gov,api.first.org,'
+        'www.cisa.gov,cisa.gov'
+    ),
+    cast=Csv(),
+)
+SAFE_HTTP_TIMEOUT = config('SAFE_HTTP_TIMEOUT', default=20, cast=int)
+SAFE_HTTP_MAX_BYTES = config(
+    'SAFE_HTTP_MAX_BYTES', default=25 * 1024 * 1024, cast=int
+)
+
+# Shared secret for inbound signed webhooks (HMAC-SHA256). Empty disables the
+# verifier; no inbound webhook route ships enabled by default.
+WEBHOOK_SECRET = config('WEBHOOK_SECRET', default='')
 
 # Upload limits (defend against memory-exhaustion via huge POSTs).
 DATA_UPLOAD_MAX_MEMORY_SIZE = config(
@@ -246,6 +340,9 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = config(
     'FILE_UPLOAD_MAX_MEMORY_SIZE', default=5 * 1024 * 1024, cast=int
 )
 FILE_UPLOAD_PERMISSIONS = 0o640
+DATA_UPLOAD_MAX_NUMBER_FIELDS = config(
+    'DATA_UPLOAD_MAX_NUMBER_FIELDS', default=2000, cast=int
+)
 
 # --------------------------------------------------------------------------
 # Logging — console only; the platform (Docker/systemd) collects it.
@@ -259,10 +356,16 @@ LOGGING = {
             'style': '{',
         },
     },
+    'filters': {
+        'redact_sensitive': {
+            '()': 'core.logging_filters.SensitiveDataFilter',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
+            'filters': ['redact_sensitive'],
         },
     },
     'root': {

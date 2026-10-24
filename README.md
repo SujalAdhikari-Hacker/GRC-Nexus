@@ -9,10 +9,10 @@
 **Where is our risk concentrated, and what are we doing about it?**
 
 [![Python](https://img.shields.io/badge/python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Django](https://img.shields.io/badge/django-4.2-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![Django](https://img.shields.io/badge/django-5.2-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
-[![Tests](https://img.shields.io/badge/tests-226%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-262%20passing-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
@@ -200,7 +200,7 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 
 | Layer | Technology |
 |---|---|
-| Backend | Django 4.2 LTS · Python 3.11 |
+| Backend | Django 5.2 LTS · Python 3.11 |
 | Database | PostgreSQL 16 |
 | Frontend | Django Templates · Bootstrap 5.3 · HTMX · Chart.js · vis-network |
 | Reporting | WeasyPrint (PDF) · matplotlib (charts) · openpyxl (Excel) |
@@ -283,12 +283,25 @@ cd GRC-Nexus
 cp .env.example .env
 ```
 
-The defaults work out of the box. Edit `.env` only if you want a custom `SECRET_KEY` or
-different database credentials.
+Generate the three secrets before the first start. `POSTGRES_PASSWORD` belongs to the
+bootstrap/break-glass superuser; `DB_APP_PASSWORD` belongs to the non-superuser runtime role
+that the application uses, so PostgreSQL row-level security actually applies to it.
 
-> **Important:** `SECRET_KEY` must **not** contain a `$` character — `docker compose`
-> interpolates `$…` in `.env` files, which silently corrupts the key. Generate one with:
-> `python -c "import secrets; print(secrets.token_urlsafe(64))"`
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(64))"   # SECRET_KEY
+python -c "import secrets; print(secrets.token_urlsafe(32))"   # POSTGRES_PASSWORD
+python -c "import secrets; print(secrets.token_urlsafe(32))"   # DB_APP_PASSWORD
+```
+
+On the first `docker compose up`, `db/init/01-app-role.sh` creates `grc_app` and makes it the
+database owner. The web container then migrates as `grc_app`, so every business table is owned
+by the runtime role and the `FORCE ROW LEVEL SECURITY` policies apply. An existing PostgreSQL
+volume from before this change needs the same role created once; the SQL in that script is the
+reference.
+
+> **Important:** secrets must **not** contain a `$` character; `docker compose`
+> interpolates `$...` in `.env` files, which silently corrupts the value. The
+> commands above use URL-safe characters only.
 
 ### 3. Build and start
 
@@ -316,7 +329,7 @@ docker compose exec web python manage.py createsuperuser
 | App | <http://localhost:8000> |
 | Admin | <http://localhost:8000/admin> |
 
-Seeded demo users all use the password **`demo1234`** (for example `it_hod`, `fin_hod`).
+`seed_demo` no longer ships a fixed password. Set `DEMO_PASSWORD` in `.env` before seeding, or let the command generate a strong one and print it once. Every seeded account is forced to change it at first sign-in.
 
 ---
 
@@ -340,8 +353,10 @@ docker compose exec web python manage.py populate_assessment_items
 docker compose exec web python manage.py clean_test_data
 ```
 
-**Demo credentials:** every seeded user's password is `demo1234`. Use `createsuperuser` to make
-your own admin, or sign in as a seeded HOD to see department scoping in action.
+**Demo credentials:** set `DEMO_PASSWORD` before running `seed_demo`, or use the generated password
+printed once by the command. Seeded accounts are flagged for mandatory rotation on first sign-in.
+Use `createsuperuser` to make your own admin, or sign in as a seeded HOD to see department scoping
+in action.
 
 ---
 
@@ -358,7 +373,9 @@ your own admin, or sign in as a seeded HOD to see department scoping in action.
 | `CSRF_TRUSTED_ORIGINS` | Comma-separated origins allowed to POST |
 | `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, `SECURE_HSTS_SECONDS` | TLS switches — relaxed for local HTTP, enable behind a TLS proxy |
 | `SERVE_MEDIA` | Legacy flag; media is served through the scoped view regardless |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT` | Database connection |
+| `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` | Database name and address |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD` | Bootstrap/break-glass superuser used by the PostgreSQL container, not the application |
+| `DB_APP_USER`, `DB_APP_PASSWORD` | Non-superuser runtime role the application uses; row-level security applies to it |
 | `ABUSECH_AUTH_KEY`, `OTX_API_KEY` | Optional; enable ThreatFox / OTX IOC sync |
 | `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`, `EMAIL_USE_SSL` | Outbound mail. Defaults to the **console** backend (messages land in the app log); switch to the SMTP backend for real delivery |
 | `DEFAULT_FROM_EMAIL` | `From:` header on every message |
@@ -457,23 +474,82 @@ idempotency and the escalation auto-clear rules.
 
 ```bash
 docker compose exec web python manage.py test
-# Ran 120 tests — OK
+# Ran 262 tests - OK
 ```
+
+The suite also includes a dedicated security regression module
+(`app/core/test_security.py`): CSP/nonce and browser headers, CSRF
+enforcement, SQL-injection and XSS payloads, upload magic-byte checks,
+rate limiting, MFA enrolment/login/backup codes, forced password
+rotation, log redaction, SSRF blocking, webhook HMAC/replay checks,
+CORS allowlisting, source-map absence and database-level row-level
+security.
 
 ---
 
 ## Security
 
-- **Authorization is centralised** in `app/core/mixins.py` (`scope_queryset`, `user_can_access`,
-  …). Views must never hand-roll department filtering.
-- **Uploaded files are not public.** Evidence and policy documents are served through
-  `core/media.py`, which requires a login and only serves a file when the user can see a record
-  that references it. The raw `/media/` mount is removed. Path-traversal and symlink escapes are
-  rejected.
-- **CSV/Excel formula injection** is neutralised on export.
-- **No secrets in the repo** — `.env`, `staticfiles/` and `media/` are git-ignored.
-- Report any vulnerability privately (see [Contributing](#contributing)) rather than opening a
-  public issue.
+The hardening pass is deliberately layered. No single control is trusted on its own.
+
+- **Authorization is centralised** in `app/core/mixins.py` (`scope_queryset`,
+  `user_can_access`, ...). Views must never hand-roll department filtering. Cross-department
+  detail pages return 404, and related links render as plain text when the target is not
+  accessible.
+- **PostgreSQL row-level security (RLS)** is the database backstop. The application connects
+  as `DB_APP_USER` (`grc_app`), a non-superuser role, and every department-owned business
+  table has `FORCE ROW LEVEL SECURITY` with a `grc_dept_isolation` policy. Per-user MFA
+  secrets are scoped to their owner as well. `RLSMiddleware` sets
+  `app.bypass_rls=off`, `app.department_id` and `app.user_id` per request; the connection
+  starts with bypass on for migrations and management commands. The policy also honours
+  explicit control sharing, django-guardian object grants, notification recipients and
+  policy audiences. `python manage.py enable_rls` re-applies the policies.
+- **CSP with per-response nonces.** Inline event handlers were removed and replaced with
+  `static/js/ui.js`; `script-src-attr 'none'`, `object-src 'none'` and
+  `frame-ancestors 'none'` are enforced. `/admin/` gets the narrow exceptions Django admin
+  needs.
+- **CSRF and browser hardening.** Django's CSRF middleware is enabled, logout is POST-only,
+  HTMX sends the CSRF header, and failures render a friendly page. Responses also set
+  `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, COOP/CORP, a restrictive
+  `Permissions-Policy` and `Referrer-Policy: same-origin`.
+- **Same-origin CORS by default.** No permissive wildcard is configured. An explicit
+  allowlist middleware only emits `Access-Control-Allow-Origin` for configured origins and
+  never enables credentials.
+- **Session authentication, not JWT.** There is no JWT issuer or verifier to misconfigure,
+  and no access/refresh token is stored in `localStorage`. The only client storage is the
+  non-sensitive theme preference.
+- **MFA is opt-in.** Users can enrol a standard TOTP authenticator, receive hashed one-time
+  backup codes, regenerate them, or disable MFA after re-entering their password and a valid
+  code. `MFA_REQUIRED_FOR_STAFF` can enforce it for staff.
+- **Password policy and rotation.** PBKDF2-SHA256 is explicit, the minimum length is 12,
+  common/numeric/similarity validators run, and `User.must_change_password` forces a change
+  before the rest of the app is reachable. `flag_default_passwords` flags accounts still on a
+  known seeded password. `seed_demo` no longer ships a fixed password: use `DEMO_PASSWORD` or
+  let it generate one, then rotate on first sign-in.
+- **Rate limiting.** Login and sensitive endpoints are throttled by client/user key, with
+  `Retry-After` on 429 responses. The login lockout remains in addition to the general rate
+  limiter.
+- **Upload validation.** Evidence, policy documents and attachments are checked by
+  extension, filename and magic bytes (PDF, images, Office/ZIP, PCAP), with empty files and
+  renamed executables rejected. Media is served through the login- and department-scoped
+  view, never raw `/media/`.
+- **SSRF-resistant outbound HTTP.** Threat-intelligence and vulnerability enrichment calls go
+  through `core/safe_http.py`: HTTPS/HTTP only, host allowlist, DNS resolution checks against
+  private/loopback/link-local/metadata addresses, no redirects and a response-size cap.
+- **Webhook signatures.** `core/webhooks.py` provides HMAC-SHA256 signing/verification with a
+  timestamp replay window and constant-time comparison. The project has no inbound webhook
+  endpoints, so the helper is covered by tests rather than wired to a route.
+- **Sensitive data is redacted from logs.** A logging filter masks passwords, tokens,
+  cookies, API keys and `Authorization` values before they reach the console handler.
+- **No source maps ship.** `collectstatic` output and the source tree contain no `.map` files,
+  and a regression test fails if one appears.
+- **Dependencies are pinned and current.** Django 5.2 LTS replaces the EOL 4.2 line; Pillow,
+  certifi, brotli and the image build tools are upgraded. `pip-audit` is used to check the
+  resolved environment.
+- **CSV/Excel formula injection** is neutralised on export. **No secrets are in the repo** -
+  `.env`, `staticfiles/`, `media/` and the local backup file are git-ignored.
+
+Report any vulnerability privately (see [Contributing](#contributing)) rather than opening a
+public issue.
 
 ---
 

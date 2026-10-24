@@ -17,7 +17,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+# Keep the build tools patched too: pip/setuptools are only used at build time,
+# but an attacker-controlled sdist must not be able to escape the install dir.
+RUN pip install --no-cache-dir --upgrade pip==26.2.2 setuptools==84.1.0 wheel==0.46.3 \
+    && pip install --no-cache-dir -r requirements.txt
 
 COPY . /app/
 

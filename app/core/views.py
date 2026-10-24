@@ -446,3 +446,14 @@ class ExecutiveReportView(LoginRequiredMixin, TemplateView):
         ctx = _build_exec7(request.user)
         filename = f'grcnexus_executive_report_{timezone.now().strftime("%Y%m%d_%H%M")}.pdf'
         return _render_pdf7(request, self.template_name, ctx, filename)
+
+
+def csrf_failure(request, reason=''):
+    """Friendly CSRF failure page (never expose the raw reason to the user)."""
+    return render(request, '403.html', {
+        'message': (
+            'Your security token was missing or expired. Reload the page and '
+            'try again; if the problem persists, sign out and back in.'
+        ),
+        'request_path': request.path,
+    }, status=403)

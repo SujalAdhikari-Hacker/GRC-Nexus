@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Two-factor authentication{% endblock %}
+{% block meta_description %}Enable or manage TOTP two-factor authentication for your GRC Nexus account.{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'core:settings' %}">Settings</a></li>
+    <li class="breadcrumb-item active">Two-factor authentication</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-8">
+    {% if mfa.enabled %}
+      <div class="card mb-3">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <strong><i class="bi bi-shield-check"></i> Two-factor authentication</strong>
+          <span class="badge bg-success">Enabled</span>
+        </div>
+        <div class="card-body">
+          <p class="mb-2">
+            Your account is protected by an authenticator app. You'll be asked
+            for a six-digit code each time you sign in.
+          </p>
+          <p class="text-muted small mb-0">
+            Enabled {{ mfa.confirmed_at|date:"Y-m-d H:i" }}.
+            Backup codes remaining: <strong>{{ mfa.backup_codes|length }}</strong>.
+          </p>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header bg-white"><strong>Regenerate backup codes</strong></div>
+        <div class="card-body">
+          <p class="text-muted small">
+            Generating new codes invalidates every old backup code. Enter your
+            password and a current authenticator code to confirm.
+          </p>
+          <form method="post" action="{% url 'core:mfa_regenerate_backup_codes' %}" class="row g-2">
+            {% csrf_token %}
+            <div class="col-md-5">
+              <label class="form-label" for="regen-password">Password</label>
+              <input id="regen-password" type="password" name="password" class="form-control" required autocomplete="current-password">
+            </div>
+            <div class="col-md-5">
+              <label class="form-label" for="regen-code">Authenticator code</label>
+              <input id="regen-code" type="text" name="code" class="form-control" inputmode="numeric" autocomplete="one-time-code" required>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button class="btn btn-outline-dark w-100" type="submit">Generate</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card border-danger">
+        <div class="card-header bg-white"><strong class="text-danger">Disable two-factor authentication</strong></div>
+        <div class="card-body">
+          <p class="text-muted small">
+            This lowers your account security. Confirm with your password and a
+            current authenticator or backup code.
+          </p>
+          <form method="post" action="{% url 'core:mfa_disable' %}" class="row g-2">
+            {% csrf_token %}
+            <div class="col-md-5">
+              <label class="form-label" for="disable-password">Password</label>
+              <input id="disable-password" type="password" name="password" class="form-control" required autocomplete="current-password">
+            </div>
+            <div class="col-md-5">
+              <label class="form-label" for="disable-code">Authenticator / backup code</label>
+              <input id="disable-code" type="text" name="code" class="form-control" autocomplete="one-time-code" required>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button class="btn btn-danger w-100" type="submit">Disable</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <div class="card">
+        <div class="card-header bg-white"><strong><i class="bi bi-shield-lock"></i> Set up two-factor authentication</strong></div>
+        <div class="card-body">
+          <ol class="mb-4">
+            <li class="mb-2">Install an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Authy, …).</li>
+            <li class="mb-2">Add this account by scanning the setup link or entering the key manually.</li>
+            <li>Enter the six-digit code below to confirm enrolment.</li>
+          </ol>
+
+          <div class="mb-3">
+            <div class="form-label">Account</div>
+            <code>{{ user.get_username }} · {{ mfa.user.email|default:"no email" }}</code>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-label">Setup key (manual entry)</div>
+            <div class="input-group">
+              <input type="text" class="form-control font-monospace" value="{{ secret }}" readonly aria-label="TOTP setup key">
+            </div>
+            <div class="form-text">
+              Choose “time-based” / TOTP, SHA-1, 6 digits, 30 seconds.
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="form-label">Setup link</div>
+            <a href="{{ otpauth_uri }}" class="small text-break">{{ otpauth_uri }}</a>
+            <div class="form-text">Opening this link on your phone should launch your authenticator app.</div>
+          </div>
+
+          <form method="post" class="row g-2 align-items-end">
+            {% csrf_token %}
+            <div class="col-sm-6">
+              <label class="form-label" for="setup-code">Six-digit code</label>
+              <input id="setup-code" type="text" name="code" class="form-control form-control-lg"
+                     inputmode="numeric" autocomplete="one-time-code" required autofocus
+                     placeholder="123456">
+            </div>
+            <div class="col-sm-6">
+              <button type="submit" class="btn btn-dark btn-lg w-100">Enable two-factor</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header bg-white"><strong>Why enable MFA?</strong></div>
+      <div class="card-body small text-muted">
+        <p>A password alone can be phished, reused or leaked. A time-based
+        one-time code makes a stolen password much less useful.</p>
+        <p class="mb-0">Backup codes are shown once after enrolment. Keep them
+        somewhere safe — each one works a single time if you lose your phone.</p>
+      </div>
+    </div>
+    <div class="card mt-3">
+      <div class="card-body">
+        <a href="{% url 'core:settings' %}" class="btn btn-outline-secondary w-100">
+          <i class="bi bi-arrow-left"></i> Back to settings
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

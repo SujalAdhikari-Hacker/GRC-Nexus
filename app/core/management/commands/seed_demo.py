@@ -1,3 +1,6 @@
+import secrets
+
+from decouple import config
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from core.models import Department, User
@@ -17,7 +20,17 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        # Never ship a fixed demo password. Prefer DEMO_PASSWORD from the
+        # environment; otherwise generate a strong one and print it once.
+        demo_password = config('DEMO_PASSWORD', default='')
+        generated = False
+        if not demo_password:
+            demo_password = secrets.token_urlsafe(15)
+            generated = True
+
         self.stdout.write(self.style.MIGRATE_HEADING('Seeding demo data...'))
+
+        created_any = False
 
         # ---------- Departments ----------
         departments = {}
@@ -46,8 +59,10 @@ class Command(BaseCommand):
                 }
             )
             if created:
-                user.set_password('demo1234')
-                user.save()
+                user.set_password(demo_password)
+                user.must_change_password = True
+                user.save(update_fields=['password', 'must_change_password'])
+                created_any = True
             self.stdout.write(f"  User: {username} {'(created)' if created else '(exists)'}")
 
         # ---------- Asset Categories ----------
@@ -375,6 +390,14 @@ class Command(BaseCommand):
         self.stdout.write(f"  Assets:             {Asset.objects.count()}")
         self.stdout.write(f"  Frameworks:         {Framework.objects.count()}")
         self.stdout.write(f"  Framework controls: {FrameworkControl.objects.count()}")
-        self.stdout.write(self.style.WARNING(
-            "\n  All seeded users have password: demo1234"
-        ))
+        if generated and created_any:
+            self.stdout.write(self.style.WARNING(
+                '\n  Generated demo password (shown once): '
+                f'{demo_password}\n'
+                '  Every newly seeded user must change it at first sign-in.'
+            ))
+        elif not generated:
+            self.stdout.write(self.style.WARNING(
+                '\n  Seeded users use DEMO_PASSWORD from the environment and '
+                'must change it at first sign-in.'
+            ))

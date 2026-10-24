@@ -3,6 +3,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+from core.auth_views import SecurePasswordChangeView
 from core.login_view import ThrottledLoginView
 
 
@@ -43,9 +44,8 @@ urlpatterns += [
     path('login/', ThrottledLoginView.as_view(
         template_name='registration/login.html'), name='login'),
     path('logout/', PostOnlyLogoutView.as_view(), name='logout'),
-    path('password-change/', auth_views.PasswordChangeView.as_view(
+    path('password-change/', SecurePasswordChangeView.as_view(
         template_name='registration/password_change_form.html',
-        success_url='/settings/',
     ), name='password_change'),
 ]
 
@@ -78,5 +78,6 @@ def handler404(request, exception=None):
 
 def handler500(request):
     from django.shortcuts import render
-    return render(request, '500.html', status=500)
+    # Pass the request so context processors (including the CSP nonce) run.
+    return render(request, '500.html', {'request_path': request.path}, status=500)
 

@@ -13,7 +13,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon-32.png' %}">
     <link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any">
     <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
-    <script>
+    <script nonce="{{ csp_nonce }}">
         (function(){
             try {
                 // Priority 1: user's DB preference from settings page
@@ -48,7 +48,7 @@
     <link href="{% static 'css/brand.css' %}" rel="stylesheet">
     {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 <a class="skip-link" href="#main-content">Skip to content</a>
 
 {% with ns=request.resolver_match.namespace urlname=request.resolver_match.url_name %}
@@ -258,7 +258,7 @@
                 {% endblock %}
             </div>
             <div class="topbar-actions">
-                <button type="button" class="topbar-search" onclick="window.GRCNexusPalette.open()" aria-label="Open search">
+                <button type="button" class="topbar-search" data-palette-open aria-label="Open search">
                     <i class="bi bi-search" aria-hidden="true"></i>
                     <span class="search-placeholder">Search...</span>
                     <span class="kbd">⌘K</span>
@@ -401,7 +401,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script src="{% static 'js/theme.js' %}"></script>
 <script src="{% static 'js/command-palette.js' %}"></script>
-<script>
+<script src="{% static 'js/ui.js' %}"></script>
+<script nonce="{{ csp_nonce }}">
     (function(){
         const trigger = document.getElementById('userMenuTrigger');
         const menu = document.getElementById('userMenu');
@@ -471,7 +472,7 @@
     });
 </script>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
     const btn = document.getElementById('notificationBellBtn');
     const dropdown = document.getElementById('notificationDropdown');

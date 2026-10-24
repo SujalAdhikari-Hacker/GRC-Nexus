@@ -127,7 +127,7 @@
 
 {% block extra_js %}
 {% if readings %}
-<script>
+<script nonce="{{ csp_nonce }}">
 const labels = [{% for r in readings %}"{{ r.reading_date|date:'Y-m-d' }}",{% endfor %}];
 const values = [{% for r in readings %}{{ r.value }},{% endfor %}];
 const amber = {{ kri.amber_threshold }};

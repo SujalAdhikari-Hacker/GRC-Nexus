@@ -15,6 +15,9 @@ from .views import (
     HelpView,
 )
 from .history_views import HistoryListView
+from .mfa_views import (
+    mfa_disable, mfa_regenerate_backup_codes, mfa_setup, mfa_verify,
+)
 
 app_name = 'core'
 
@@ -45,6 +48,13 @@ urlpatterns = [
     path('notifications/mark-all-read/', notification_mark_all_read, name='notification_mark_all_read'),
     path('settings/', settings_view, name='settings'),
     path('settings/test-email/', send_test_email, name='send_test_email'),
+
+    # Two-factor authentication
+    path('mfa/setup/', mfa_setup, name='mfa_setup'),
+    path('mfa/verify/', mfa_verify, name='mfa_verify'),
+    path('mfa/disable/', mfa_disable, name='mfa_disable'),
+    path('mfa/backup-codes/', mfa_regenerate_backup_codes,
+         name='mfa_regenerate_backup_codes'),
     path('help/', HelpView.as_view(), name='help'),
     path('history/', HistoryListView.as_view(), name='history'),
 

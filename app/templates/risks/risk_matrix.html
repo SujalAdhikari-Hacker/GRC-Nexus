@@ -113,7 +113,7 @@
                                     {% else %}mx-low{% endif %}
                                     {% if cell.count %}mx-cell-link{% endif %}"
                                     style="height:66px; position:relative; {% if cell.count %}cursor:pointer;{% else %}opacity:.55;{% endif %}"
-                                    {% if cell.count %}onclick="window.location='{% url 'risks:list' %}?likelihood={{ cell.likelihood }}&impact={{ cell.impact }}';"{% endif %}
+                                    {% if cell.count %}data-matrix-href="{% url 'risks:list' %}?likelihood={{ cell.likelihood }}&amp;impact={{ cell.impact }}" role="link" tabindex="0"{% endif %}
                                     title="L{{ cell.likelihood }} × I{{ cell.impact }} = {{ cell.score }}">
                                     {% if cell.count %}
                                         <div style="font-size:1.35rem; font-weight:700;">{{ cell.count }}</div>
@@ -126,7 +126,7 @@
                                         <div class="text-muted" style="font-size:.72rem;">{{ cell.score }}</div>
                                     {% endif %}
                                     <a href="{% url 'risks:create' %}?likelihood={{ cell.likelihood }}&impact={{ cell.impact }}"
-                                       onclick="event.stopPropagation();"
+                                       data-stop-propagation
                                        class="mx-add-btn"
                                        title="Add new risk at L{{ cell.likelihood }}×I{{ cell.impact }}">+</a>
                                 </td>
@@ -179,7 +179,7 @@
                                     {% else %}mx-low{% endif %}
                                     {% if cell.count %}mx-cell-link{% endif %}"
                                     style="height:66px; position:relative; {% if cell.count %}cursor:pointer;{% else %}opacity:.55;{% endif %}"
-                                    {% if cell.count %}onclick="window.location='{% url 'risks:list' %}?likelihood={{ cell.likelihood }}&impact={{ cell.impact }}';"{% endif %}
+                                    {% if cell.count %}data-matrix-href="{% url 'risks:list' %}?likelihood={{ cell.likelihood }}&amp;impact={{ cell.impact }}" role="link" tabindex="0"{% endif %}
                                     title="L{{ cell.likelihood }} × I{{ cell.impact }}">
                                     {% if cell.count %}
                                         <div style="font-size:1.35rem; font-weight:700;">{{ cell.count }}</div>
@@ -188,7 +188,7 @@
                                         <div class="text-muted" style="font-size:.72rem;">{{ cell.score }}</div>
                                     {% endif %}
                                     <a href="{% url 'risks:create' %}?likelihood={{ cell.likelihood }}&impact={{ cell.impact }}"
-                                       onclick="event.stopPropagation();"
+                                       data-stop-propagation
                                        class="mx-add-btn"
                                        title="Add new risk at L{{ cell.likelihood }}×I{{ cell.impact }}">+</a>
                                 </td>

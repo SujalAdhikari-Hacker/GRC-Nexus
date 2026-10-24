@@ -10,8 +10,8 @@ Usage:
     python manage.py sync_attack_data --domain mobile
     python manage.py sync_attack_data --domain ics
 """
-import requests
 from django.core.management.base import BaseCommand
+from core.safe_http import safe_get
 
 from threatintel.models import Tactic, Technique, ThreatActor
 
@@ -41,7 +41,7 @@ class Command(BaseCommand):
         ))
 
         try:
-            r = requests.get(url, timeout=HTTP_TIMEOUT)
+            r = safe_get(url, timeout=HTTP_TIMEOUT)
             r.raise_for_status()
             data = r.json()
         except Exception as e:

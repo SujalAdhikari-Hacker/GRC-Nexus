@@ -28,7 +28,7 @@
     {% endif %}
   {% endfor %}
 
-  <script>
+  <script nonce="{{ csp_nonce }}">
   (function () {
     var form = document.getElementById('bulkForm');
     if (!form) return;

@@ -9,8 +9,10 @@ Usage:
     docker compose exec web python manage.py seed_test_data --clean
     docker compose exec web python manage.py seed_test_data --clean --fresh   # wipe + re-seed
 """
+import secrets
 from datetime import timedelta
 
+from decouple import config
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
@@ -113,9 +115,13 @@ class Command(BaseCommand):
             }
         )
         if created:
-            test_user.set_password('demo1234')
-            test_user.save()
-            self.stdout.write(f'  Test user: test_user / demo1234')
+            test_password = config('DEMO_PASSWORD', default='') or secrets.token_urlsafe(15)
+            test_user.set_password(test_password)
+            test_user.must_change_password = True
+            test_user.save(update_fields=['password', 'must_change_password'])
+            self.stdout.write(
+                f'  Test user: test_user / {test_password} (must change at first sign-in)'
+            )
 
         # ---- Asset categories ----
         cats = {c.name: c for c in AssetCategory.objects.all()}

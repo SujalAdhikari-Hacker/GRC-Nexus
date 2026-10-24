@@ -10,12 +10,12 @@ Usage:
     python manage.py sync_recent_cves --days 1     # last 24 hours
 """
 import time
-import requests
 from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import transaction
 
+from core.safe_http import safe_get
 from vulnerabilities.models import Vulnerability
 
 
@@ -80,20 +80,18 @@ class Command(BaseCommand):
         offset = 0
         page = 0
 
-        session = requests.Session()
-        session.headers.update({'User-Agent': 'GRC Nexus-GRC/1.0'})
-
         while page < max_pages:
             page += 1
             self.stdout.write(f'  Fetching page {page} (offset {offset})...')
 
             try:
-                r = session.get(NVD_URL, params={
+                r = safe_get(NVD_URL, params={
                     'pubStartDate': start_str,
                     'pubEndDate': end_str,
                     'resultsPerPage': NVD_PAGE_SIZE,
                     'startIndex': offset,
-                }, timeout=HTTP_TIMEOUT)
+                }, headers={'User-Agent': 'GRC Nexus-GRC/1.0'},
+                    timeout=HTTP_TIMEOUT)
                 r.raise_for_status()
                 data = r.json()
             except Exception as e:

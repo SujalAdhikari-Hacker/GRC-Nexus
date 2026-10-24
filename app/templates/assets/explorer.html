@@ -45,10 +45,10 @@
     </div>
 </div>
 
-<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js" integrity="sha384-yxKDWWf0wwdUj/gPeuL11czrnKFQROnLgY8ll7En9NYoXibgg3C6NK/UDHNtUgWJ" crossorigin="anonymous"></script>
 {{ graph_nodes|json_script:"explorer-nodes" }}
 {{ graph_edges|json_script:"explorer-edges" }}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function() {
     const COLORS = {
         asset:     { background: '#0284C7', border: '#0369A1', font: '#FFFFFF' },

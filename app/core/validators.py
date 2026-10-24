@@ -17,9 +17,64 @@ ALLOWED_EVIDENCE_EXTENSIONS = {
 }
 
 
+# Magic bytes for formats where the extension alone is not trustworthy. A
+# polyglot or renamed executable must not be stored just because it ends in
+# ``.pdf``. Text-like formats (csv/txt/md/json/xml/yaml/log/eml) have no
+# reliable signature and are always served as attachments.
+_ZIP_MAGIC = (b'PK\x03\x04', b'PK\x05\x06', b'PK\x07\x08')
+_OLE_MAGIC = (b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1',)
+_MAGIC_BY_EXTENSION = {
+    '.pdf': (b'%PDF-',),
+    '.png': (b'\x89PNG\r\n\x1a\n',),
+    '.jpg': (b'\xff\xd8\xff',),
+    '.jpeg': (b'\xff\xd8\xff',),
+    '.gif': (b'GIF87a', b'GIF89a'),
+    '.bmp': (b'BM',),
+    '.zip': _ZIP_MAGIC,
+    '.docx': _ZIP_MAGIC,
+    '.xlsx': _ZIP_MAGIC,
+    '.doc': _OLE_MAGIC,
+    '.xls': _OLE_MAGIC,
+    '.msg': _OLE_MAGIC,
+    '.pcap': (
+        b'\xd4\xc3\xb2\xa1', b'\xa1\xb2\xc3\xd4', b'\x4d\x3c\xb2\xa1',
+        b'\xa1\xb2\x3c\x4d',
+    ),
+}
+
+
+def _read_head(value, length=16):
+    """Read the first bytes of an upload without consuming the stream."""
+    try:
+        position = value.tell()
+    except Exception:
+        position = None
+    try:
+        value.seek(0)
+        return value.read(length)
+    finally:
+        if position is not None:
+            try:
+                value.seek(position)
+            except Exception:
+                pass
+
+
+def _magic_matches(ext, head):
+    if ext == '.webp':
+        return len(head) >= 12 and head[:4] == b'RIFF' and head[8:12] == b'WEBP'
+    expected = _MAGIC_BY_EXTENSION.get(ext)
+    if not expected:
+        return True
+    return any(head.startswith(signature) for signature in expected)
+
+
 def validate_evidence_file(value):
-    """Validate an uploaded evidence file (extension + size)."""
+    """Validate an uploaded evidence file (extension, magic bytes + size)."""
     name = getattr(value, 'name', '') or ''
+    normalized = name.replace('\\', '/')
+    if '\x00' in name or '..' in normalized.split('/'):
+        raise ValidationError('The file name is not valid.')
     ext = os.path.splitext(name)[1].lower()
     if ext not in ALLOWED_EVIDENCE_EXTENSIONS:
         raise ValidationError(
@@ -32,6 +87,14 @@ def validate_evidence_file(value):
         raise ValidationError(
             f'File is too large ({size / (1024 * 1024):.1f} MB). '
             f'Maximum allowed size is {MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
+        )
+    if size == 0:
+        raise ValidationError('The uploaded file is empty.')
+    head = _read_head(value)
+    if not _magic_matches(ext, head):
+        raise ValidationError(
+            f'The contents of this file do not match its "{ext}" extension. '
+            'Upload a genuine PDF, image, archive or office document.'
         )
 
 

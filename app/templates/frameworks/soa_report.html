@@ -16,7 +16,7 @@
     </div>
     <div class="d-flex gap-2">
         <form method="get" class="d-flex gap-2">
-            <select name="framework" class="form-select form-select-sm" onchange="this.form.submit();" aria-label="Framework">
+            <select name="framework" class="form-select form-select-sm" data-auto-submit aria-label="Framework">
                 {% for fw in frameworks %}
                     <option value="{{ fw.pk }}" {% if fw.pk == framework.pk %}selected{% endif %}>{{ fw.name }}</option>
                 {% endfor %}

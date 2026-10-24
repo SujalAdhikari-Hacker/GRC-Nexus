@@ -1,0 +1,57 @@
+{% extends "base_auth.html" %}
+{% load static %}
+{% block title %}Two-factor verification{% endblock %}
+{% block meta_description %}Enter the six-digit code from your authenticator app to finish signing in to GRC Nexus.{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:480px; padding-top:9vh; padding-bottom:9vh;">
+  <div class="text-center mb-4">
+    <img src="{% static 'img/logo.svg' %}" alt="GRC Nexus" style="width:44px; height:44px;">
+    <h1 class="h4 mt-3 mb-1">Two-factor verification</h1>
+    <p class="text-muted small mb-0">One more step to protect your account</p>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }} py-2 small">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      {% if locked %}
+        <div class="alert alert-warning small">
+          Too many incorrect codes. Wait a few minutes, then try again or use a
+          backup code.
+        </div>
+      {% endif %}
+
+      <p class="text-muted small mb-3">
+        Open your authenticator app and enter the current six-digit code for
+        <strong>GRC Nexus</strong>. You can also enter one of your backup codes.
+      </p>
+
+      <form method="post" action="{% url 'core:mfa_verify' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="mb-3">
+          <label class="form-label" for="mfa-code">Authentication code</label>
+          <input id="mfa-code" type="text" name="code" class="form-control form-control-lg"
+                 inputmode="numeric" autocomplete="one-time-code" autofocus required
+                 placeholder="123456 or ABCD-EF12">
+        </div>
+        <button type="submit" class="btn btn-dark w-100" {% if locked %}disabled{% endif %}>
+          Verify and continue
+        </button>
+      </form>
+
+      <div class="text-center mt-3">
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-link btn-sm text-muted">Cancel and sign out</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,8 +1,8 @@
 """
 Sync IOCs from ThreatCluster public feed. No API key needed.
 """
-import requests
 from django.core.management.base import BaseCommand
+from core.safe_http import safe_get
 from django.utils import timezone
 
 from threatintel.models import IOC, IOCFeedSync
@@ -45,7 +45,7 @@ class Command(BaseCommand):
         ))
 
         try:
-            r = requests.get(FEED_URL, timeout=HTTP_TIMEOUT)
+            r = safe_get(FEED_URL, timeout=HTTP_TIMEOUT)
             r.raise_for_status()
             lines = r.text.splitlines()
         except Exception as e:

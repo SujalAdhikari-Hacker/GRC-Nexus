@@ -409,7 +409,9 @@ class RiskModelTests(TestCase):
         self.assertFalse(r.can_transition_to('monitored'))
 
     def test_is_overdue_uses_target_close_date(self):
-        past = _dt.date.today() - _dt.timedelta(days=3)
+        # Risk.is_overdue uses timezone.localdate(); comparing it with
+        # date.today() makes the test fail around midnight in TIME_ZONE.
+        past = timezone.localdate() - _dt.timedelta(days=3)
         r = self._risk(target_close_date=past)
         self.assertTrue(r.is_overdue)
         self.assertEqual(r.days_overdue, 3)
@@ -642,7 +644,10 @@ class ObjectSharingTests(TestCase):
                 'perms': ['view'],
             },
         )
-        self.assertEqual(response.status_code, 403)
+        # RLS hides the other department's row before the view can run its
+        # authorization check, so a cross-department share attempt is a 404.
+        # A 403 from the application-layer check is equally acceptable.
+        self.assertIn(response.status_code, (403, 404))
 
     def test_share_requires_post(self):
         self.client.force_login(self.hod_b)
@@ -1756,9 +1761,24 @@ class UploadValidationTests(TestCase):
         from django.core.files.uploadedfile import SimpleUploadedFile
         from core.validators import validate_evidence_file
 
-        for name in ('report.pdf', 'screenshot.png', 'notes.txt'):
+        samples = {
+            'report.pdf': b'%PDF-1.7\n%\xe2\xe3\xcf\xd3\n',
+            'screenshot.png': b'\x89PNG\r\n\x1a\n' + b'\x00' * 32,
+            'notes.txt': b'data',
+        }
+        for name, content in samples.items():
             with self.subTest(name=name):
-                validate_evidence_file(SimpleUploadedFile(name, b'data'))
+                validate_evidence_file(SimpleUploadedFile(name, content))
+
+    def test_renamed_executable_is_rejected_by_magic_bytes(self):
+        from django.core.exceptions import ValidationError
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.validators import validate_evidence_file
+
+        with self.assertRaises(ValidationError):
+            validate_evidence_file(
+                SimpleUploadedFile('invoice.pdf', b'<script>alert(1)</script>')
+            )
 
     def test_oversize_upload_is_rejected(self):
         from django.core.exceptions import ValidationError
