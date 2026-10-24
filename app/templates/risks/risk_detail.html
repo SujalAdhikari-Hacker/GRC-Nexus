@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}{{ risk.title }}{% endblock %}
+{% load permissions_tags %}
+{% block title %}Risk: {{ risk.title }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-0">
@@ -95,7 +96,7 @@
             <ul class="list-group list-group-flush">
                 {% for a in assets %}
                     <li class="list-group-item">
-                        <a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>
+                        {% if a|can_access:user %}<a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>{% else %}{{ a.name }}{% endif %}
                         <small class="text-muted">· {{ a.category.name }}</small>
                     </li>
                 {% empty %}
@@ -187,7 +188,7 @@
             <ul class="list-group list-group-flush">
                 {% for r in related_risks %}
                     <li class="list-group-item">
-                        <a href="{% url 'risks:detail' r.pk %}">{{ r.title }}</a>
+                        {% if r|can_access:user %}<a href="{% url 'risks:detail' r.pk %}">{{ r.title }}</a>{% else %}{{ r.title }}{% endif %}
                         <div class="small text-muted">residual {{ r.residual_score }}</div>
                     </li>
                 {% empty %}

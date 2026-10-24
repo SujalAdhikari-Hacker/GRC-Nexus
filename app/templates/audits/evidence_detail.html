@@ -1,5 +1,5 @@
-﻿{% extends "base.html" %}
-{% block title %}{{ item.title }}{% endblock %}
+{% extends "base.html" %}
+{% block title %}Evidence: {{ item.title }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-0">
@@ -81,6 +81,7 @@
                         </div>
                     </div>
 
+                    <div class="table-responsive">
                     <table class="table table-sm mb-3">
                         <tbody>
                             <tr>
@@ -110,6 +111,7 @@
                             </tr>
                         </tbody>
                     </table>
+                    </div>
 
                     <div class="small text-muted">
                         <strong>Assessor:</strong> {{ score.assessor|default:"—" }} · {{ score.scored_at|date:"Y-m-d H:i" }}

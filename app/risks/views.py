@@ -193,6 +193,7 @@ class RiskCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         recalculate_risk(self.object)
+        messages.success(self.request, f'Risk "{self.object.title}" created.')
         return response
 
 
@@ -206,6 +207,7 @@ class RiskUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         recalculate_risk(self.object)
+        messages.success(self.request, f'Risk "{self.object.title}" updated.')
         return response
 
 
@@ -397,7 +399,9 @@ class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
         form.instance.updated_by = self.request.user
         # The risk is re-synced by the RiskTreatment signals (post_save +
         # m2m_changed), which also cover edits made outside this view.
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Treatment added to risk "{self.risk.title}".')
+        return response
 
     def get_success_url(self):
         return reverse_lazy('risks:detail', kwargs={'pk': self.risk.pk})
@@ -417,7 +421,9 @@ class RiskTreatmentUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateVi
     def form_valid(self, form):
         form.instance.updated_by = self.request.user
         # Re-sync handled by the RiskTreatment signals.
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Treatment for risk "{self.object.risk.title}" updated.')
+        return response
 
     def get_success_url(self):
         return reverse_lazy('risks:detail', kwargs={'pk': self.object.risk.pk})
@@ -477,7 +483,9 @@ class RiskAppetiteCreateView(HODOrSuperuserMixin, CreateView):
             form.instance.department = self.request.user.department
         if form.cleaned_data.get('board_approved') and not form.instance.approved_by_id:
             form.instance.approved_by = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, 'Risk appetite statement created.')
+        return response
 
 
 class RiskAppetiteUpdateView(HODOrSuperuserMixin, DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
@@ -489,7 +497,9 @@ class RiskAppetiteUpdateView(HODOrSuperuserMixin, DepartmentPinnedMixin, ChangeS
 
     def form_valid(self, form):
         form.instance.updated_by = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, 'Risk appetite statement updated.')
+        return response
 
 
 # ==================================================================
@@ -575,6 +585,7 @@ class RiskExceptionCreateView(LoginRequiredMixin, CreateView):
             form.instance.requested_by = self.request.user
         response = super().form_valid(form)
         _notify_exception_approver(self.object)
+        messages.success(self.request, f'Exception request {self.object.exception_id} submitted for approval.')
         return response
 
     def get_success_url(self):
@@ -592,6 +603,7 @@ class RiskExceptionUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateVi
             raise PermissionDenied
         response = super().form_valid(form)
         _notify_exception_approver(self.object)
+        messages.success(self.request, f'Exception request {self.object.exception_id} updated.')
         return response
 
     def get_success_url(self):

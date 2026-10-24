@@ -230,7 +230,9 @@ class VendorAssessmentCreateView(LoginRequiredMixin, CreateView):
         form.instance.assessor = self.request.user
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Vendor assessment {self.object.assessment_id} created.')
+        return response
 
     def get_success_url(self):
         return reverse_lazy('vendors:assessment_detail', kwargs={'pk': self.object.pk})
@@ -249,7 +251,9 @@ class VendorAssessmentUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, Updat
 
     def form_valid(self, form):
         form.instance.updated_by = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Vendor assessment {self.object.assessment_id} updated.')
+        return response
 
     def get_success_url(self):
         return reverse_lazy('vendors:assessment_detail', kwargs={'pk': self.object.pk})

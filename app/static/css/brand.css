@@ -1,5 +1,5 @@
 /* ============================================================
-   GRC NEXUS BRAND — Design System
+   GRC NEXUS BRAND ï¿½ Design System
    ============================================================ */
 
 :root {
@@ -429,7 +429,7 @@ hr { border-color: var(--border-soft); opacity: 1; }
     --border-soft: #161B28;
     --text:         #E5E7EB;
     --text-muted:   #9CA3AF;
-    --text-faint:   #9CA3AF; /* was #6B7280 (2.8:1 on #0F141F); now ˜4.6:1 */
+    --text-faint:   #9CA3AF; /* was #6B7280 (2.8:1 on #0F141F); now ï¿½4.6:1 */
     --text-inverse: #F9FAFB;
     --brand-100: #1A2130;
     --brand-200: #232B3D;
@@ -505,7 +505,7 @@ hr { border-color: var(--border-soft); opacity: 1; }
 [data-bs-theme="dark"] .nav-link.active { background: rgba(255,255,255,0.05); }
 
 /* ============================================================
-   TOPBAR COMPONENTS — search, buttons, user menu, palette
+   TOPBAR COMPONENTS ï¿½ search, buttons, user menu, palette
    ============================================================ */
 
 .topbar-search {
@@ -734,7 +734,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .user-block { margin: 0; padding: 12px 14px; }
 
 /* ============================================================
-   SIDEBAR v3 — flat structure, no wrappers, inline-layout
+   SIDEBAR v3 ï¿½ flat structure, no wrappers, inline-layout
    ============================================================ */
 
 .sidebar .nav {
@@ -871,7 +871,7 @@ td:hover > .mx-add-btn {
 }
 
 /* ============================================================
-   DASHBOARD — CLICKABLE STAT CARDS
+   DASHBOARD ï¿½ CLICKABLE STAT CARDS
    ============================================================ */
 
 .stat-card-link {
@@ -916,7 +916,7 @@ td:hover > .mx-add-btn {
 }
 
 /* ============================================================
-   SIDEBAR — TICKET BADGES AND DOTS
+   SIDEBAR ï¿½ TICKET BADGES AND DOTS
    ============================================================ */
 
 .sidebar-badge {
@@ -968,19 +968,19 @@ td:hover > .mx-add-btn {
 
 
 /* ============================================================
-   GRC NEXUS — BRAND OVERRIDES
+   GRC NEXUS ï¿½ BRAND OVERRIDES
    Applied on top of the base theme. Blue accent everywhere.
    ============================================================ */
 
 :root {
     /* accent-* tokens are defined once, in the base :root at the top of this
-       file — not repeated here. */
+       file ï¿½ not repeated here. */
     --nexus-blue-deep: #0A1F3D;
     --nexus-blue: #00A8E8;
     --nexus-blue-light: #38BDF8;
 }
 
-/* Brand block in the sidebar — bigger, cleaner */
+/* Brand block in the sidebar ï¿½ bigger, cleaner */
 .brand {
     padding: 18px 16px !important;
     gap: 12px !important;
@@ -1006,7 +1006,7 @@ td:hover > .mx-add-btn {
     line-height: 1.2;
 }
 
-/* Sidebar section dot + badges — blue now */
+/* Sidebar section dot + badges ï¿½ blue now */
 .sidebar-badge {
     margin-left: auto;
     min-width: 20px;
@@ -1041,7 +1041,7 @@ td:hover > .mx-add-btn {
 /* sidebar-dot-pulse keyframes are defined once, above. */
 
 /* ============================================================
-   DARK MODE FIX — Bootstrap bg-white leaking white headers
+   DARK MODE FIX ï¿½ Bootstrap bg-white leaking white headers
    ============================================================ */
 .bg-white {
     background-color: var(--surface) !important;
@@ -1257,32 +1257,52 @@ td:hover > .mx-add-btn {
 }
 
 /* ============================================================
-   RESPONSIVE — usable on tablets and phones
+   RESPONSIVE ï¿½ usable on tablets and phones
    ============================================================ */
 .mobile-nav-toggle { display: none; }
 @media (max-width: 1100px) {
-    .app-layout { grid-template-columns: 1fr; }
+    .app-layout { display: block; }
     .sidebar {
-        position: fixed; inset: 0 auto 0 0; width: 268px; z-index: 1050;
+        position: fixed; inset: 0 auto 0 0; width: min(300px, 86vw); z-index: 1050;
         transform: translateX(-100%); transition: transform .2s ease;
+        box-shadow: 0 0 0 rgba(0,0,0,0);
     }
-    .sidebar.open { transform: translateX(0); }
+    .sidebar.open { transform: translateX(0); box-shadow: 0 24px 60px rgba(2, 6, 23, .45); }
+    .sidebar-close { display: inline-flex; }
+    .brand { padding-right: 56px !important; }
     .mobile-nav-toggle { display: inline-flex; }
-    .main-panel { min-width: 0; }
+    .main-panel { min-width: 0; margin-left: 0; }
+    body.nav-open { overflow: hidden; }
 }
 @media (max-width: 768px) {
     .content { padding: 14px !important; }
-    .topbar { flex-wrap: wrap; gap: 8px; }
+    .topbar { flex-wrap: wrap; gap: 8px; padding: 0 12px; }
+    .topbar-actions { gap: 4px; }
+    .topbar-search { width: 40px; padding: 6px; justify-content: center; }
     .topbar-search .search-placeholder, .topbar-search .kbd { display: none; }
+    .user-menu-trigger .username { display: none; }
     .page-title { font-size: 18px; }
     .card-body { padding: 14px; }
+    .card-header { flex-wrap: wrap; row-gap: 8px; }
     .table-responsive, .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table.table { min-width: 640px; }
     .pagination-wrap { flex-direction: column; align-items: flex-start; }
+    /* 16px keeps iOS Safari from zooming when a field is focused. */
+    input.form-control, select.form-select, textarea.form-control { font-size: 16px; }
+    .app-footer { padding: 14px 16px 18px; }
+    .app-footer-links { gap: 12px; }
+}
+@media (max-width: 480px) {
+    .content { padding: 10px !important; }
+    .card-body { padding: 12px; }
+    .app-footer { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .app-footer-links { gap: 10px 14px; }
+    .topbar-title { flex: 1 1 100%; order: 3; }
+    .topbar-actions { margin-left: auto; }
 }
 
 /* ============================================================
-   DESIGN TOKENS — utility classes
+   DESIGN TOKENS ï¿½ utility classes
 
    These replace recurring inline styles (colours, widths, font
    sizes) so values come from :root instead of being hard-coded
@@ -1320,7 +1340,7 @@ td:hover > .mx-add-btn {
 .border-left-amber { border-left: 4px solid #F59E0B; }
 
 /* ============================================================
-   UTILITIES — second pass (replaces repeated inline styles)
+   UTILITIES ï¿½ second pass (replaces repeated inline styles)
    ============================================================ */
 .stat-alert-danger  { border-color: var(--danger, #DC2626); }
 .stat-alert-warning { border-color: var(--warning, #D97706); }
@@ -1354,7 +1374,7 @@ td:hover > .mx-add-btn {
 
 /* ============================================================
    ERROR PAGES (403 / 404 / 500)
-   Standalone, base-less pages — theme-aware.
+   Standalone, base-less pages ï¿½ theme-aware.
    ============================================================ */
 .error-page {
     min-height: 100vh;
@@ -1379,10 +1399,71 @@ td:hover > .mx-add-btn {
 .error-footer { margin-top: 40px; font-size: 12px; color: var(--text-faint, #94A3B8); }
 
 /* ============================================================
+   APP FOOTER
+   ============================================================ */
+.app-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px 24px 22px;
+    margin-top: 8px;
+    border-top: 1px solid var(--border-soft);
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.app-footer-links { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.app-footer-links a { color: var(--text-muted); }
+.app-footer-links a:hover { color: var(--accent-600); }
+.app-footer-copy span { color: var(--text-faint); }
+
+/* Brand block is a link to the dashboard */
+a.brand { text-decoration: none; }
+a.brand:hover .brand-name { color: var(--accent-500) !important; }
+a.auth-brand { text-decoration: none; }
+a.auth-brand:hover .brand-name { color: var(--accent-500); }
+
+/* Mobile drawer close button + backdrop */
+.sidebar-close {
+    display: none;
+    position: absolute; top: 12px; right: 10px; z-index: 3;
+    width: 34px; height: 34px; align-items: center; justify-content: center;
+    border: 0; border-radius: 8px;
+    background: var(--brand-800); color: #fff;
+}
+.sidebar-close:hover { background: var(--brand-700); }
+.sidebar-backdrop {
+    position: fixed; inset: 0; z-index: 1040;
+    background: rgba(2, 6, 23, .55);
+    opacity: 0; transition: opacity .2s ease;
+}
+.sidebar-backdrop.show { opacity: 1; }
+
+/* ============================================================
+   OVERFLOW GUARDS
+   Prevents sideways scrolling on every page. Tables keep their
+   own scroll container; long words and code wrap instead of
+   stretching the layout.
+   ============================================================ */
+html, body { max-width: 100%; overflow-x: hidden; }
+@supports (overflow-x: clip) {
+    html, body { overflow-x: clip; }
+}
+.main-panel, .content, .card, .row, [class^="col-"], [class*=" col-"] { min-width: 0; }
+.content, .card-body, .modal-body { overflow-wrap: anywhere; }
+img, video, canvas, iframe { max-width: 100%; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.table-responsive, .table-wrap { max-width: 100%; }
+.topbar-title { overflow: hidden; }
+.topbar-title .page-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dropdown-menu, .user-menu, .notification-dropdown { max-width: calc(100vw - 16px); }
+
+/* ============================================================
    PRINT
    ============================================================ */
 @media print {
-    .sidebar, .topbar, .pagination-wrap, .btn, .no-print { display: none !important; }
+    .sidebar, .topbar, .pagination-wrap, .btn, .no-print, .app-footer, .sidebar-backdrop { display: none !important; }
     .app-layout { display: block; }
     .content { padding: 0; }
     .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }

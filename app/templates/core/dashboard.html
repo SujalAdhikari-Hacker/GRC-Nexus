@@ -1,5 +1,7 @@
 {% extends "base.html" %}
+{% load permissions_tags %}
 {% block title %}Dashboard{% endblock %}
+{% block meta_description %}Security posture at a glance: risk heatmap, control coverage, open incidents and overdue actions for your department.{% endblock %}
 {% block breadcrumb %}<h1 class="h5 mb-0">Dashboard</h1>{% endblock %}
 
 {% block content %}
@@ -199,6 +201,7 @@
                 </div>
             </div>
             <div class="card-body">
+                <div class="table-responsive">
                 <table class="table table-bordered mb-0 table-fixed">
                     <tbody>
                     {% for row in heatmap %}
@@ -233,6 +236,7 @@
                     </tr>
                     </tbody>
                 </table>
+                </div>
                 <div class="text-center text-muted small mt-2">
                     Likelihood (1 = rare, 5 = almost certain) →
                 </div>
@@ -373,7 +377,7 @@
                                     {{ row.exposure }}
                                 </span>
                             </td>
-                            <td><small><a href="{% url 'risks:detail' row.top_risk.pk %}">{{ row.top_risk.title|truncatechars:45 }}</a></small></td>
+                            {% if row.top_risk|can_access:user %}<a href="{% url 'risks:detail' row.top_risk.pk %}">{{ row.top_risk.title|truncatechars:45 }}</a>{% else %}{{ row.top_risk.title|truncatechars:45 }}{% endif %}
                             <td class="text-end">
                                 <a href="{% url 'assets:detail' row.asset.pk %}" class="btn btn-sm btn-outline-dark">View</a>
                             </td>
@@ -408,7 +412,7 @@
                     <tbody>
                     {% for r in top_risks %}
                         <tr>
-                            <td><a href="{% url 'risks:detail' r.pk %}">{{ r.title }}</a></td>
+                            {% if r|can_access:user %}<a href="{% url 'risks:detail' r.pk %}">{{ r.title }}</a>{% else %}{{ r.title }}{% endif %}
                             <td class="text-center">{{ r.inherent_score }}</td>
                             <td class="text-center"><strong>{{ r.residual_score }}</strong></td>
                             <td class="text-center">

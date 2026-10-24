@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Help &amp; Support{% endblock %}
+{% block meta_description %}How to use GRC Nexus: module guide, roles and permissions, notifications, keyboard shortcuts and where to get support.{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Help &amp; Support</h1>{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-body">
+                <h2 class="h5 mb-2">One system of record, from assets to assurance</h2>
+                <p class="text-muted mb-3">
+                    GRC Nexus carries every governance record through one connected chain:
+                    an <strong>asset</strong> exposes a <strong>risk</strong>, a <strong>control</strong>
+                    treats it, a <strong>policy</strong> governs it, an <strong>audit</strong> tests it,
+                    and <strong>evidence</strong> proves it. Nothing is entered twice and every change
+                    is written to the change log.
+                </p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-dark align-self-start">1</span>
+                            <div>
+                                <div class="fw-semibold">Register what you own</div>
+                                <div class="small text-muted">Add assets and assign an owner. Classification drives the controls that apply.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-dark align-self-start">2</span>
+                            <div>
+                                <div class="fw-semibold">Assess and treat risk</div>
+                                <div class="small text-muted">Score inherent risk, choose a treatment, then record residual risk.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-dark align-self-start">3</span>
+                            <div>
+                                <div class="fw-semibold">Prove it</div>
+                                <div class="small text-muted">Attach evidence, run control tests and complete compliance assessments.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-dark align-self-start">4</span>
+                            <div>
+                                <div class="fw-semibold">Report and respond</div>
+                                <div class="small text-muted">Use dashboards, KRIs, the executive report and the incident register.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header bg-white"><i class="bi bi-keyboard me-1"></i> Keyboard shortcuts</div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between py-2 border-bottom-soft"><span class="small text-muted">Search everything</span><kbd>Ctrl</kbd> <kbd>K</kbd></div>
+                <div class="d-flex justify-content-between py-2 border-bottom-soft"><span class="small text-muted">Move through results</span><span><kbd>↑</kbd> <kbd>↓</kbd></span></div>
+                <div class="d-flex justify-content-between py-2 border-bottom-soft"><span class="small text-muted">Open result</span><kbd>Enter</kbd></div>
+                <div class="d-flex justify-content-between py-2"><span class="small text-muted">Close search / menu</span><kbd>Esc</kbd></div>
+                <div class="small text-muted mt-2">On a phone, use the menu button in the top bar to open the sidebar.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-white"><i class="bi bi-grid me-1"></i> Module guide</div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th scope="col">Module</th><th scope="col">What it holds</th><th scope="col" class="text-end">Open</th></tr>
+            </thead>
+            <tbody>
+                <tr><td class="fw-semibold">Assets</td><td class="small text-muted">Inventory, classification, ownership and dependency mapping.</td><td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'assets:list' %}">Assets</a></td></tr>
+                <tr><td class="fw-semibold">Risks</td><td class="small text-muted">Register, matrix, appetite, treatments and approved exceptions.</td><td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'risks:list' %}">Risks</a></td></tr>
+                <tr><td class="fw-semibold">Controls &amp; frameworks</td><td class="small text-muted">Control library, effectiveness, framework mappings and the Statement of Applicability.</td><td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'controls:list' %}">Controls</a></td></tr>
+                <tr><td class="fw-semibold">Policies</td><td class="small text-muted">Policy library, ownership, review dates and staff attestations.</td><td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'policies:list' %}">Policies</a></td></tr>
+                <tr><td class="fw-semibold">Audits</td><td class="small text-muted">Audit schedule, evidence library, testing, findings and action plans.</td><td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'audits:list' %}">Audits</a></td></tr>
+                <tr><td class="fw-semibold">Vendors</td><td class="small text-muted">Third-party register and risk assessments with approval status.</td><td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'vendors:list' %}">Vendors</a></td></tr>
+                <tr><td class="fw-semibold">Vulnerabilities</td><td class="small text-muted">Findings linked to assets, live CVE feed, EPSS and KEV context.</td><td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'vulnerabilities:finding_list' %}">Findings</a></td></tr>
+                <tr><td class="fw-semibold">KRIs</td><td class="small text-muted">Key risk indicators, thresholds and breach history.</td><td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'kris:list' %}">KRIs</a></td></tr>
+                <tr><td class="fw-semibold">Incidents</td><td class="small text-muted">Incident register with SLA clocks, breach notification and root-cause closure.</td><td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'incidents:list' %}">Incidents</a></td></tr>
+                <tr><td class="fw-semibold">Tickets</td><td class="small text-muted">Operational queue for remediation work, assigned by department.</td><td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'tickets:list' %}">Tickets</a></td></tr>
+                <tr><td class="fw-semibold">Threat intel</td><td class="small text-muted">IOC feed, MITRE ATT&amp;CK matrix and tracked threat actors.</td><td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'threatintel:overview' %}">Overview</a></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white"><i class="bi bi-shield-lock me-1"></i> Roles &amp; access</div>
+            <div class="card-body small">
+                <p class="mb-2"><strong>Department member</strong> — sees records owned by their department only. Read and update access follows the record owner.</p>
+                <p class="mb-2"><strong>Head of Department (HOD)</strong> — manages their department's records, users, saved views and the change log. Cross-department data stays hidden.</p>
+                <p class="mb-0"><strong>Superadmin</strong> — full platform access, including departments, role mapping and Django admin. Superadmin actions are still written to the change log.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white"><i class="bi bi-bell me-1"></i> Notifications &amp; escalation</div>
+            <div class="card-body small">
+                <p class="mb-2">The bell shows unread notifications for your department. Email alerts can be enabled per user in <a href="{% url 'core:settings' %}">Settings</a>.</p>
+                <p class="mb-2">Overdue controls, expiring policies, breached KRIs and incident SLAs escalate automatically to the record owner, then the department HOD, then the platform escalation list.</p>
+                <p class="mb-0">Incident severity sets the response SLA: critical 1h, high 4h, medium 24h, low 72h. Personal-data breaches also start a 72-hour notification clock.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body d-flex flex-wrap gap-3 align-items-center justify-content-between">
+        <div>
+            <div class="fw-semibold">Need more help?</div>
+            <div class="small text-muted">Ask your platform administrator, or review the audit trail of any change in the change log.</div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if user.is_hod or user.is_superuser %}<a class="btn btn-outline-dark btn-sm" href="{% url 'core:history' %}"><i class="bi bi-clock-history me-1"></i>Change Log</a>{% endif %}
+            <a class="btn btn-outline-dark btn-sm" href="{% url 'core:notifications' %}"><i class="bi bi-bell me-1"></i>Notifications</a>
+            <a class="btn btn-dark btn-sm" href="{% url 'core:dashboard' %}"><i class="bi bi-grid-1x2 me-1"></i>Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

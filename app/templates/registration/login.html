@@ -6,15 +6,15 @@
 <div class="auth-shell">
 
     {# ─── Left: brand panel ─── #}
-    <div class="auth-brand-panel" style="background-image: url('{% static "img/login-hero.png" %}'); background-size: cover; background-position: right center; background-blend-mode: screen;">
+    <div class="auth-brand-panel" style="background-image: url('{% static "img/login-hero.jpg" %}'); background-size: cover; background-position: right center; background-blend-mode: screen;">
         <div style="position:absolute; inset:0; background: linear-gradient(90deg, rgba(11,18,32,0.92) 0%, rgba(11,18,32,0.55) 50%, rgba(11,18,32,0.15) 100%); z-index:0;"></div>
-        <div class="auth-brand">
+        <a href="{% url 'core:dashboard' %}" class="auth-brand" aria-label="GRC Nexus — dashboard">
             <img src="{% static 'img/logo.svg' %}" class="brand-mark" alt="GRC Nexus">
             <div>
                 <div class="brand-name">GRC Nexus</div>
                 <div style="font-size:10px; color:#94A3B8; letter-spacing:.10em; text-transform:uppercase; margin-top:2px;">From Assets to Assurance</div>
             </div>
-        </div>
+        </a>
 
         <div class="auth-hero">
             <h1>From assets<br>to assurance.</h1>
@@ -33,7 +33,7 @@
         </div>
 
         <div style="position:relative; z-index:1; font-size:12px; color:var(--brand-500);">
-            © 2026 GRC Nexus · From Assets to Assurance
+            &copy; {% now "Y" %} GRC Nexus · From Assets to Assurance
         </div>
     </div>
 

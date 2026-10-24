@@ -401,6 +401,11 @@ class DepartmentUpdateView(SuperuserOnlyMixin, UpdateView):
     success_url = reverse_lazy('core:departments_list')
 
 
+class HelpView(LoginRequiredMixin, TemplateView):
+    """In-product help: module map, roles, shortcuts and escalation paths."""
+    template_name = 'core/help.html'
+
+
 class RolesPermissionsView(HODOrSuperuserMixin, TemplateView):
     template_name = 'core/roles_permissions.html'
 

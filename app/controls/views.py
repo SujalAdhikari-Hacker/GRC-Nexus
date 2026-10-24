@@ -154,7 +154,9 @@ class ControlCreateView(
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Control {self.object.code} created.')
+        return response
 
     def get_context_data(self, **kwargs):
         return _framework_context(self, super().get_context_data(**kwargs))
@@ -170,7 +172,9 @@ class ControlUpdateView(
 
     def form_valid(self, form):
         form.instance.updated_by = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Control {self.object.code} updated.')
+        return response
 
     def get_context_data(self, **kwargs):
         return _framework_context(self, super().get_context_data(**kwargs))
@@ -217,7 +221,9 @@ class ControlEvidenceCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.control = self.control
         form.instance.uploaded_by = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Evidence added to control {self.control.code}.')
+        return response
 
     def get_success_url(self):
         return reverse_lazy('controls:detail', kwargs={'pk': self.control.pk})
@@ -241,7 +247,9 @@ class ControlFrameworkMappingCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.control = self.control
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Framework mapping added to control {self.control.code}.')
+        return response
 
     def get_success_url(self):
         return reverse_lazy('controls:detail', kwargs={'pk': self.control.pk})

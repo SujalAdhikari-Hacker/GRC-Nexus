@@ -6,7 +6,7 @@ class UserPreferenceForm(forms.ModelForm):
     class Meta:
         model = UserPreference
         fields = [
-            'language', 'timezone', 'date_format', 'time_format',
+            'timezone', 'date_format', 'time_format',
             'theme', 'items_per_page',
             'email_notifications_enabled', 'email_digest_frequency',
             'email_on_ticket_assigned', 'email_on_risk_breach',

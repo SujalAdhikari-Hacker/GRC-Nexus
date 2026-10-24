@@ -12,6 +12,7 @@ from .views import (
     DepartmentListView, DepartmentCreateView, DepartmentUpdateView,
     RolesPermissionsView,
     ExecutiveReportView,
+    HelpView,
 )
 from .history_views import HistoryListView
 
@@ -44,6 +45,7 @@ urlpatterns = [
     path('notifications/mark-all-read/', notification_mark_all_read, name='notification_mark_all_read'),
     path('settings/', settings_view, name='settings'),
     path('settings/test-email/', send_test_email, name='send_test_email'),
+    path('help/', HelpView.as_view(), name='help'),
     path('history/', HistoryListView.as_view(), name='history'),
 
     # Object-level sharing (django-guardian)

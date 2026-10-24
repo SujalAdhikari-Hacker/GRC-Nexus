@@ -12,7 +12,7 @@
 [![Django](https://img.shields.io/badge/django-4.2-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
-[![Tests](https://img.shields.io/badge/tests-219%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-226%20passing-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
@@ -432,6 +432,8 @@ docker compose exec web python manage.py sync_recent_cves        # latest CVEs f
 docker compose exec web python manage.py send_escalations         # overdue/expiring items → notify + email
 docker compose exec web python manage.py send_email_digest        # daily/weekly digest to opted-in users
 docker compose exec web python manage.py test                    # run the test suite
+docker compose exec web python manage.py check_links             # crawl the UI as admin, report dead links
+docker compose exec web python manage.py check_links --user it_hod --max 500   # crawl as another role
 docker compose down                                              # stop
 docker compose down -v                                           # stop and wipe the database
 ```

@@ -1,11 +1,18 @@
 ﻿{% load static %}
+{% load permissions_tags %}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Dashboard{% endblock %} · GRC Nexus</title>
+    <meta name="description" content="{% block meta_description %}GRC Nexus is a governance, risk and compliance platform that connects assets, risks, controls, policies, audits, incidents and evidence into one auditable system of record.{% endblock %}">
+    <meta name="theme-color" content="#0B1220">
+    <meta name="robots" content="noindex, nofollow">
     <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon-32.png' %}">
+    <link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any">
+    <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
     <script>
         (function(){
             try {
@@ -47,15 +54,18 @@
 {% with ns=request.resolver_match.namespace urlname=request.resolver_match.url_name %}
 <div class="app-layout">
 
-    <aside class="sidebar" id="sidebar">
-        <div class="brand">
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+        <button type="button" class="sidebar-close" id="sidebarClose" aria-label="Close navigation">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+        <a href="{% url 'core:dashboard' %}" class="brand" aria-label="GRC Nexus — dashboard">
             <img src="{% static 'img/logo.svg' %}" class="brand-mark" alt="GRC Nexus">
             <div style="line-height:1.1; min-width:0; flex:1;">
                 <div class="brand-name">GRC Nexus</div>
                 <div class="brand-tagline">From Assets to Assurance</div>
             </div>
             <span class="brand-version">v2.2</span>
-        </div>
+        </a>
 
         <nav class="nav">
 
@@ -214,12 +224,6 @@
             <a href="{% url 'core:roles_permissions' %}" class="sidebar-link toggle-item" data-section="admin" style="display: {% if urlname == 'roles_permissions' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-shield-lock"></i><span>Roles &amp; Permissions</span>
             </a>
-            <div class="sidebar-section-head" style="display: flex; cursor: default;">Admin</div>
-            {% if user.is_superuser %}
-            <a href="{% url 'admin:index' %}" class="sidebar-link d-flex">
-                <i class="bi bi-gear"></i><span>Django Admin</span>
-            </a>
-            {% endif %}
             {% endif %}
 
         </nav>
@@ -240,10 +244,12 @@
         </div>
     </aside>
 
+    <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
+
     <main class="main-panel" id="main-content">
         <header class="topbar">
             <button type="button" class="topbar-btn mobile-nav-toggle" id="mobileNavToggle"
-                    aria-label="Toggle navigation" aria-controls="sidebar">
+                    aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">
                 <i class="bi bi-list" aria-hidden="true"></i>
             </button>
             <div class="topbar-title">
@@ -272,7 +278,7 @@
                         </div>
                         <div class="notification-dropdown-body">
                             {% for n in recent_notifications %}
-                                <a href="{% if n.action_url %}{{ n.action_url }}{% else %}{% url 'core:notifications' %}{% endif %}" class="notification-item">
+                                <a href="{% if n.action_url and n.action_url|url_allowed:user %}{{ n.action_url }}{% else %}{% url 'core:notifications' %}{% endif %}" class="notification-item">
                                     <div class="notification-item-icon"><i class="bi {{ n.kind_icon }}"></i></div>
                                     <div class="notification-item-text">
                                         <div class="notification-item-title">{{ n.title|truncatechars:80 }}</div>
@@ -316,7 +322,6 @@
                         {% if user.is_staff %}
                         <a href="{% url 'admin:index' %}" class="user-menu-item"><i class="bi bi-gear"></i><span>Django Admin</span></a>
                         {% endif %}
-                        <a href="{% url 'core:settings' %}" class="user-menu-item"><i class="bi bi-gear"></i><span>Settings</span></a>
                         <div class="user-menu-divider"></div>
                         {% endif %}
                         <a href="{% url 'password_change' %}" class="user-menu-item"><i class="bi bi-key"></i><span>Change Password</span></a>
@@ -340,10 +345,28 @@
                 {% endfor %}
                 </div>
             {% endif %}
+            {% if form.errors %}
+                <div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill mt-1" aria-hidden="true"></i>
+                    <div>Please correct the errors highlighted below and try again.</div>
+                </div>
+            {% endif %}
             {% include 'includes/_saved_views.html' %}
             {% block content %}{% endblock %}
             {% include 'includes/_pagination.html' %}
         </div>
+
+        <footer class="app-footer">
+            <div class="app-footer-links">
+                <a href="{% url 'core:help' %}">Help</a>
+                <a href="{% url 'core:executive_report' %}" target="_blank" rel="noopener">Executive Report</a>
+                {% if user.is_hod or user.is_superuser %}<a href="{% url 'core:history' %}">Change Log</a>{% endif %}
+                <a href="{% url 'core:settings' %}">Settings</a>
+            </div>
+            <div class="app-footer-copy">
+                &copy; {% now "Y" %} GRC Nexus <span aria-hidden="true">·</span> From Assets to Assurance
+            </div>
+        </footer>
     </main>
 </div>
 
@@ -392,16 +415,37 @@
     (function(){
         var toggle = document.getElementById('mobileNavToggle');
         var sidebar = document.getElementById('sidebar');
+        var backdrop = document.getElementById('sidebarBackdrop');
+        var closeBtn = document.getElementById('sidebarClose');
         if (!toggle || !sidebar) return;
+
+        function setOpen(open) {
+            sidebar.classList.toggle('open', open);
+            document.body.classList.toggle('nav-open', open);
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+            if (backdrop) {
+                backdrop.hidden = !open;
+                backdrop.classList.toggle('show', open);
+            }
+        }
         toggle.addEventListener('click', function(e){
             e.stopPropagation();
-            sidebar.classList.toggle('open');
+            setOpen(!sidebar.classList.contains('open'));
         });
-        document.addEventListener('click', function(e){
-            if (window.innerWidth > 1100) return;
-            if (!sidebar.classList.contains('open')) return;
-            if (sidebar.contains(e.target) || toggle.contains(e.target)) return;
-            sidebar.classList.remove('open');
+        if (closeBtn) closeBtn.addEventListener('click', function(){ setOpen(false); });
+        if (backdrop) backdrop.addEventListener('click', function(){ setOpen(false); });
+        document.addEventListener('keydown', function(e){
+            if (e.key === 'Escape' && sidebar.classList.contains('open')) setOpen(false);
+        });
+        // Close after choosing a destination on small screens.
+        sidebar.querySelectorAll('a.sidebar-link, .brand').forEach(function(link){
+            link.addEventListener('click', function(){
+                if (window.innerWidth <= 1100) setOpen(false);
+            });
+        });
+        window.addEventListener('resize', function(){
+            if (window.innerWidth > 1100) setOpen(false);
         });
     })();
 

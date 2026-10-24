@@ -1,5 +1,6 @@
-﻿{% extends "base.html" %}
-{% block title %}{{ vendor.name }}{% endblock %}
+{% extends "base.html" %}
+{% load permissions_tags %}
+{% block title %}Vendor: {{ vendor.name }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-0">
@@ -128,7 +129,7 @@
             <ul class="list-group list-group-flush">
                 {% for a in assets %}
                     <li class="list-group-item d-flex justify-content-between">
-                        <a href="{% url 'assets:detail' a.pk %}"><code>{{ a.asset_id }}</code> {{ a.name }}</a>
+                        {% if a|can_access:user %}<a href="{% url 'assets:detail' a.pk %}"><code>{{ a.asset_id }}</code> {{ a.name }}</a>{% else %}<code>{{ a.asset_id }}</code> {{ a.name }}{% endif %}
                         <small class="text-muted">{{ a.get_classification_display }} · {{ a.get_environment_display }}</small>
                     </li>
                 {% empty %}
@@ -142,7 +143,7 @@
             <ul class="list-group list-group-flush">
                 {% for r in risks %}
                     <li class="list-group-item d-flex justify-content-between">
-                        <a href="{% url 'risks:detail' r.pk %}">{{ r.title|truncatechars:70 }}</a>
+                        {% if r|can_access:user %}<a href="{% url 'risks:detail' r.pk %}">{{ r.title|truncatechars:70 }}</a>{% else %}{{ r.title|truncatechars:70 }}{% endif %}
                         <small>residual {{ r.residual_score }}{% if r.appetite_breached %} <span class="badge bg-danger ms-1">Breach</span>{% endif %}</small>
                     </li>
                 {% empty %}
