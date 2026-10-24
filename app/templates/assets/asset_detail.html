@@ -138,6 +138,34 @@
         </div>
 
         <div class="card mt-3">
+            <div class="card-header bg-white"><strong><i class="bi bi-diagram-3"></i> Depends on ({{ asset.depends_on.count }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for dep in asset.depends_on.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <a href="{% url 'assets:detail' dep.pk %}">{{ dep.name }}</a>
+                        <span class="badge bg-secondary">{{ dep.get_criticality_display|default:dep.criticality }}</span>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small">No upstream dependencies recorded.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-white"><strong><i class="bi bi-broadcast"></i> Dependents — stops if this fails ({{ asset.dependents.count }})</strong></div>
+            <ul class="list-group list-group-flush">
+                {% for dep in asset.dependents.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <a href="{% url 'assets:detail' dep.pk %}">{{ dep.name }}</a>
+                        <span class="badge bg-secondary">{{ dep.get_criticality_display|default:dep.criticality }}</span>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small">Nothing recorded as depending on this asset.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card mt-3">
             <div class="card-header bg-white"><strong>Vulnerability findings ({{ asset.findings.count }})</strong></div>
             <ul class="list-group list-group-flush">
                 {% for f in asset.findings.all %}

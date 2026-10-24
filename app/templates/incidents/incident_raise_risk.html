@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Raise risk from {{ incident.reference }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'incidents:list' %}">Security Incidents</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incidents:detail' incident.pk %}">{{ incident.reference }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Raise risk</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h1 class="h6 mb-0"><i class="bi bi-plus-circle"></i> Raise a risk-register entry from {{ incident.reference }}</h1>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">
+                    This creates a new risk owned by <strong>{{ incident.owner_dept.name }}</strong>
+                    ({{ incident.handler|default:"the department" }} as owner), pre-filled from the
+                    incident, with the affected assets linked. The incident stays on its own
+                    record; the two stay cross-linked afterwards.
+                </p>
+                <dl class="row small">
+                    <dt class="col-sm-4">Risk title</dt><dd class="col-sm-8">[{{ incident.reference }}] {{ incident.title|truncatechars:80 }}</dd>
+                    <dt class="col-sm-4">Initial impact</dt><dd class="col-sm-8">{{ incident.get_severity_display }} (scaled to a 1–5 impact score)</dd>
+                    <dt class="col-sm-4">Status after creation</dt><dd class="col-sm-8">Identified — awaiting assessment</dd>
+                </dl>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-dark"><i class="bi bi-plus-lg"></i> Raise the risk</button>
+                        <a href="{% url 'incidents:detail' incident.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -2,7 +2,7 @@
 {% block content %}
 <p>Total risks: {{ total }} · Breaches: {{ breached_count }}</p>
 <table>
-    <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Inherent</th><th>Residual</th><th>Breach</th></tr></thead>
+    <thead><tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Category</th><th scope="col">Inherent</th><th scope="col">Residual</th><th scope="col">Breach</th></tr></thead>
     <tbody>
     {% for r in risks %}
         <tr><td>{{ r.pk }}</td><td>{{ r.title|truncatechars:50 }}</td><td>{{ r.category.name }}</td>

@@ -37,6 +37,10 @@ class Notification(models.Model):
         ('vendor_contract_expired', 'Vendor contract expired or expiring'),
         ('kri_red',                 'KRI breached tolerance'),
         ('vuln_sla_breach',         'Vulnerability past its remediation SLA'),
+        # --- incident register ---
+        ('incident_open',           'Security incident needs attention'),
+        ('incident_sla_breach',     'Incident past its triage SLA'),
+        ('incident_breach_due',     'Personal-data breach notification deadline'),
     ]
 
     owner_dept = models.ForeignKey(
@@ -109,6 +113,9 @@ class Notification(models.Model):
             'vendor_contract_expired': 'bi-file-earmark-x',
             'kri_red':                 'bi-speedometer2',
             'vuln_sla_breach':         'bi-shield-exclamation',
+            'incident_open':           'bi-fire',
+            'incident_sla_breach':     'bi-alarm',
+            'incident_breach_due':     'bi-shield-exclamation',
         }
         return icons.get(self.kind, 'bi-bell')
 

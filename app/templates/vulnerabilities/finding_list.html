@@ -1,6 +1,6 @@
 ﻿{% extends "base.html" %}
 {% block title %}Vulnerabilities{% endblock %}
-{% block breadcrumb %}<h5 class="mb-0">Vulnerability Findings</h5>{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Vulnerability Findings</h1>{% endblock %}
 
 {% block content %}
 <div class="row g-3 mb-4">
@@ -48,13 +48,13 @@
         <table class="table mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>CVE / Title</th>
-                    <th>Asset</th>
-                    <th class="text-center">CVSS</th>
-                    <th class="text-center">Status</th>
-                    <th>Assigned</th>
-                    <th class="text-center">SLA</th>
-                    <th></th>
+                    <th scope="col">CVE / Title</th>
+                    <th scope="col">Asset</th>
+                    <th scope="col" class="text-center">CVSS</th>
+                    <th scope="col" class="text-center">Status</th>
+                    <th scope="col">Assigned</th>
+                    <th scope="col" class="text-center">SLA</th>
+                    <th scope="col"></th>
                 </tr>
             </thead>
             <tbody>

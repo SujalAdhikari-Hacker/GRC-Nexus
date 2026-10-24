@@ -7,6 +7,7 @@ from .views import (
     FrameworkCreateView, FrameworkUpdateView,
     FrameworkControlCreateView, FrameworkControlUpdateView,
 )
+from .soa import SoAReportView
 
 app_name = 'frameworks'
 
@@ -14,14 +15,14 @@ urlpatterns = [
     path('', FrameworkListView.as_view(), name='list'),
     path('new/', FrameworkCreateView.as_view(), name='create'),
     path('status/', ComplianceStatusView.as_view(), name='compliance_status'),
+    path('soa/', SoAReportView.as_view(), name='soa'),
 
     # Framework control routes
     path('controls/new/', FrameworkControlCreateView.as_view(), name='control_create'),
     path('controls/<int:pk>/edit/', FrameworkControlUpdateView.as_view(), name='control_update'),
 
     # Compliance assessments
-    path('assessments/', ComplianceAssessmentListView.as_view(), name='assessment_list'),
-    path('assessments/new/', ComplianceAssessmentCreateView.as_view(), name='assessment_create'),
+    path('assessments/', ComplianceAssessmentListView.as_view(), name='assessment_list'),    path('assessments/new/', ComplianceAssessmentCreateView.as_view(), name='assessment_create'),
     path('assessments/items/<int:pk>/edit/', ComplianceAssessmentItemUpdateView.as_view(), name='assessment_item_update'),
     path('assessments/items/<int:pk>/status/', assessment_item_quick_status, name='assessment_item_status'),
     path('assessments/<int:pk>/', ComplianceAssessmentDetailView.as_view(), name='assessment_detail'),

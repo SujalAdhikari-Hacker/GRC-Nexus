@@ -12,7 +12,7 @@
 [![Django](https://img.shields.io/badge/django-4.2-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
-[![Tests](https://img.shields.io/badge/tests-120%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-219%20passing-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
@@ -46,8 +46,14 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   the UI. A user with no department sees nothing rather than everything.
 - **Cross-framework mapping** — one control satisfies many framework requirements
   (ISO 27001 + NIST + CIS) with relationship types and weighted coverage.
-- **Model history** — `django-simple-history` tracks who changed what, and when, on the core
-  domain models.
+- **Model history & merged change log** — `django-simple-history` tracks who changed what, and
+  when, on the core domain models, and the **Change Log** page (`/history/`, HODs and superusers)
+  merges the newest rows across every tracked register into one filterable, paginated list —
+  the "show me everything that changed this quarter" page auditors ask for.
+- **Sign-in throttling** — repeated failed logins from the same IP+username are locked out
+  (5 failures / 15 min window) before the password is ever checked; configurable via
+  `LOGIN_MAX_FAILURES`, `LOGIN_FAILURE_WINDOW` and `LOGIN_LOCKOUT_SECONDS`, no extra
+  dependencies.
 
 ---
 
@@ -56,6 +62,9 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 ### Governance & inventory
 - **Asset inventory** — `AST-XXXX` IDs, hostname, IP, FQDN, OS, cloud provider/region,
   location, classification, CIA ratings and business context.
+- **Asset dependencies** — an upstream/downstream dependency graph (`depends_on`) with its own
+  form section: every asset page shows what it needs *and* which systems it can take down,
+  i.e. the outage blast radius auditors and ops both care about.
 - **Relationship Explorer** — interactive force-directed graph of
   asset ↔ vendor ↔ risk ↔ control ↔ policy ↔ framework connections.
 - **Classification & owner views** — grouped by Public/Internal/Confidential/Restricted, and by
@@ -76,9 +85,11 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   residual once effective controls are in place — so linking real mitigation clears the breach,
   and "no appetite configured" is shown distinctly from "within appetite".
 - **Risk matrix** — side-by-side inherent vs residual 5×5 grids, clickable cells, quick-add.
-- **Workflow state machine** — risks move through legal transitions only; closing a risk that
-  breaches appetite requires a named approver. **Completing a treatment closes its risk** and
-  promotes the treatment's controls onto the risk (so the residual score actually moves).
+- **Workflow state machine** - risks move through legal transitions only; closing a risk that
+  breaches appetite requires a named approver. **A risk closes when every treatment plan is
+  resolved and at least one completed** — and it reopens automatically if a treatment returns to
+  active. Completing a treatment promotes its controls onto the risk (so the residual score
+  actually moves).
 - **Risk exceptions** — formal risk acceptance with approver, expiry and auto-expiration. The
   named approver is notified and is the **only** person who can accept the risk (superuser can
   break-glass) — the approver is never silently overwritten.
@@ -95,8 +106,26 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - **Framework coverage** calculated with relationship weights.
 - **Compliance status** dashboard across all frameworks.
 - **Compliance assessments** — readiness checklists with auto-populated items per framework.
+- **Statement of Applicability** — a derived, always-current SoA report per framework
+  (`/frameworks/soa/`): one row per requirement with the verdict from your control mappings and
+  the newest assessment (covered / partially covered / gap / excluded), with CSV export for
+  auditors.
 - Ships with a seeder for **ISO/IEC 27001, NIST CSF, SOC 2, PCI DSS, GDPR and CIS Controls**
   (500+ framework requirements).
+
+### Incident management
+- **Security incident register** — `INC-YYYY-NNNN` references, incident types, detection source,
+  severity and a forward-only lifecycle (Detected → Triaged → Contained → Mitigated → Closed)
+  with automatic timeline stamps (triage, containment, resolution, closure).
+- **Severity-driven triage SLAs** — critical 1h, high 4h, medium 24h, low 72h; an untriaged
+  incident past its SLA escalates (in-app notification + email to the handler or HOD).
+- **Personal-data breach tracking (GDPR Art. 33)** — affected-person counting, a live 72-hour
+  notification clock with days/hours remaining, overdue escalation, and a cabinet-level warning
+  on the close page when the notification is still outstanding.
+- **Closure discipline** — an incident cannot be closed without a recorded root cause; lessons
+  learned are captured on the record.
+- **Risk linkage** — one click raises a risk-register entry from an investigated incident
+  (pre-filled, pre-linked, refuses duplicates) — incidents may also be linked to existing risks.
 
 ### Audit & assurance
 - **Audit schedule** — types (External / Internal / Self-Assessment) and a status workflow,
@@ -111,6 +140,13 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   until a HOD or superuser verifies the fix (rejection sends it back for remediation).
 - **Action plans** — sub-tasks under findings with `ACT-XXXX` IDs, priority and progress.
 - **Per-audit PDF report** — full engagement report with findings, tests, evidence and sign-off.
+
+### Policy attestation
+- **Attestation workflow** — approved policies show an *"I have read and accept this policy"*
+  control; attestations are recorded per **policy version**, so a re-approved policy (bumped
+  version) makes prior acknowledgements stale and asks the same people again. The policy detail
+  page lists who has acknowledged the current version with timestamps; org-wide policies can be
+  attested by anyone, department-scoped ones by their audience.
 
 ### Threat intelligence
 - **MITRE ATT&CK matrix** — tactics × techniques, highlighting techniques with matching IOCs.
@@ -134,12 +170,14 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - **Notifications** — a department-scoped work queue (unread is real unread).
 - **Email digests & escalations** — a scheduled scan finds overdue tickets, findings and actions,
   risks past their target date or beyond capacity, expiring risk exceptions, lapsing vendor
-  contracts, red KRIs and SLA-breached vulnerabilities. Each item is raised in-app for the owning
-  department and emailed to the responsible person (owner, else the department HOD). An item is
-  only emailed once while it stays unresolved, so the job is safe to run hourly. Users choose
-  Off / Daily / Weekly digests and per-event email toggles in Settings, and can send themselves a
-  test email to confirm delivery. Ships with the console email backend, so it is observable out of
-  the box via `docker compose logs -f web` — point `EMAIL_BACKEND` at SMTP for real mail.
+  contracts, red KRIs and SLA-breached vulnerabilities, **untriaged incidents past their
+  severity SLA and GDPR breach-notification deadlines**. Each item is raised in-app for the
+  owning department and emailed to the responsible person (owner, else the department HOD). An
+  item is only emailed once while it stays unresolved, so the job is safe to run hourly. Users
+  choose Off / Daily / Weekly digests and per-event email toggles in Settings (including a
+  dedicated incident toggle), and can send themselves a test email to confirm delivery. Ships
+  with the console email backend, so it is observable out of the box via `docker compose logs
+  -f web` — point `EMAIL_BACKEND` at SMTP for real mail.
 - **Dark mode** with persistence; native `type="date"` calendar pickers everywhere.
 - **CSV / Excel / PDF export** on the list views that support it.
 - **Bulk actions** — select rows on a register and apply a server-approved change (e.g. set
@@ -327,6 +365,8 @@ your own admin, or sign in as a seeded HOD to see department scoping in action.
 | `SITE_BASE_URL` | Absolute base URL used to build the links inside emails (a cron job has no request) |
 | `ESCALATION_FALLBACK_EMAILS` | Comma-separated catch-all for escalations that have no owner and no HOD. Empty drops them |
 | `DIGEST_LOOKBACK_HOURS`, `ESCALATION_GRACE_DAYS`, `ESCALATION_WARN_DAYS` | Scheduling knobs: grace period before an item escalates, and how far ahead to warn about expiring exceptions/contracts |
+| `TIME_ZONE` | IANA zone for business date maths (`localdate()`): overdue/renewal/SLA logic. Default `UTC`; the shipped `.env` uses `Asia/Kathmandu` |
+| `LOGIN_MAX_FAILURES` / `LOGIN_FAILURE_WINDOW` / `LOGIN_LOCKOUT_SECONDS` | Sign-in throttling: failures allowed, the sliding window they count in (seconds) and the lockout duration (seconds). Defaults 5 / 900 / 900 |
 
 See [`.env.example`](.env.example) for the annotated list.
 
@@ -359,7 +399,11 @@ docker compose exec -T web python manage.py send_email_digest --force --user adm
 
 `send_escalations` covers overdue tickets, findings and remediation actions; risks past their target
 close date or beyond appetite capacity; expiring/expired risk exceptions; lapsed and soon-to-renew
-vendor contracts; KRIs that have breached tolerance; and vulnerabilities past their remediation SLA.
+vendor contracts; KRIs that have breached tolerance; vulnerabilities past their remediation SLA;
+untriaged incidents past their severity triage SLA; and personal-data breaches whose GDPR 72-hour
+notification window is closing (or has passed). Hour-based SLAs map onto the day-granularity scan,
+so a critical incident raises roughly a day after its hour SLA is missed rather than at the exact
+hour.
 Each item is raised once in-app for the owning department and, when it is *newly* raised, email is
 sent to the responsible user (owner, else the department HOD, else `ESCALATION_FALLBACK_EMAILS`).
 Every alert carries a matching auto-clear rule, so it disappears the moment the underlying condition

@@ -102,6 +102,14 @@ CLEAR_RULES = {
     'vendor_contract_expired': _vendor_contract_ok,
     'kri_red':                 lambda o: o.rag_status != 'red',
     'vuln_sla_breach':         lambda o: not o.is_overdue,
+    # Incidents clear when the operational pressure is gone.
+    'incident_open':           lambda o: o.status == 'closed',
+    'incident_sla_breach':     lambda o: o.status != 'detected' or o.closed_at,
+    'incident_breach_due':     lambda o: (
+        o.status == 'closed'
+        or o.regulatory_notified_at is not None
+        or not o.regulatory_notification_required
+    ),
 }
 
 

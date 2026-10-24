@@ -11,7 +11,7 @@ class UserPreferenceForm(forms.ModelForm):
             'email_notifications_enabled', 'email_digest_frequency',
             'email_on_ticket_assigned', 'email_on_risk_breach',
             'email_on_audit_finding', 'email_on_kri_red', 'email_on_vuln_sla',
-            'email_on_escalation',
+            'email_on_escalation', 'email_on_incident',
         ]
         widgets = {
             'theme': forms.RadioSelect(),

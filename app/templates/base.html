@@ -67,6 +67,11 @@
             <a href="{% url 'core:executive_report' %}" target="_blank" class="sidebar-link d-flex">
                 <i class="bi bi-file-earmark-pdf"></i><span>Executive Report</span>
             </a>
+            {% if user.is_hod or user.is_superuser %}
+            <a href="{% url 'core:history' %}" class="sidebar-link {% if urlname == 'history' %}active{% endif %} d-flex">
+                <i class="bi bi-clock-history"></i><span>Change Log</span>
+            </a>
+            {% endif %}
 
             {# ==================== INVENTORY & LIBRARY ==================== #}
             <div class="sidebar-section-head sidebar-head-toggle d-flex" data-target="inv">
@@ -166,6 +171,14 @@
                 <i class="bi bi-plus-square"></i><span>New Ticket</span>
             </a>
             {% endif %}
+            <a href="{% url 'incidents:list' %}" class="sidebar-link toggle-item" data-section="ops" style="display: {% if ns == 'incidents' %}flex{% else %}none{% endif %};">
+                <i class="bi bi-fire"></i>
+                <span>Incidents</span>
+                {% if open_incidents_count %}<span class="sidebar-badge  {% if open_incidents_critical %}bg-danger{% else %}sidebar-badge-amber{% endif %}" title="{{ open_incidents_count }} open incident{{ open_incidents_count|pluralize }}">{{ open_incidents_count }}</span>{% endif %}
+            </a>
+            <a href="{% url 'incidents:create' %}" class="sidebar-link toggle-item" data-section="ops" style="display: {% if ns == 'incidents' and urlname == 'create' %}flex{% else %}none{% endif %};">
+                <i class="bi bi-plus-square"></i><span>Report Incident</span>
+            </a>
 
 
             {# ==================== THREAT INTEL ==================== #}

@@ -3,6 +3,8 @@ from django.contrib.auth import views as auth_views
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+from core.login_view import ThrottledLoginView
+
 
 class PostOnlyLogoutView(auth_views.LogoutView):
     """Sign-out must be a POST (CSRF-protected), never a GET.
@@ -30,6 +32,7 @@ urlpatterns = [
     path('audits/', include('audits.urls')),
     path('threat-intel/', include('threatintel.urls')),
     path('tickets/', include('tickets.urls')),
+    path('incidents/', include('incidents.urls')),
 
     path('favicon.ico', RedirectView.as_view(url='/static/img/favicon.svg', permanent=True)),
 ]
@@ -37,7 +40,8 @@ urlpatterns = [
 # Auth URLs live here rather than in core.urls so the login/logout names stay
 # the Django defaults used by LOGIN_URL / LOGOUT_REDIRECT_URL.
 urlpatterns += [
-    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
+    path('login/', ThrottledLoginView.as_view(
+        template_name='registration/login.html'), name='login'),
     path('logout/', PostOnlyLogoutView.as_view(), name='logout'),
     path('password-change/', auth_views.PasswordChangeView.as_view(
         template_name='registration/password_change_form.html',

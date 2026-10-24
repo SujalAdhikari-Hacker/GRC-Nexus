@@ -2,7 +2,7 @@
 {% block content %}
 <p>Total findings: {{ total }} · Open: {{ open_count }} · Overdue: {{ overdue_count }}</p>
 <table>
-    <thead><tr><th>CVE</th><th>Title</th><th>Severity</th><th>Asset</th><th>Status</th><th>SLA</th></tr></thead>
+    <thead><tr><th scope="col">CVE</th><th scope="col">Title</th><th scope="col">Severity</th><th scope="col">Asset</th><th scope="col">Status</th><th scope="col">SLA</th></tr></thead>
     <tbody>
     {% for f in findings %}
         <tr><td>{{ f.vulnerability.cve_id|default:"Manual" }}</td>

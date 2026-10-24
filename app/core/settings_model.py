@@ -111,6 +111,10 @@ class UserPreference(models.Model):
         default=True,
         help_text='Overdue tickets, expiring exceptions and lapsed vendor contracts.',
     )
+    email_on_incident = models.BooleanField(
+        default=True,
+        help_text='Incident SLA slips and GDPR breach-notification deadlines.',
+    )
 
     updated_at = models.DateTimeField(auto_now=True)
     history = HistoricalRecords()

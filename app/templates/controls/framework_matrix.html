@@ -91,10 +91,10 @@
         <table class="table mb-0 align-middle fs-12-5">
             <thead class="table-light">
                 <tr>
-                    <th style="min-width:180px;">Internal Control</th>
-                    <th style="min-width:120px;">Category</th>
+                    <th scope="col" style="min-width:180px;">Internal Control</th>
+                    <th scope="col" style="min-width:120px;">Category</th>
                     {% for fw in frameworks %}
-                        <th class="text-center" style="min-width:90px;">{{ fw.name }}</th>
+                        <th scope="col" class="text-center" style="min-width:90px;">{{ fw.name }}</th>
                     {% endfor %}
                 </tr>
             </thead>

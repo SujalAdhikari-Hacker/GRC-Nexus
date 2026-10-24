@@ -192,6 +192,32 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 'recent_tickets': [],
             })
 
+        # ---------- Incident widget stats ----------
+        try:
+            from incidents.models import Incident
+            incident_qs = scope_queryset(Incident.objects.all(), user)
+            open_incidents = incident_qs.exclude(status='closed')
+
+            ctx['incident_open_count'] = open_incidents.count()
+            ctx['incident_critical_count'] = open_incidents.filter(
+                severity__in=['critical', 'high']).count()
+            ctx['incident_breach_count'] = open_incidents.filter(
+                incident_type='data_breach').count()
+            ctx['incident_sla_count'] = sum(
+                1 for i in open_incidents if i.sla_breached)
+            ctx['recent_incidents'] = open_incidents.select_related(
+                'owner_dept', 'handler'
+            ).order_by('detected_at')[:5]
+        except Exception:
+            logger.exception('Incident widget failed to render')
+            ctx.update({
+                'incident_open_count': 0,
+                'incident_critical_count': 0,
+                'incident_breach_count': 0,
+                'incident_sla_count': 0,
+                'recent_incidents': [],
+            })
+
         # Trend charts
         ctx.update(trends)
         return ctx

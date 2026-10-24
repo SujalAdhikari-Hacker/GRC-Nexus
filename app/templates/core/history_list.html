@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Change Log{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Change Log</h1>{% endblock %}
+
+{% block content %}
+<p class="text-muted small">
+    Every create (<span class="badge bg-success">+</span>), edit
+    (<span class="badge bg-info">~</span>) and delete
+    (<span class="badge bg-danger">−</span>) recorded by the audit trail,
+    merged across all tracked registers. Covers the last 180 days —
+    searching scans the newest rows per register, so pick a register below
+    for a deep dive.
+</p>
+
+<form method="get" class="row g-2 align-items-center mb-3">
+    <div class="col-md-4">
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="Search record names..." value="{{ search_query }}" aria-label="Search records">
+    </div>
+    <div class="col-md-4">
+        <select name="model" class="form-select form-select-sm" aria-label="Register">
+            <option value="">All registers</option>
+            {% for value, label in model_choices %}
+                <option value="{{ value }}" {% if selected_model == value %}selected{% endif %}>{{ label|capfirst }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select name="type" class="form-select form-select-sm" aria-label="Change type">
+            <option value="">All change types</option>
+            <option value="+" {% if selected_type == '+' %}selected{% endif %}>Created</option>
+            <option value="~" {% if selected_type == '~' %}selected{% endif %}>Changed</option>
+            <option value="-" {% if selected_type == '-' %}selected{% endif %}>Deleted</option>
+        </select>
+    </div>
+    <div class="col-md-1"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
+</form>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">When</th>
+                        <th scope="col">By</th>
+                        <th scope="col">Action</th>
+                        <th scope="col">Record</th>
+                        <th scope="col">Register</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for entry in entries %}
+                    <tr>
+                        <td class="small text-muted" style="white-space: nowrap;">{{ entry.when|date:"M d, Y H:i" }}</td>
+                        <td class="small">{{ entry.user }}</td>
+                        <td>
+                            {% if entry.type == '+' %}<span class="badge bg-success" title="Created">Created</span>
+                            {% elif entry.type == '~' %}<span class="badge bg-info" title="Changed">Changed</span>
+                            {% else %}<span class="badge bg-danger" title="Deleted">Deleted</span>{% endif %}
+                        </td>
+                        <td class="small">{{ entry.repr|truncatechars:80 }}</td>
+                        <td class="small text-muted">{{ entry.model_label|capfirst }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">
+                        No changes match — widen the date window by picking a register, or clear the search.
+                    </td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

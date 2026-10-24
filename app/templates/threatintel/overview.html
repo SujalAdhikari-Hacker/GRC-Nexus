@@ -1,6 +1,6 @@
 ﻿{% extends "base.html" %}
 {% block title %}Threat Intelligence{% endblock %}
-{% block breadcrumb %}<h5 class="mb-0">Threat Intelligence</h5>{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Threat Intelligence</h1>{% endblock %}
 
 {% block content %}
 
@@ -117,7 +117,7 @@
             <div class="table-responsive">
                 <table class="table mb-0 align-middle fs-12-5">
                     <thead class="table-light">
-                        <tr><th>Type</th><th>Value</th><th class="text-center">Threat</th><th>Malware</th><th>Source</th><th class="text-center">Seen</th></tr>
+                        <tr><th scope="col">Type</th><th scope="col">Value</th><th scope="col" class="text-center">Threat</th><th scope="col">Malware</th><th scope="col">Source</th><th scope="col" class="text-center">Seen</th></tr>
                     </thead>
                     <tbody>
                     {% for i in recent_iocs %}

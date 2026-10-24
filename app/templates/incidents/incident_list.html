@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Security Incidents{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Security Incidents</h1>{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ total_count }}</div><div class="label"><i class="bi bi-fire"></i> Total recorded</div></div></div>
+    <div class="col-md-3">
+        <div class="stat-card{% if open_count %} stat-alert-danger{% endif %}">
+            <div class="value text-danger">{{ open_count }}</div>
+            <div class="label"><i class="bi bi-lightning-charge"></i> Open incidents</div>
+        </div>
+    </div>
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ breach_count }}</div><div class="label"><i class="bi bi-person-x"></i> Open personal-data breaches</div></div></div>
+    <div class="col-md-3">
+        <div class="stat-card{% if overdue_count %} stat-alert-danger{% endif %}">
+            <div class="value text-danger">{{ overdue_count }}</div>
+            <div class="label"><i class="bi bi-alarm"></i> Past the 72h notification deadline</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex align-items-center flex-wrap gap-2">
+        <form method="get" class="row g-2 align-items-center flex-grow-1 me-3">
+            <div class="col-md-4"><input type="text" name="q" class="form-control form-control-sm" placeholder="Search incidents..." value="{{ request.GET.q }}" aria-label="Search incidents"></div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm" aria-label="Status">
+                    <option value="">All statuses</option>
+                    {% for val, label in form_status_choices %}<option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="severity" class="form-select form-select-sm" aria-label="Severity">
+                    <option value="">All severities</option>
+                    {% for val, label in form_severity_choices %}<option value="{{ val }}" {% if request.GET.severity == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="open" value="1" id="id_only_open" {% if request.GET.open == '1' %}checked{% endif %}>
+                    <label class="form-check-label small" for="id_only_open">Open only</label>
+                </div>
+            </div>
+            <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
+        </form>
+        <a href="?{% for k,v in request.GET.items %}{% if k != 'export' %}{{ k|urlencode }}={{ v|urlencode }}&amp;{% endif %}{% endfor %}export=csv"
+           class="btn btn-sm btn-outline-dark text-nowrap me-2"><i class="bi bi-download"></i> CSV</a>
+        <a href="{% url 'incidents:create' %}" class="btn btn-sm btn-primary text-nowrap"><i class="bi bi-plus-lg"></i> Report incident</a>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0 align-middle incidents-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Reference</th>
+                        <th scope="col">Title</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Severity</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Department</th>
+                        <th scope="col">Handler</th>
+                        <th scope="col">Detected</th>
+                        <th scope="col">Age</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for incident in incidents %}
+                    <tr>
+                        <td><a href="{% url 'incidents:detail' incident.pk %}" class="fw-semibold">{{ incident.reference }}</a></td>
+                        <td>
+                            <a href="{% url 'incidents:detail' incident.pk %}" class="text-decoration-none text-body">{{ incident.title|truncatechars:60 }}</a>
+                            {% if incident.is_breach %}<span class="badge bg-dark ms-1">PII</span>{% endif %}
+                            {% if incident.regulatory_notification_required %}<span class="badge bg-danger ms-1" title="Regulatory notification required">REG</span>{% endif %}
+                        </td>
+                        <td class="text-muted small">{{ incident.get_incident_type_display }}</td>
+                        <td><span class="badge {{ incident.severity_badge }}">{{ incident.get_severity_display }}</span></td>
+                        <td><span class="badge {{ incident.status_badge }}">{{ incident.get_status_display }}</span></td>
+                        <td class="small">{{ incident.owner_dept.name }}</td>
+                        <td class="small">{% if incident.handler %}{{ incident.handler.get_full_name|default:incident.handler.username }}{% else %}<span class="text-warning">unassigned</span>{% endif %}</td>
+                        <td class="small text-muted">{{ incident.detected_at|date:"M d, H:i" }}</td>
+                        <td class="small {% if incident.sla_breached %}text-danger fw-semibold{% endif %}">
+                            {{ incident.age_hours }}h{% if incident.sla_breached %} · SLA missed{% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="9" class="text-center text-muted py-4">No incidents on the record{% if request.GET.q or request.GET.status or request.GET.severity %} for these filters{% endif %}.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

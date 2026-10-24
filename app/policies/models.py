@@ -83,3 +83,49 @@ class Policy(models.Model):
 
     def can_transition_to(self, new_status):
         return new_status == self.status or new_status in self.allowed_transitions()
+
+
+class PolicyAttestation(models.Model):
+    """A person's signed acknowledgement of one policy version.
+
+    Auditors ask "who has read the password policy, and of which edition?".
+    This answers it with a row per (policy, version, user). Re-approval of
+    the policy with a bumped version makes those attestations stale — the
+    detail page shows *this* version's attestations only.
+    """
+    policy = models.ForeignKey(
+        Policy, on_delete=models.CASCADE, related_name='attestations'
+    )
+    user = models.ForeignKey(
+        'core.User', on_delete=models.CASCADE, related_name='policy_attestations'
+    )
+    version = models.CharField(
+        max_length=20,
+        help_text='Snapshot of the policy version at attestation time.'
+    )
+    attested_at = models.DateTimeField(auto_now_add=True)
+
+    history = HistoricalRecords()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['policy', 'user', 'version'],
+                name='unique_attestation_per_policy_version',
+            ),
+        ]
+        ordering = ['-attested_at']
+        verbose_name = 'Policy attestation'
+        verbose_name_plural = 'Policy attestations'
+
+    def __str__(self):
+        return f'{self.policy.code} v{self.version} - {self.user}'
+
+    def save(self, *args, **kwargs):
+        if not self.version:
+            self.version = self.policy.version
+        super().save(*args, **kwargs)
+
+    @property
+    def is_current_version(self):
+        return self.version == self.policy.version

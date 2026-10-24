@@ -168,6 +168,16 @@
                 </div>
             </div>
 
+            {# Dependencies #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-diagram-3"></i> Dependencies</strong></div>
+                <div class="card-body">
+                    <label class="form-label" for="id_depends_on">Depends on</label>
+                    {{ form.depends_on }}
+                    <div class="form-text small">Other assets this one needs to run — e.g. link an application to its database. Shown on the asset page as outage blast radius.</div>
+                </div>
+            </div>
+
             {# Description #}
             <div class="card mb-3">
                 <div class="card-header bg-white"><strong><i class="bi bi-journal-text"></i> Description</strong></div>

@@ -284,6 +284,80 @@ def _vulnerability_escalations(grace_cutoff, warn_cutoff):
     return out
 
 
+
+def _incident_escalations(grace_cutoff, warn_cutoff):
+    """Incident SLA slips and the GDPR 72-hour breach clock.
+
+    Hour-based SLAs are compared against a cutoff derived from the day-based
+    warn window, so severity-critical incidents turn red roughly a day after
+    they miss triage rather than at the exact hour.
+    """
+    from incidents.models import Incident, TRIAGE_SLA_HOURS
+
+    out = []
+    warn_hours = getattr(settings, 'ESCALATION_WARN_DAYS', 14) * 24
+
+    untriaged = (
+        Incident.objects.filter(status='detected')
+        .exclude(closed_at__isnull=False)
+        .select_related('owner_dept', 'handler')
+    )
+    for incident in untriaged:
+        sla = TRIAGE_SLA_HOURS.get(incident.severity, 24)
+        if incident.age_hours <= sla:
+            continue
+        out.append(Escalation(
+            kind='incident_sla_breach',
+            title=(
+                f'Incident {incident.reference}: "{incident.title[:90]}" has '
+                'not been triaged'
+            ),
+            action_url=reverse('incidents:detail', args=[incident.pk]),
+            dept=incident.owner_dept,
+            ref=incident,
+            flag='email_on_incident',
+            severity='danger' if incident.severity in ('critical', 'high') else 'warning',
+            meta=(
+                f'{incident.get_severity_display()} · detected '
+                f'{incident.age_hours:.0f}h ago · {sla}h triage SLA'
+            ),
+        ))
+
+    breaches = (
+        Incident.objects.filter(
+            incident_type='data_breach',
+            regulatory_notification_required=True,
+            regulatory_notified_at__isnull=True,
+        )
+        .exclude(status='closed')
+        .select_related('owner_dept', 'handler')
+    )
+    for breach in breaches:
+        hours_left = breach.breaching_hours_left
+        if hours_left is None or hours_left > warn_hours:
+            continue
+        late = hours_left < 0
+        out.append(Escalation(
+            kind='incident_breach_due',
+            title=(
+                f'Incident {breach.reference}: regulatory breach notification '
+                + ('is overdue' if late else 'deadline approaching')
+            ),
+            action_url=reverse('incidents:detail', args=[breach.pk]),
+            dept=breach.owner_dept,
+            ref=breach,
+            flag='email_on_incident',
+            severity='danger' if late else 'warning',
+            meta=(
+                f'Art. 33 72h clock · '
+                + (f'{abs(hours_left):.0f}h overdue'
+                   if late else f'{hours_left:.0f}h remaining')
+                + f' · {breach.data_subjects_affected} data subject(s)'
+            ),
+        ))
+    return out
+
+
 _COLLECTORS = (
     _risk_escalations,
     _audit_escalations,
@@ -292,7 +366,9 @@ _COLLECTORS = (
     _vendor_escalations,
     _kri_escalations,
     _vulnerability_escalations,
+    _incident_escalations,
 )
+
 
 
 def collect_escalations(today=None):

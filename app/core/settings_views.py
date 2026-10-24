@@ -12,6 +12,7 @@ from .settings_forms import UserPreferenceForm
 @login_required
 def settings_view(request):
     pref = UserPreference.get_for(request.user)
+    form_error_lines = []
 
     if request.method == 'POST':
         form = UserPreferenceForm(request.POST, instance=pref)
@@ -21,12 +22,20 @@ def settings_view(request):
             return redirect(reverse('core:settings'))
         else:
             messages.error(request, 'Please fix the errors below.')
+            # Human-labelled per-field errors for the summary on the page
+            # (form.errors is keyed by field *name*, not label).
+            form_error_lines = [
+                f"{form.fields[name].label}: {'; '.join(errs)}"
+                for name, errs in form.errors.items()
+                if name != '__all__'
+            ]
     else:
         form = UserPreferenceForm(instance=pref)
 
     ctx = {
         'form': form,
         'pref': pref,
+        'form_error_lines': form_error_lines,
         'timezone_now': timezone.now(),
         'today_preview': timezone.localdate(),
         'user_timezone': timezone.get_current_timezone(),

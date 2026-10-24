@@ -58,11 +58,11 @@
         <table class="table mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th class="w-10pct">Code</th>
-                    <th style="width:35%;">Requirement</th>
-                    <th style="width:15%;">Status</th>
-                    <th>Covered by</th>
-                    {% if user.is_superuser %}<th style="width:6%;"></th>{% endif %}
+                    <th scope="col" class="w-10pct">Code</th>
+                    <th scope="col" style="width:35%;">Requirement</th>
+                    <th scope="col" style="width:15%;">Status</th>
+                    <th scope="col">Covered by</th>
+                    {% if user.is_superuser %}<th scope="col" style="width:6%;"></th>{% endif %}
                 </tr>
             </thead>
             <tbody>

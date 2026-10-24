@@ -3,8 +3,8 @@
 <p>Total assets: {{ total }} · High / Critical: {{ critical_count }}</p>
 <table>
     <thead><tr>
-        <th>Asset ID</th><th>Name</th><th>Hostname</th><th>IP</th>
-        <th>Type</th><th>Hosting</th><th>Cloud</th><th>OS</th><th>Criticality</th>
+        <th scope="col">Asset ID</th><th scope="col">Name</th><th scope="col">Hostname</th><th scope="col">IP</th>
+        <th scope="col">Type</th><th scope="col">Hosting</th><th scope="col">Cloud</th><th scope="col">OS</th><th scope="col">Criticality</th>
     </tr></thead>
     <tbody>
     {% for a in assets %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Risks{% endblock %}
-{% block breadcrumb %}<h5 class="mb-0">Risk Register</h5>{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Risk Register</h1>{% endblock %}
 
 {% block content %}
 {% if not has_appetites %}
@@ -66,15 +66,15 @@
         <table class="table mb-0 align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>Risk</th>
-                    <th>Category</th>
-                    <th>Owner</th>
-                    <th class="text-center">L×I</th>
-                    <th class="text-center">Inherent</th>
-                    <th class="text-center">Residual</th>
-                    <th class="text-center">Appetite</th>
-                    <th>Status</th>
-                    <th></th>
+                    <th scope="col">Risk</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Owner</th>
+                    <th scope="col" class="text-center">L×I</th>
+                    <th scope="col" class="text-center">Inherent</th>
+                    <th scope="col" class="text-center">Residual</th>
+                    <th scope="col" class="text-center">Appetite</th>
+                    <th scope="col">Status</th>
+                    <th scope="col"></th>
                 </tr>
             </thead>
             <tbody>

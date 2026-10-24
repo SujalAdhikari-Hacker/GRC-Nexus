@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
-{% block breadcrumb %}<h5 class="mb-0">Dashboard</h5>{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Dashboard</h1>{% endblock %}
 
 {% block content %}
 
@@ -114,6 +114,70 @@
                     <li class="list-group-item text-muted text-center small py-4">
                         <i class="bi bi-check-circle" style="font-size:1.5rem; opacity:.4;"></i>
                         <div class="mt-2">No open tickets. All clear.</div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+{# ─────────────── INCIDENTS WIDGET ─────────────── #}
+<div class="row g-3 mb-3">
+    <div class="col-md-5">
+        <a href="{% url 'incidents:list' %}" class="stat-card-link">
+            <div class="card h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong><i class="bi bi-fire"></i> Open Incidents</strong>
+                    <span class="badge bg-dark">{{ incident_open_count }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 text-center">
+                        <div class="col-4">
+                            <div style="font-size:1.6rem; font-weight:700; color:#DC2626;">{{ incident_critical_count }}</div>
+                            <div class="text-muted small">Critical / high</div>
+                        </div>
+                        <div class="col-4">
+                            <div style="font-size:1.6rem; font-weight:700; color:#D97706;">{{ incident_sla_count }}</div>
+                            <div class="text-muted small">Past triage SLA</div>
+                        </div>
+                        <div class="col-4">
+                            <div style="font-size:1.6rem; font-weight:700; color:#6B7280;">{{ incident_breach_count }}</div>
+                            <div class="text-muted small">Data breaches</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-7">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Unresolved incidents</strong>
+                <a href="{% url 'incidents:create' %}" class="btn btn-sm btn-outline-dark">Report incident</a>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for i in recent_incidents %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{% url 'incidents:detail' i.pk %}">
+                                <code>{{ i.reference }}</code>
+                                {{ i.title|truncatechars:60 }}
+                            </a>
+                            <div class="small text-muted">
+                                {{ i.owner_dept.name }} · detected {{ i.detected_at|date:"M d, H:i" }}
+                                {% if i.handler %} · {{ i.handler.username }}{% else %} · <em>Unassigned</em>{% endif %}
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge {{ i.severity_badge }}">{{ i.get_severity_display }}</span>
+                            {% if i.sla_breached %}<div class="small text-danger fw-bold">SLA missed</div>{% endif %}
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted text-center small py-4">
+                        <i class="bi bi-check-circle" style="font-size:1.5rem; opacity:.4;"></i>
+                        <div class="mt-2">No unresolved incidents. All clear.</div>
                     </li>
                 {% endfor %}
             </ul>
@@ -275,15 +339,15 @@
                 <table class="table mb-0 align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th class="w-110px">Asset ID</th>
-                            <th>Name</th>
-                            <th>Department</th>
-                            <th class="text-center">Criticality</th>
-                            <th class="text-center">Risks</th>
-                            <th class="text-center">Max residual</th>
-                            <th class="text-center">Exposure</th>
-                            <th>Top risk</th>
-                            <th></th>
+                            <th scope="col" class="w-110px">Asset ID</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Department</th>
+                            <th scope="col" class="text-center">Criticality</th>
+                            <th scope="col" class="text-center">Risks</th>
+                            <th scope="col" class="text-center">Max residual</th>
+                            <th scope="col" class="text-center">Exposure</th>
+                            <th scope="col">Top risk</th>
+                            <th scope="col"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -335,10 +399,10 @@
                 <table class="table mb-0 align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Risk</th>
-                            <th class="text-center">Inherent</th>
-                            <th class="text-center">Residual</th>
-                            <th class="text-center">Breach</th>
+                            <th scope="col">Risk</th>
+                            <th scope="col" class="text-center">Inherent</th>
+                            <th scope="col" class="text-center">Residual</th>
+                            <th scope="col" class="text-center">Breach</th>
                         </tr>
                     </thead>
                     <tbody>

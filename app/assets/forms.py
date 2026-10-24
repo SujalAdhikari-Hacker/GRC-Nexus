@@ -16,6 +16,8 @@ class AssetForm(forms.ModelForm):
             'vendor', 'classification', 'environment',
             # Ownership
             'owner_dept', 'owner_user', 'is_active',
+            # Operational context
+            'depends_on',
             # Risk ratings
             'criticality', 'confidentiality', 'integrity', 'availability', 'value',
             # Governance

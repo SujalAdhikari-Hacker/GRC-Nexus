@@ -121,6 +121,9 @@ def _notification_snapshot(request):
             'finding_needs_actions', 'action_needs_owner',
         )
         notif_tickets = count('ticket_unassigned')
+        notif_incidents = count(
+            'incident_open', 'incident_sla_breach', 'incident_breach_due',
+        )
 
         snapshot = {
             'recent_notifications': recent,
@@ -133,9 +136,11 @@ def _notification_snapshot(request):
             'notif_kris': notif_kris,
             'notif_findings': notif_findings,
             'notif_tickets': notif_tickets,
+            'notif_incidents': notif_incidents,
             'notif_section_inventory': notif_assets + notif_vendors + notif_policies,
             'notif_section_risk': notif_risks + notif_controls + notif_kris,
             'notif_section_audit': notif_findings,
+            'notif_section_ops': notif_tickets + notif_incidents,
         }
     except Exception:
         snapshot = empty

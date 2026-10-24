@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Statement of Applicability{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Statement of Applicability</h1>{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+        <h1 class="h1 text-muted mb-0">
+            {% if framework %}
+                {{ framework.name }} — {{ total }} requirement{{ total|pluralize }},
+                generated {{ generated_at|date:"M d, Y H:i" }}
+            {% else %}
+                No frameworks defined yet
+            {% endif %}
+        </hh1>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get" class="d-flex gap-2">
+            <select name="framework" class="form-select form-select-sm" onchange="this.form.submit();" aria-label="Framework">
+                {% for fw in frameworks %}
+                    <option value="{{ fw.pk }}" {% if fw.pk == framework.pk %}selected{% endif %}>{{ fw.name }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-outline-dark">Show</button>
+        </form>
+        {% if framework %}
+        <a href="?framework={{ framework.pk }}&amp;export=csv" class="btn btn-sm btn-dark">
+            <i class="bi bi-download"></i> Export CSV
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if framework %}
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-success">{{ counts.covered|default:0 }}</div><div class="label"><i class="bi bi-check-circle"></i> Covered</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-token-warning">{{ counts.partially_covered|default:0 }}</div><div class="label"><i class="bi bi-half-circle"></i> Partially covered</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value text-danger">{{ counts.no_internal_control|default:0 }}</div><div class="label"><i class="bi bi-x-circle"></i> No internal control</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value">{{ counts.excluded|default:0 }}</div><div class="label"><i class="bi bi-dash-circle"></i> Excluded (N/A)</div></div></div>
+</div>
+
+{% if assessment %}
+<div class="alert alert-info py-2 small mb-3">
+    Verdict column: newest assessment <strong>{{ assessment.assessment_id }}</strong>
+    ({{ assessment.assessment_date }}). Gaps identified there override the mapping view.
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header bg-white"><strong><i class="bi bi-journal-check"></i> Statement of Applicability — {{ framework.name }}</strong></div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Requirement</th>
+                        <th scope="col">Title</th>
+                        <th scope="col">Applicable</th>
+                        <th scope="col">Verdict</th>
+                        <th scope="col">Internal control(s)</th>
+                        <th scope="col">Relationship</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td class="fw-semibold">{{ row.requirement.code }}</td>
+                        <td class="small" title="{{ row.requirement.description }}">{{ row.requirement.title|truncatechars:90 }}</td>
+                        <td class="small">{% if row.assessment_status == 'na' %}<span class="badge bg-secondary">no</span>{% else %}yes{% endif %}</td>
+                        <td><span class="badge {{ row.verdict_badge }}">{{ row.verdict }}</span></td>
+                        <td class="small">
+                            {% for m in row.mapped %}
+                                <a href="{% url 'controls:detail' m.control.pk %}"><code>{{ m.control.code }}</code></a>{% if not forloop.last %},{% endif %}
+                            {% empty %}
+                                <span class="text-muted">—</span>
+                            {% endfor %}
+                        </td>
+                        <td class="small text-muted">{% for m in row.mapped %}{{ m.relationship }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">This framework has no control requirements recorded yet.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card"><div class="card-body text-center text-muted py-5">
+    Create a framework first — the SoA is derived from its control requirements and your internal mappings.
+</div></div>
+{% endif %}
+{% endblock %}

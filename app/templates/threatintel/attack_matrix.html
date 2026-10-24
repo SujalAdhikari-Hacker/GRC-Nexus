@@ -30,7 +30,7 @@
         <thead>
             <tr>
                 {% for col in columns %}
-                <th class="text-center align-top" style="width:100px; background:var(--surface-2);">
+                <th scope="col" class="text-center align-top" style="width:100px; background:var(--surface-2);">
                     <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;">{{ col.tactic.name }}</div>
                     <div class="small text-muted mt-1 fs-10"><code>{{ col.tactic.attack_id }}</code></div>
                     <div class="mt-1">

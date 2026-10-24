@@ -1,7 +1,8 @@
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView, View
 
 from core.correlation import get_full_policy_context
 from core.mixins import (
@@ -15,7 +16,7 @@ from core.mixins import (
 )
 
 from .forms import PolicyForm
-from .models import Policy, PolicyCategory
+from .models import Policy, PolicyAttestation, PolicyCategory
 
 
 class PolicyListView(SavedViewsMixin, DepartmentScopedMixin, CsvExportMixin, ListView):
@@ -65,10 +66,85 @@ class PolicyDetailView(DepartmentScopedMixin, DetailView):
     template_name = 'policies/policy_detail.html'
     context_object_name = 'policy'
 
+    def get_queryset(self):
+        """A policy is visible to the departments it *applies to*, too.
+
+        Reading is fine — attestation needs the reader to see the document —
+        and a policy with no departments listed is org-wide by definition.
+        Nothing here grants write access: edit/delete remain scoped to the
+        owning department through ``ChangeScopedMixin``.
+        """
+        qs = super().get_queryset()  # owner dept + shares + guardian grants
+        user = self.request.user
+        if not user.is_superuser:
+            audience = (
+                Policy.objects.filter(applies_to_departments=user.department)
+                | Policy.objects.filter(applies_to_departments__isnull=True)
+            )
+            qs = qs | audience
+        return qs.distinct()
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_policy_context(self.object))
+        # Attestation register — current version only for the panel.
+        attestations = self.object.attestations.select_related(
+            'user', 'user__department'
+        ).filter(version=self.object.version)
+        ctx['attestations'] = attestations[:20]
+        ctx['attestation_total'] = attestations.count()
+        ctx['my_attestation'] = (attestations
+                                 .filter(user=self.request.user).exists())
         return ctx
+
+
+class PolicyAttestView(LoginRequiredMixin, View):
+    """POST-only acknowledgement by the signed-in user of an approved policy.
+
+    Scope rule: a policy applies to everyone when ``applies_to_departments``
+    is empty; otherwise only members of the listed departments (plus the
+    policy-owning department and superusers) are asked to attest.
+    """
+
+    def post(self, request, *args, **kwargs):
+        from django.shortcuts import redirect, get_object_or_404
+        policy = get_object_or_404(Policy, pk=kwargs['pk'])
+
+        if policy.status != 'approved':
+            messages.error(
+                request, 'Only approved policies can be attested to.'
+            )
+            return redirect('policies:list')
+
+        user = request.user
+        applicable = list(policy.applies_to_departments.values_list('pk', flat=True))
+        in_scope = (
+            user.is_superuser
+            or not applicable
+            or user.department_id in applicable
+            or user.department_id == policy.owner_dept_id
+        )
+        if not in_scope:
+            messages.error(
+                request,
+                'This policy does not apply to your department, so no attestation is required.',
+            )
+            return redirect('policies:list')
+
+        _, created = PolicyAttestation.objects.get_or_create(
+            policy=policy, user=user, version=policy.version,
+        )
+        if created:
+            messages.success(
+                request,
+                f'Attestation recorded: {policy.code} v{policy.version}.'
+            )
+        else:
+            messages.info(
+                request,
+                f'You have already attested to {policy.code} v{policy.version}.'
+            )
+        return redirect('policies:detail', pk=policy.pk)
 
 
 # ============================================================

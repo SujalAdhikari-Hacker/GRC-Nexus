@@ -156,6 +156,13 @@ class Asset(models.Model):
 
     is_active = models.BooleanField(default=True)
     policies = models.ManyToManyField('policies.Policy', blank=True, related_name='assets')
+    depends_on = models.ManyToManyField(
+        'self', symmetrical=False, blank=True, related_name='dependents',
+        help_text=(
+            'Other assets this one needs to function (e.g. an application '
+            'depends on its database). Used to understand outage blast radius.'
+        ),
+    )
 
     # ---------- Audit trail ----------
     created_at = models.DateTimeField(auto_now_add=True)

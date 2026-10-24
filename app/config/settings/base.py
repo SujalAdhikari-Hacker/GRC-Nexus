@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'audits',
     'threatintel',
     'tickets',
+    'incidents',
 ]
 
 MIDDLEWARE = [
@@ -87,6 +88,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'tickets.context_processors.ticket_counters',
+                'incidents.context_processors.incident_counters',
                 'core.context_processors.pending_actions',
                 'core.context_processors.notification_count',
                 'core.context_processors.recent_notifications_context',
@@ -146,6 +148,13 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = config('TIME_ZONE', default='UTC')
 USE_I18N = True
 USE_TZ = True
+
+# Sign-in throttling knobs (read by core.login_throttle). Failures are keyed
+# by (client IP, username) in the default cache; after MAX failures inside
+# WINDOW, sign-in for that identity is locked for LOCKOUT seconds.
+LOGIN_MAX_FAILURES = config('LOGIN_MAX_FAILURES', default=5, cast=int)
+LOGIN_FAILURE_WINDOW = config('LOGIN_FAILURE_WINDOW', default=900, cast=int)
+LOGIN_LOCKOUT_SECONDS = config('LOGIN_LOCKOUT_SECONDS', default=900, cast=int)
 
 # --------------------------------------------------------------------------
 # Static / media

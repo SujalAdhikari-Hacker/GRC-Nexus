@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Close {{ incident.reference }}{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'incidents:list' %}">Security Incidents</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incidents:detail' incident.pk %}">{{ incident.reference }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Close</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h1 class="h6 mb-0"><i class="bi bi-check2-square"></i> Close incident {{ incident.reference }}</h1>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Closing is final: the incident leaves the open list and the
+                    department notification is cleared. A root cause
+                    <strong>must</strong> be recorded — that is what turns this
+                    incident into changed controls and updated policies instead of
+                    an anecdote.
+                </div>
+
+                <h1 class="h1 text-muted">{{ incident.title }}</hh1>
+                <p class="small text-muted">Detected {{ incident.detected_at|date:"M d, Y H:i" }} · contained
+                    {% if incident.contained_at %}{{ incident.contained_at|date:"M d, H:i" }}{% else %}never{% endif %}
+                    · {{ incident.affected_assets.count }} asset(s) affected</p>
+
+                {% if incident.is_breach and incident.regulatory_notification_required and not incident.regulatory_notified_at %}
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-shield-exclamation"></i>
+                    This is a notifiable personal-data breach and the supervisory
+                    authority has <strong>not</strong> been recorded as notified. If
+                    the notification has actually gone out, edit the incident and set
+                    “regulatory notified at” before closing; if it was deliberately not
+                    notified, document that decision in the root cause.
+                </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-check2"></i> Close incident</button>
+                        <a href="{% url 'incidents:detail' incident.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

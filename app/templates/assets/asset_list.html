@@ -1,6 +1,6 @@
 ﻿{% extends "base.html" %}
 {% block title %}Assets{% endblock %}
-{% block breadcrumb %}<h5 class="mb-0">Asset Inventory</h5>{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Asset Inventory</h1>{% endblock %}
 
 {% block content %}
 <div class="card">
@@ -64,22 +64,22 @@
         <table class="table mb-0 align-middle">
             <thead class="table-light">
                                 <tr>
-                    <th style="width:36px;">
+                    <th scope="col" style="width:36px;">
                         <input type="checkbox" class="form-check-input" data-bulk-select-all
                                aria-label="Select all assets">
                     </th>
-                    <th class="w-90px">Asset ID</th>
-                    <th>Name</th>
-                    <th>Host / IP</th>
-                    <th>Type</th>
-                    <th>Hosting</th>
-                    <th>Cloud</th>
-                    <th>OS</th>
-                    <th class="text-center">Classification</th>
-                    <th>Owner</th>
-                    <th class="text-center">Env</th>
-                    <th class="text-center">Criticality</th>
-                    <th></th>
+                    <th scope="col" class="w-90px">Asset ID</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Host / IP</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Hosting</th>
+                    <th scope="col">Cloud</th>
+                    <th scope="col">OS</th>
+                    <th scope="col" class="text-center">Classification</th>
+                    <th scope="col">Owner</th>
+                    <th scope="col" class="text-center">Env</th>
+                    <th scope="col" class="text-center">Criticality</th>
+                    <th scope="col"></th>
                 </tr>
             </thead>
             <tbody>
@@ -116,7 +116,7 @@
                     <td class="text-end"><a href="{% url 'assets:detail' asset.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>
                 </tr>
             {% empty %}
-                <tr><td colspan="12" class="text-center text-muted py-4">No assets match your filters.</td></tr>
+                <tr><td colspan="14" class="text-center text-muted py-4">No assets match your filters.</td></tr>
             {% endfor %}
             </tbody>
         </table>

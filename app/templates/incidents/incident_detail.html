@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}{{ incident.reference }}{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Incident {{ incident.reference }}</h1>{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="h4 mb-1">{{ incident.title }}</h1>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <span class="badge {{ incident.severity_badge }}">{{ incident.get_severity_display }}</span>
+            <span class="badge {{ incident.status_badge }}">{{ incident.get_status_display }}</span>
+            <span class="badge bg-secondary">{{ incident.get_incident_type_display }}</span>
+            {% if incident.is_breach %}<span class="badge bg-dark">Personal-data breach</span>{% endif %}
+            <small class="text-muted">{{ incident.owner_dept.name }} · detected {{ incident.detected_at|date:"M d, Y H:i" }}</small>
+        </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        {% if can_change and incident.status != 'closed' %}
+            <a href="{% url 'incidents:close' incident.pk %}" class="btn btn-sm btn-danger"><i class="bi bi-check2-square"></i> Close incident</a>
+        {% endif %}
+        {% if can_change %}
+            <a href="{% url 'incidents:update' incident.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        {% endif %}
+        {% if user.is_staff %}
+            <a href="{% url 'admin:incidents_incident_change' incident.pk %}" class="btn btn-sm btn-outline-dark">Admin</a>
+        {% endif %}
+    </div>
+</div>
+
+{% if incident.status == 'detected' and incident.sla_breached %}
+<div class="alert alert-danger d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-octagon-fill"></i>
+    <div>
+        This incident has been untriaged for {{ incident.age_hours }}h — past its
+        {{ incidents_sla }} SLA. Operating procedure: triage now, escalate if the
+        handler cannot respond.
+    </div>
+</div>
+{% endif %}
+
+{% if incident.breaching_event %}
+<div class="alert {% if incident.breaching_hours_left < 0 %}alert-danger{% else %}alert-warning{% endif %} d-flex align-items-center gap-2">
+    <i class="bi bi-shield-exclamation"></i>
+    <div>
+        <strong>GDPR Art. 33 notification {% if incident.breaching_hours_left < 0 %}overdue{% else %}due{% endif %}:</strong>
+        deadline {{ incident.breaching_event|date:"M d, H:i" }} —
+        {% if incident.breaching_hours_left < 0 %}{{ incident.breaching_hours_left|cut:"-" }}h overdue{% else %}{{ incident.breaching_hours_left }}h remaining{% endif %}.
+        Record the notification in <a href="{% url 'incidents:update' incident.pk %}">edit</a> → “Regulatory notified at”.
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="stat-card"><div class="value">{{ incident.containment_hours|default:"—" }}{% if incident.containment_hours %} <small>h</small>{% endif %}</div><div class="label">Detection → containment</div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card"><div class="value">{{ incident.response_hours|default:"—" }}{% if incident.response_hours %} <small>h</small>{% endif %}</div><div class="label">Detection → resolution</div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card"><div class="value">{{ incident.data_subjects_affected }}</div><div class="label">Data subjects affected</div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card"><div class="value">{{ incident.age_hours }} <small>h</small></div><div class="label">Age since detection</div></div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header bg-white"><strong><i class="bi bi-card-text"></i> What happened</strong></div>
+            <div class="card-body">
+                <p class="mb-0" style="white-space: pre-wrap;">{{ incident.description }}</p>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white"><strong><i class="bi bi-hdd-stack"></i> Affected assets</strong></div>
+                    <div class="card-body py-2">
+                        {% for asset in incident.affected_assets.all %}
+                            <div class="py-1 border-bottom d-flex justify-content-between">
+                                <a href="{% url 'assets:detail' asset.pk %}">{{ asset.name }}</a>
+                                <small class="text-muted">{{ asset.asset_id|default:asset.pk }}</small>
+                            </div>
+                        {% empty %}<span class="text-muted small">None recorded.</span>{% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white"><strong><i class="bi bi-diagram-2"></i> Linked risks</strong></div>
+                    <div class="card-body py-2">
+                        {% for risk in incident.risks.all %}
+                            <div class="py-1 border-bottom d-flex justify-content-between">
+                                <a href="{% url 'risks:detail' risk.pk %}">{{ risk.title|truncatechars:60 }}</a>
+                                <span class="badge bg-secondary">{{ risk.get_status_display }}</span>
+                            </div>
+                        {% empty %}
+                            <span class="text-muted small">No risk-register entry yet.</span>
+                            {% if can_change and incident.status != 'closed' %}
+                                <a href="{% url 'incidents:raise_risk' incident.pk %}" class="d-block mt-2 small">
+                                    <i class="bi bi-plus-circle"></i> Raise a risk from this incident
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if incident.root_cause or incident.lessons_learned %}
+        <div class="row g-3 mb-3">
+            {% if incident.root_cause %}
+            <div class="col-md-6">
+                <div class="card h-100"><div class="card-header bg-white"><strong><i class="bi bi-search"></i> Root cause</strong></div>
+                <div class="card-body small" style="white-space: pre-wrap;">{{ incident.root_cause }}</div></div>
+            </div>
+            {% endif %}
+            {% if incident.lessons_learned %}
+            <div class="col-md-6">
+                <div class="card h-100"><div class="card-header bg-white"><strong><i class="bi bi-mortarboard"></i> Lessons learned</strong></div>
+                <div class="card-body small" style="white-space: pre-wrap;">{{ incident.lessons_learned }}</div></div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between">
+                <strong><i class="bi bi-clock-history"></i> Change history</strong>
+                <small class="text-muted">{{ incident.history.count }} change(s) recorded</small>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead><tr>
+                            <th scope="col">When</th>
+                            <th scope="col">By</th>
+                            <th scope="col">Records changed</th>
+                        </tr></thead>
+                        <tbody>
+                        {% for entry in history_entries %}
+                            <tr>
+                                <td class="text-muted small" style="white-space: nowrap;">{{ entry.history_date|date:"M d, H:i" }}</td>
+                                <td class="small">{% if entry.history_user %}{{ entry.history_user.get_full_name|default:entry.history_user.username }}{% else %}<em class="text-muted">system</em>{% endif %}</td>
+                                <td class="text-muted small">
+                                    {% if forloop.first and incident.history.count > 1 %}
+                                        Latest state (details above)
+                                    {% else %}
+                                        status: {{ entry.get_status_display|default:entry.status }}
+                                        · severity: {{ entry.get_severity_display|default:entry.severity }}
+                                        {% if entry.root_cause != incident.root_cause %}· root cause updated{% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-3">No changes recorded yet.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header bg-white"><strong><i class="bi bi-person-gear"></i> Accountability</strong></div>
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between py-1 border-bottom"><span class="small text-muted">Reference</span><strong>{{ incident.reference }}</strong></div>
+                <div class="d-flex justify-content-between py-1 border-bottom"><span class="small text-muted">Reported source</span><span class="small">{{ incident.get_source_display }}</span></div>
+                <div class="d-flex justify-content-between py-1 border-bottom"><span class="small text-muted">Department</span><span class="small">{{ incident.owner_dept.name }}</span></div>
+                <div class="d-flex justify-content-between py-1 border-bottom">
+                    <span class="small text-muted">Handler</span>
+                    <span class="small">{% if incident.handler %}{{ incident.handler.get_full_name|default:incident.handler.username }}{% else %}<span class="text-warning">unassigned</span>{% endif %}</span>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom"><span class="small text-muted">Filed by</span><span class="small">{% if incident.created_by %}{{ incident.created_by.get_full_name|default:incident.created_by.username }}{% else %}<em class="text-muted">—</em>{% endif %}</span></div>
+                <div class="d-flex justify-content-between py-1"><span class="small text-muted">Regulatory notification</span>
+                    <span class="small">
+                        {% if incident.regulatory_notified_at %}notified {{ incident.regulatory_notified_at|date:"M d, H:i" }}
+                        {% elif incident.regulatory_notification_required %}<span class="text-danger fw-semibold">required — pending</span>
+                        {% else %}not required{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white"><strong><i class="bi bi-signpost-2"></i> Lifecycle</strong></div>
+            <div class="card-body py-2">
+                {% for state, label in lifecycle %}
+                <div class="d-flex align-items-center py-1 {% if not forloop.last %}border-bottom{% endif %}">
+                    {% if incident.status == state %}
+                        <i class="bi bi-record-circle-fill text-primary me-2"></i>
+                    {% elif forloop.counter0 < lifecycle_position %}
+                        <i class="bi bi-check-circle text-token-success me-2"></i>
+                    {% else %}
+                        <i class="bi bi-circle text-muted me-2"></i>
+                    {% endif %}
+                    <span class="small">{{ label }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
