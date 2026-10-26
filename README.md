@@ -12,7 +12,7 @@
 [![Django](https://img.shields.io/badge/django-5.2-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
-[![Tests](https://img.shields.io/badge/tests-262%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-293%20passing-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
@@ -370,8 +370,9 @@ in action.
 | `SECRET_KEY` | Long random string, **no `$`** |
 | `ALLOWED_HOSTS` | Comma-separated hostnames |
 | `CSRF_TRUSTED_ORIGINS` | Comma-separated origins allowed to POST |
-| `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, `SECURE_HSTS_SECONDS` | TLS switches — relaxed for local HTTP, enable behind a TLS proxy |
-| `SERVE_MEDIA` | Legacy flag; media is served through the scoped view regardless |
+| `USE_TLS` | One switch for the HTTPS posture: redirect, secure cookies, HSTS and proxy-header trust. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
+| `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, `SECURE_HSTS_SECONDS` | Individual TLS overrides (default to `USE_TLS`) |
+| `TRUSTED_PROXY_HOPS` | Number of reverse proxies in front, so rate limits key on the real client address |
 | `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` | Database name and address |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD` | Bootstrap/break-glass superuser used by the PostgreSQL container, not the application |
 | `DB_APP_USER`, `DB_APP_PASSWORD` | Non-superuser runtime role the application uses; row-level security applies to it |
@@ -473,7 +474,7 @@ idempotency and the escalation auto-clear rules.
 
 ```bash
 docker compose exec web python manage.py test
-# Ran 285 tests - OK
+# Ran 293 tests - OK
 ```
 
 The suite also includes a dedicated security regression module
@@ -602,12 +603,14 @@ GRC Nexus follows [Semantic Versioning](https://semver.org/). Releases are cut a
 signed-off tags on `main`.
 
 ```bash
-git tag -a v2.3.0 -m "GRC Nexus v2.3.0"
-git push origin v2.3.0
-gh release create v2.3.0 --title "GRC Nexus v2.3.0" --notes "See CHANGELOG"
+git tag -a v3.0.0 -m "GRC Nexus v3.0.0"
+git push origin v3.0.0
+gh release create v3.0.0 --title "GRC Nexus v3.0.0" --notes-file CHANGELOG.md
 ```
 
-Existing tags: `v1.0.0`, `v2.0.0`, `v2.1.0`, `v2.2.0`.
+Existing tags: `v1.0.0`, `v2.0.0`, `v2.1.0`, `v2.2.0`, `v3.0.0`.
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
 
 ---
 

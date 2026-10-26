@@ -220,9 +220,9 @@ STORAGES = {
     'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage'},
 }
 
-# Serve uploaded media directly from Django. This is fine for a single-node
-# deployment; in a larger setup put MEDIA behind object storage / a CDN.
-SERVE_MEDIA = config('SERVE_MEDIA', default=False, cast=bool)
+# Uploaded media is always served through core.media.download_media (wired in
+# core.urls), which enforces login and department scoping. There is deliberately
+# no switch to serve MEDIA_ROOT directly.
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -294,6 +294,13 @@ SECURE_REFERRER_POLICY = 'same-origin'
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 X_FRAME_OPTIONS = 'DENY'
 CSRF_FAILURE_VIEW = 'core.views.csrf_failure'
+
+# How many reverse proxies sit in front of the app. 0 means "trust only
+# REMOTE_ADDR". Set it to 1 for a single TLS-terminating proxy so rate limits
+# key on the real client instead of the proxy address; see
+# core.rate_limit.client_ip. Never raise this without a proxy that overwrites
+# X-Forwarded-For.
+TRUSTED_PROXY_HOPS = config('TRUSTED_PROXY_HOPS', default=0, cast=int)
 
 # No cross-origin browser API is exposed. Keep this list empty unless a
 # deliberate, reviewed integration needs it; credentials are never allowed.

@@ -17,7 +17,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.db import connection
-from django.test import Client, TestCase, override_settings
+from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -617,3 +617,117 @@ class DependencyBaselineTests(TestCase):
     def test_django_is_a_supported_lts(self):
         import django
         self.assertGreaterEqual(django.VERSION[:2], (5, 2))
+
+
+class ClientIPTests(SimpleTestCase):
+    """Rate limits must key on the real client only behind trusted proxies."""
+
+    def _request(self, remote='10.0.0.9', forwarded=None):
+        from django.test import RequestFactory
+        extra = {'REMOTE_ADDR': remote}
+        if forwarded is not None:
+            extra['HTTP_X_FORWARDED_FOR'] = forwarded
+        return RequestFactory().get('/', **extra)
+
+    def test_remote_addr_is_used_by_default(self):
+        from core.rate_limit import client_ip
+        request = self._request(forwarded='203.0.113.7')
+        self.assertEqual(client_ip(request), '10.0.0.9')
+
+    @override_settings(TRUSTED_PROXY_HOPS=1)
+    def test_single_proxy_uses_forwarded_address(self):
+        from core.rate_limit import client_ip
+        request = self._request(forwarded='203.0.113.7')
+        self.assertEqual(client_ip(request), '203.0.113.7')
+
+    @override_settings(TRUSTED_PROXY_HOPS=2)
+    def test_two_proxies_skip_the_inner_hop(self):
+        from core.rate_limit import client_ip
+        request = self._request(forwarded='203.0.113.7, 10.0.0.2')
+        self.assertEqual(client_ip(request), '203.0.113.7')
+
+    @override_settings(TRUSTED_PROXY_HOPS=1)
+    def test_spoofed_or_malformed_headers_fall_back(self):
+        from core.rate_limit import client_ip
+        for header in ('not-an-ip', 'unknown, bogus', ''):
+            with self.subTest(header=header):
+                request = self._request(forwarded=header)
+                self.assertEqual(client_ip(request), '10.0.0.9')
+
+    @override_settings(TRUSTED_PROXY_HOPS=1)
+    def test_ipv6_and_port_forms_are_normalised(self):
+        from core.rate_limit import client_ip
+        self.assertEqual(
+            client_ip(self._request(forwarded='2001:db8::1')),
+            '2001:db8::1',
+        )
+        self.assertEqual(
+            client_ip(self._request(forwarded='203.0.113.7:443')),
+            '203.0.113.7',
+        )
+
+
+class DeploySettingsTests(SimpleTestCase):
+    """The documented TLS profile must satisfy Django's deployment checks."""
+
+    TLS_IDS = {'security.W004', 'security.W008', 'security.W012', 'security.W016'}
+
+    def _deploy_warnings(self):
+        from django.core.checks import run_checks
+        return run_checks(tags=['security'], include_deployment_checks=True)
+
+    def test_tls_profile_clears_the_transport_warnings(self):
+        with override_settings(
+            DEBUG=False,
+            SECURE_SSL_REDIRECT=True,
+            SECURE_HSTS_SECONDS=31_536_000,
+            SESSION_COOKIE_SECURE=True,
+            CSRF_COOKIE_SECURE=True,
+        ):
+            ids = {message.id for message in self._deploy_warnings()}
+        self.assertFalse(self.TLS_IDS & ids, self.TLS_IDS & ids)
+
+    def test_local_http_profile_reports_them(self):
+        with override_settings(
+            DEBUG=False,
+            SECURE_SSL_REDIRECT=False,
+            SECURE_HSTS_SECONDS=0,
+            SESSION_COOKIE_SECURE=False,
+            CSRF_COOKIE_SECURE=False,
+        ):
+            ids = {message.id for message in self._deploy_warnings()}
+        self.assertTrue(self.TLS_IDS <= ids, self.TLS_IDS - ids)
+
+
+class ErrorPageContextTests(SimpleTestCase):
+    """A 400/500 can render before AuthenticationMiddleware sets request.user."""
+
+    def test_context_processors_tolerate_missing_user(self):
+        from django.test import RequestFactory
+
+        from core.context_processors import (
+            notification_count,
+            pending_actions,
+            recent_notifications_context,
+            user_preference_context,
+        )
+        from incidents.context_processors import incident_counters
+        from tickets.context_processors import ticket_counters
+
+        request = RequestFactory().get('/')
+        self.assertFalse(hasattr(request, 'user'))
+
+        self.assertEqual(pending_actions(request), {})
+        self.assertEqual(ticket_counters(request), {})
+        self.assertEqual(incident_counters(request), {})
+        self.assertEqual(
+            notification_count(request),
+            {'unread_notification_count': 0},
+        )
+        self.assertEqual(
+            recent_notifications_context(request),
+            {'recent_notifications': [], 'unread_notification_count': 0},
+        )
+        self.assertEqual(
+            user_preference_context(request)['user_theme_pref'], 'system'
+        )

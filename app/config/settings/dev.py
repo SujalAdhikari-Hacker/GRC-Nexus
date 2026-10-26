@@ -18,6 +18,3 @@ SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 SECURE_HSTS_SECONDS = 0
-
-# Serve uploaded files through Django during development.
-SERVE_MEDIA = True

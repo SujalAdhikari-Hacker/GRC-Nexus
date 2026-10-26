@@ -4,11 +4,14 @@
 Usage:
     python scripts/scan_secrets.py            # scan git-tracked files
     python scripts/scan_secrets.py --all      # scan the working tree too
+    python scripts/scan_secrets.py --history  # scan every commit
 
 The scanner is intentionally conservative: it looks for credential formats
 (AWS, GitHub, Slack, Google, Stripe, private keys) and for ``key = "value"``
 assignments whose value looks random rather than like a placeholder. Findings
 print a masked value so the scanner itself never writes a secret to a log.
+A secret deleted in a later commit is still readable in history, which is why
+``--history`` exists.
 
 Exit status is 1 when anything is found, so it can run in CI.
 """
@@ -48,6 +51,18 @@ ASSIGNMENT_RE = re.compile(
     '''
 )
 
+# KEY=value lines as used by .env files (no quotes, no spaces). Only applied to
+# configuration files: in Python source the same shape is ordinary code such as
+# ``WEBHOOK_SECRET = config('WEBHOOK_SECRET', default='')``.
+ENV_ASSIGNMENT_RE = re.compile(
+    r'''^[ \t]*(?P<key>
+        [A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|AUTH_KEY|CLIENT_SECRET)
+        [A-Z0-9_]*
+    )[ \t]*=[ \t]*(?P<value>[^\s#]+)
+    ''',
+    re.VERBOSE,
+)
+
 PLACEHOLDER_MARKERS = (
     'change-me', 'change_me', 'changeme', 'your-', 'your_', 'example',
     'placeholder', 'dummy', 'sample', 'redacted', 'replace', 'todo',
@@ -59,6 +74,11 @@ SKIP_SUFFIXES = {
     '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.pdf',
     '.zip', '.gz', '.tgz', '.7z', '.woff', '.woff2', '.ttf', '.otf',
     '.pyc', '.pyo', '.so', '.dll', '.exe', '.drawio', '.docx', '.xlsx',
+}
+
+# Files where an unquoted KEY=value assignment is configuration, not code.
+CONFIG_SUFFIXES = {
+    '.env', '.ini', '.cfg', '.conf', '.yaml', '.yml', '.toml', '.properties',
 }
 
 
@@ -116,6 +136,14 @@ def is_test_path(path: Path) -> bool:
     )
 
 
+def is_config_path(path) -> bool:
+    """True for .env / YAML / INI style files, where KEY=value is config."""
+    name = Path(path).name.lower()
+    if name == '.env' or name.startswith('.env.'):
+        return True
+    return Path(name).suffix in CONFIG_SUFFIXES
+
+
 def scan_file(path: Path):
     if path.suffix.lower() in SKIP_SUFFIXES:
         return
@@ -142,6 +170,60 @@ def scan_file(path: Path):
             continue
         yield match.group(1), value
 
+    if is_config_path(path):
+        for match in ENV_ASSIGNMENT_RE.finditer(text):
+            value = match.group('value').strip()
+            if len(value) < 8 or looks_like_placeholder(value):
+                continue
+            yield match.group('key'), value
+
+
+def history_findings():
+    """Yield (commit, path, label, value) for every added line in history."""
+    log = subprocess.run(
+        ['git', 'log', '-p', '--all', '--no-color', '--unified=0'],
+        cwd=ROOT, capture_output=True, check=True,
+    ).stdout.decode('utf-8', 'replace')
+
+    commit = '?'
+    path = '?'
+    for line in log.splitlines():
+        if line.startswith('commit '):
+            commit = line.split()[1][:8]
+            continue
+        if line.startswith('+++ b/'):
+            path = line[6:]
+            continue
+        if not line.startswith('+') or line.startswith('+++'):
+            continue
+        content = line[1:]
+
+        for label, pattern in TOKEN_PATTERNS:
+            for match in pattern.finditer(content):
+                yield commit, path, label, match.group(0)
+
+        # Test fixtures intentionally contain realistic-looking passwords.
+        if is_test_path(Path(path)):
+            continue
+
+        for match in ASSIGNMENT_RE.finditer(content):
+            value = match.group('value')
+            if looks_like_placeholder(value) or entropy(value) < 3.5:
+                continue
+            yield commit, path, match.group(1), value
+
+        # Only treat unquoted KEY=value as config in actual config files;
+        # otherwise Python code such as ``SECRET_KEY = config(...)`` floods the
+        # report. In a config file the key name alone is high confidence, so a
+        # low-entropy value (a human-chosen password) is still worth reporting.
+        if not is_config_path(path):
+            continue
+        for match in ENV_ASSIGNMENT_RE.finditer(content):
+            value = match.group('value').strip()
+            if len(value) < 8 or looks_like_placeholder(value):
+                continue
+            yield commit, path, match.group('key'), value
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -149,7 +231,32 @@ def main() -> int:
         '--all', action='store_true',
         help='scan the working tree instead of git-tracked files',
     )
+    parser.add_argument(
+        '--history', action='store_true',
+        help='scan every commit (git log -p) instead of the current tree',
+    )
     args = parser.parse_args()
+
+    if args.history:
+        findings = list(history_findings())
+        if findings:
+            print(
+                f'{len(findings)} potential secret(s) found in history:',
+                file=sys.stderr,
+            )
+            seen = set()
+            for commit, path, label, value in findings:
+                key = (commit, path, label, mask(value))
+                if key in seen:
+                    continue
+                seen.add(key)
+                print(
+                    f'  {commit}:{path}: {label}: {mask(value)}',
+                    file=sys.stderr,
+                )
+            return 1
+        print('No high-confidence secrets found in git history.')
+        return 0
 
     findings = []
     for path in tracked_files(args.all):

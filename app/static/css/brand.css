@@ -1,5 +1,5 @@
 /* ============================================================
-   GRC NEXUS BRAND � Design System
+   GRC NEXUS BRAND — Design System
    ============================================================ */
 
 :root {
@@ -429,7 +429,7 @@ hr { border-color: var(--border-soft); opacity: 1; }
     --border-soft: #161B28;
     --text:         #E5E7EB;
     --text-muted:   #9CA3AF;
-    --text-faint:   #9CA3AF; /* was #6B7280 (2.8:1 on #0F141F); now �4.6:1 */
+    --text-faint:   #9CA3AF; /* was #6B7280 (2.8:1 on #0F141F); now 4.6:1 */
     --text-inverse: #F9FAFB;
     --brand-100: #1A2130;
     --brand-200: #232B3D;
@@ -505,7 +505,7 @@ hr { border-color: var(--border-soft); opacity: 1; }
 [data-bs-theme="dark"] .nav-link.active { background: rgba(255,255,255,0.05); }
 
 /* ============================================================
-   TOPBAR COMPONENTS � search, buttons, user menu, palette
+   TOPBAR COMPONENTS — search, buttons, user menu, palette
    ============================================================ */
 
 .topbar-search {
@@ -734,7 +734,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .user-block { margin: 0; padding: 12px 14px; }
 
 /* ============================================================
-   SIDEBAR v3 � flat structure, no wrappers, inline-layout
+   SIDEBAR v3 — flat structure, no wrappers, inline-layout
    ============================================================ */
 
 .sidebar .nav {
@@ -871,7 +871,7 @@ td:hover > .mx-add-btn {
 }
 
 /* ============================================================
-   DASHBOARD � CLICKABLE STAT CARDS
+   DASHBOARD — CLICKABLE STAT CARDS
    ============================================================ */
 
 .stat-card-link {
@@ -916,7 +916,7 @@ td:hover > .mx-add-btn {
 }
 
 /* ============================================================
-   SIDEBAR � TICKET BADGES AND DOTS
+   SIDEBAR — TICKET BADGES AND DOTS
    ============================================================ */
 
 .sidebar-badge {
@@ -968,19 +968,19 @@ td:hover > .mx-add-btn {
 
 
 /* ============================================================
-   GRC NEXUS � BRAND OVERRIDES
+   GRC NEXUS — BRAND OVERRIDES
    Applied on top of the base theme. Blue accent everywhere.
    ============================================================ */
 
 :root {
     /* accent-* tokens are defined once, in the base :root at the top of this
-       file � not repeated here. */
+       file — not repeated here. */
     --nexus-blue-deep: #0A1F3D;
     --nexus-blue: #00A8E8;
     --nexus-blue-light: #38BDF8;
 }
 
-/* Brand block in the sidebar � bigger, cleaner */
+/* Brand block in the sidebar — bigger, cleaner */
 .brand {
     padding: 18px 16px !important;
     gap: 12px !important;
@@ -1006,7 +1006,7 @@ td:hover > .mx-add-btn {
     line-height: 1.2;
 }
 
-/* Sidebar section dot + badges � blue now */
+/* Sidebar section dot + badges — blue now */
 .sidebar-badge {
     margin-left: auto;
     min-width: 20px;
@@ -1041,7 +1041,7 @@ td:hover > .mx-add-btn {
 /* sidebar-dot-pulse keyframes are defined once, above. */
 
 /* ============================================================
-   DARK MODE FIX � Bootstrap bg-white leaking white headers
+   DARK MODE FIX — Bootstrap bg-white leaking white headers
    ============================================================ */
 .bg-white {
     background-color: var(--surface) !important;
@@ -1257,7 +1257,7 @@ td:hover > .mx-add-btn {
 }
 
 /* ============================================================
-   RESPONSIVE � usable on tablets and phones
+   RESPONSIVE — usable on tablets and phones
    ============================================================ */
 .mobile-nav-toggle { display: none; }
 @media (max-width: 1100px) {
@@ -1302,7 +1302,7 @@ td:hover > .mx-add-btn {
 }
 
 /* ============================================================
-   DESIGN TOKENS � utility classes
+   DESIGN TOKENS — utility classes
 
    These replace recurring inline styles (colours, widths, font
    sizes) so values come from :root instead of being hard-coded
@@ -1340,7 +1340,7 @@ td:hover > .mx-add-btn {
 .border-left-amber { border-left: 4px solid #F59E0B; }
 
 /* ============================================================
-   UTILITIES � second pass (replaces repeated inline styles)
+   UTILITIES — second pass (replaces repeated inline styles)
    ============================================================ */
 .stat-alert-danger  { border-color: var(--danger, #DC2626); }
 .stat-alert-warning { border-color: var(--warning, #D97706); }
@@ -1374,7 +1374,7 @@ td:hover > .mx-add-btn {
 
 /* ============================================================
    ERROR PAGES (403 / 404 / 500)
-   Standalone, base-less pages � theme-aware.
+   Standalone, base-less pages — theme-aware.
    ============================================================ */
 .error-page {
     min-height: 100vh;

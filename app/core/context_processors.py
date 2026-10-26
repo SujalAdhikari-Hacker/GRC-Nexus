@@ -5,12 +5,12 @@ Injects pending-action counts into every template's context.
 
 
 def pending_actions(request):
-    if not request.user.is_authenticated:
+    user = getattr(request, 'user', None)
+    if user is None or not user.is_authenticated:
         return {}
 
     from core.pending_actions import all_pending
 
-    user = request.user
     dept = None if user.is_superuser else user.department
     is_super = user.is_superuser
 
@@ -70,8 +70,8 @@ def _notification_snapshot(request):
         'notif_section_audit': 0,
     }
 
-    user = request.user
-    if not user.is_authenticated:
+    user = getattr(request, 'user', None)
+    if user is None or not user.is_authenticated:
         setattr(request, _SNAPSHOT_ATTR, empty)
         return empty
     if not user.is_superuser and not user.department_id:
@@ -187,11 +187,12 @@ def user_preference_context(request):
         'user_time_format': 'H:i',
         'user_timezone_pref': 'UTC',
     }
-    if not request.user.is_authenticated:
+    user = getattr(request, 'user', None)
+    if user is None or not user.is_authenticated:
         return empty
     try:
         from core.settings_model import UserPreference
-        pref = UserPreference.get_for(request.user)
+        pref = UserPreference.get_for(user)
         if not pref:
             return empty
         return {

@@ -1,15 +1,78 @@
+# ---------------------------------------------------------------------------
+# Secrets and local configuration
+# ---------------------------------------------------------------------------
 .env
+.env.*
+!.env.example
+.envrc
+
+# TLS material and key stores
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.crt
+*.csr
+
+# Credential files
+credentials.json
+service-account*.json
+secrets/
+.secrets
+
+# ---------------------------------------------------------------------------
+# Databases, dumps and backups
+# ---------------------------------------------------------------------------
+db.sqlite3
+*.sqlite3
+*.sql
+*.dump
+*.bak
+*.backup
+*.old
+*.orig
+postgres_data/
+backup_before_rls.sql
+.role_setup.sql
+
+# ---------------------------------------------------------------------------
+# Uploads and generated static files
+# ---------------------------------------------------------------------------
+media/
+staticfiles/
+dist/
+build/
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
 *.egg-info/
 .venv/
 venv/
-db.sqlite3
-staticfiles/
-media/
-postgres_data/
-.vscode/.env
-backup_before_rls.sql
-.role_setup.sql
+.tox/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# ---------------------------------------------------------------------------
+# Editors and OS
+# ---------------------------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.log
+
+# ---------------------------------------------------------------------------
+# Deployment configuration with real hostnames/certificates
+# ---------------------------------------------------------------------------
+deploy/Caddyfile
+deploy/nginx.conf

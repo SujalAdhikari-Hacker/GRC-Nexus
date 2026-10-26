@@ -8,12 +8,12 @@ badge on *Incidents* the same way tickets do.
 
 def incident_counters(request):
     """Add open-incident counts to the template context for authenticated users."""
-    if not request.user.is_authenticated:
+    user = getattr(request, 'user', None)
+    if user is None or not user.is_authenticated:
         return {}
 
     from .models import Incident
 
-    user = request.user
     base = Incident.objects.all()
     if not user.is_superuser:
         if not user.department_id:

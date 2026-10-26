@@ -1,0 +1,53 @@
+# nginx reverse proxy for GRC Nexus.
+#
+# Replace grc.example.com and the certificate paths, then include this file
+# from the http{} block. See docs/DEPLOYMENT.md section 4.
+#
+# The app container must not publish port 8000 once this is in front.
+
+server {
+    listen 80;
+    server_name grc.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name grc.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/grc.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/grc.example.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    # Must exceed MAX_EVIDENCE_UPLOAD_SIZE (default 10 MB) or uploads fail with
+    # a 413 before Django sees them.
+    client_max_body_size 20m;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "same-origin" always;
+    server_tokens off;
+
+    location / {
+        proxy_pass http://web:8000;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        # Appends the peer address, so the app can take the last hop when
+        # TRUSTED_PROXY_HOPS=1.
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_read_timeout 120s;
+        proxy_connect_timeout 10s;
+    }
+
+    # NEVER add a /media/ alias here. Uploads are private per department and are
+    # served by core.media.download_media, which checks access. A direct alias
+    # would let anyone with the path read another team's evidence.
+}

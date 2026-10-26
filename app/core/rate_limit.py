@@ -16,6 +16,7 @@ point ``CACHES`` at Redis for the counters to be shared.
 """
 from __future__ import annotations
 
+import ipaddress
 import logging
 from dataclasses import dataclass
 
@@ -27,13 +28,44 @@ logger = logging.getLogger(__name__)
 
 
 def client_ip(request):
-    """Return the direct peer address.
+    """Return the client address, honouring a trusted proxy chain.
 
-    ``X-Forwarded-For`` is deliberately not trusted: a client can spoof it
-    unless a reverse proxy is known to overwrite it.  Deployments behind such a
-    proxy should set ``USE_X_FORWARDED_HOST``/proxy middleware explicitly.
+    ``X-Forwarded-For`` is only read when ``TRUSTED_PROXY_HOPS`` is greater than
+    zero, and only the address added by our own proxy chain is used. A client
+    cannot rotate the header to escape a rate limit unless it can reach the app
+    without passing through those proxies.
     """
-    return (request.META.get('REMOTE_ADDR') or 'unknown')[:64]
+    remote = (request.META.get('REMOTE_ADDR') or 'unknown')[:64]
+    hops = _setting('TRUSTED_PROXY_HOPS', 0)
+    try:
+        hops = int(hops)
+    except (TypeError, ValueError):
+        hops = 0
+    if hops <= 0:
+        return remote
+
+    forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    parts = [part.strip() for part in forwarded.split(',') if part.strip()]
+    if len(parts) < hops:
+        return remote
+
+    candidate = _normalise_ip(parts[-hops])
+    return candidate or remote
+
+
+def _normalise_ip(value):
+    """Return a canonical IP string, or None when the value is not an IP."""
+    value = (value or '').strip()
+    if not value:
+        return None
+    if value.startswith('['):  # [2001:db8::1]:443
+        value = value[1:value.find(']')] if ']' in value else value[1:]
+    elif value.count(':') == 1:  # 203.0.113.5:443
+        value = value.split(':', 1)[0]
+    try:
+        return str(ipaddress.ip_address(value))
+    except ValueError:
+        return None
 
 
 def client_identity(request):

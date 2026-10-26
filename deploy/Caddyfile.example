@@ -1,0 +1,32 @@
+# Caddy reverse proxy for GRC Nexus.
+#
+# Copy to deploy/Caddyfile, replace the hostname, and mount it into a Caddy
+# container (see docs/DEPLOYMENT.md section 3). Caddy obtains and renews the
+# certificate automatically.
+#
+# The app container must not publish port 8000 once this is in front.
+
+grc.example.com {
+	encode zstd gzip
+
+	# Overwrite X-Forwarded-Proto on every request. The app trusts this header
+	# when USE_TLS=true (see config/settings/prod.py).
+	reverse_proxy web:8000 {
+		header_up X-Forwarded-Proto https
+		header_up X-Real-IP {remote_host}
+	}
+
+	# Security headers are also set by the app; these are defence in depth for
+	# responses that never reach Django (static 404s at the proxy, etc.).
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

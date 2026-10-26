@@ -8,12 +8,11 @@ can show badges like "Tickets (3)" without modifying every view.
 
 def ticket_counters(request):
     """Add open-ticket counts to the template context for authenticated users."""
-    if not request.user.is_authenticated:
+    user = getattr(request, 'user', None)
+    if user is None or not user.is_authenticated:
         return {}
 
     from .models import Ticket
-
-    user = request.user
 
     # Base queryset — scoped by department for non-superusers
     base = Ticket.objects.all()
