@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from core.correlation import get_full_vendor_context
+from core.input_validation import choice, integer, search_query
 from core.mixins import (
     ChangeScopedMixin,
     CsvExportMixin,
@@ -51,19 +52,31 @@ class VendorListView(DepartmentScopedMixin, CsvExportMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('owner_dept', 'owner_user')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(
                 Q(vendor_id__icontains=q) | Q(name__icontains=q)
                 | Q(description__icontains=q) | Q(contact_name__icontains=q)
             )
-        service = self.request.GET.get('service')
+        service = choice(
+            self.request.GET.get('service'),
+            {value for value, _label in Vendor.SERVICE_CHOICES},
+            'service', allow_blank=True,
+        )
         if service:
             qs = qs.filter(service=service)
-        tier = self.request.GET.get('tier')
+        # Vendor tiers are stored as integers (1-3), not strings.
+        tier = integer(
+            self.request.GET.get('tier'), 'tier',
+            minimum=1, maximum=3, default=0,
+        )
         if tier:
             qs = qs.filter(tier=tier)
-        status = self.request.GET.get('status')
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in Vendor.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
         return qs.order_by('vendor_id')
@@ -164,10 +177,14 @@ class VendorAssessmentListView(DepartmentScopedMixin, CsvExportMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('vendor', 'assessor')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(vendor__name__icontains=q) | Q(key_findings__icontains=q))
-        status = self.request.GET.get('status')
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in VendorAssessment.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
         return qs.order_by('-assessment_date')

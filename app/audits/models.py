@@ -2,7 +2,9 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from simple_history.models import HistoricalRecords
 from core.models import Department
-from core.validators import is_safe_external_url, validate_external_url
+from core.validators import (
+    is_safe_external_url, validate_evidence_file, validate_external_url,
+)
 
 
 class Audit(models.Model):
@@ -112,7 +114,8 @@ class EvidenceItem(models.Model):
         help_text='External URL or file path if not uploaded (http/https only)'
     )
     attachment = models.FileField(
-        upload_to='audit_evidence/', null=True, blank=True
+        upload_to='audit_evidence/', null=True, blank=True,
+        validators=[validate_evidence_file],
     )
     notes = models.TextField(blank=True)
 

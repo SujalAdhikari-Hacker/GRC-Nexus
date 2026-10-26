@@ -23,6 +23,7 @@ from vendors.models import Vendor
 from vulnerabilities.models import Finding
 
 from .forms import CustomUserChangeForm, CustomUserCreationForm, DepartmentForm
+from .input_validation import choice, positive_int, search_query
 from .models import Department, User
 
 logger = logging.getLogger(__name__)
@@ -229,7 +230,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 @login_required
 def global_search(request):
-    q = request.GET.get('q', '').strip()
+    q = search_query(request.GET.get('q', ''))
     user = request.user
 
     results = {
@@ -322,15 +323,18 @@ class UserListView(HODOrSuperuserMixin, ListView):
         qs = scope_queryset(
             User.objects.all(), self.request.user, field='department'
         ).select_related('department').prefetch_related('groups')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(
                 Q(username__icontains=q) | Q(email__icontains=q) | Q(first_name__icontains=q)
             )
         dept = self.request.GET.get('department')
         if dept:
-            qs = qs.filter(department_id=dept)
-        role = self.request.GET.get('role')
+            qs = qs.filter(department_id=positive_int(dept, 'department'))
+        role = choice(
+            self.request.GET.get('role'), {'hod', 'super', 'user'},
+            'role', allow_blank=True,
+        )
         if role == 'hod':
             qs = qs.filter(is_hod=True)
         elif role == 'super':

@@ -78,11 +78,16 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'core.middleware.SecurityHeadersMiddleware',
+    # Correlation id and full server-side exception logging wrap everything
+    # that can fail. RequestValidation rejects malformed input before a view.
+    'core.middleware.RequestIDMiddleware',
+    'core.middleware.ErrorLoggingMiddleware',
     'core.middleware.CorsLockdownMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'core.middleware.RequestValidationMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     # Set the PostgreSQL RLS context before any view query runs.
     'core.middleware.RLSMiddleware',
@@ -197,12 +202,8 @@ TIME_ZONE = config('TIME_ZONE', default='UTC')
 USE_I18N = True
 USE_TZ = True
 
-# Sign-in throttling knobs (read by core.login_throttle). Failures are keyed
-# by (client IP, username) in the default cache; after MAX failures inside
-# WINDOW, sign-in for that identity is locked for LOCKOUT seconds.
-LOGIN_MAX_FAILURES = config('LOGIN_MAX_FAILURES', default=5, cast=int)
-LOGIN_FAILURE_WINDOW = config('LOGIN_FAILURE_WINDOW', default=900, cast=int)
-LOGIN_LOCKOUT_SECONDS = config('LOGIN_LOCKOUT_SECONDS', default=900, cast=int)
+# Sign-in throttling and input limits are configured further down, next to
+# the rate-limit block.
 
 # --------------------------------------------------------------------------
 # Static / media
@@ -304,12 +305,90 @@ CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='', cast=Csv())
 RATE_LIMIT_ENABLED = config(
     'RATE_LIMIT_ENABLED', default=not _IS_TEST, cast=bool
 )
-RATE_LIMIT_AUTH = config('RATE_LIMIT_AUTH', default=20, cast=int)
+# Per-IP auth requests (login, password change, MFA).  The account-specific
+# login counter and exponential delay live in core.login_throttle; the MFA
+# views have their own per-user counter.
+RATE_LIMIT_AUTH = config('RATE_LIMIT_AUTH', default=10, cast=int)
+RATE_LIMIT_PUBLIC = config('RATE_LIMIT_PUBLIC', default=60, cast=int)
 RATE_LIMIT_SEARCH = config('RATE_LIMIT_SEARCH', default=60, cast=int)
 RATE_LIMIT_MEDIA = config('RATE_LIMIT_MEDIA', default=120, cast=int)
 RATE_LIMIT_WRITE = config('RATE_LIMIT_WRITE', default=120, cast=int)
 RATE_LIMIT_READ = config('RATE_LIMIT_READ', default=1200, cast=int)
 RATE_LIMIT_WINDOW = config('RATE_LIMIT_WINDOW', default=60, cast=int)
+RATE_LIMIT_AUTH_BACKOFF_BASE = config(
+    'RATE_LIMIT_AUTH_BACKOFF_BASE', default=30, cast=int
+)
+RATE_LIMIT_AUTH_BACKOFF_MAX = config(
+    'RATE_LIMIT_AUTH_BACKOFF_MAX', default=900, cast=int
+)
+RATE_LIMIT_AUTH_BACKOFF_MULTIPLIER = config(
+    'RATE_LIMIT_AUTH_BACKOFF_MULTIPLIER', default=2, cast=int
+)
+
+# Sign-in failure backoff.  A successful sign-in clears the account counter;
+# the per-IP counter decays with LOGIN_FAILURE_WINDOW so one valid account
+# cannot reset credential-stuffing protection for the whole address.
+LOGIN_MAX_FAILURES = config('LOGIN_MAX_FAILURES', default=5, cast=int)
+LOGIN_FAILURE_WINDOW = config('LOGIN_FAILURE_WINDOW', default=900, cast=int)
+LOGIN_BACKOFF_BASE_SECONDS = config(
+    'LOGIN_BACKOFF_BASE_SECONDS', default=30, cast=int
+)
+LOGIN_BACKOFF_MAX_SECONDS = config(
+    'LOGIN_BACKOFF_MAX_SECONDS', default=900, cast=int
+)
+LOGIN_BACKOFF_MULTIPLIER = config(
+    'LOGIN_BACKOFF_MULTIPLIER', default=2, cast=int
+)
+LOGIN_IP_MAX_FAILURES = config('LOGIN_IP_MAX_FAILURES', default=20, cast=int)
+LOGIN_IP_BACKOFF_BASE_SECONDS = config(
+    'LOGIN_IP_BACKOFF_BASE_SECONDS', default=60, cast=int
+)
+LOGIN_IP_BACKOFF_MAX_SECONDS = config(
+    'LOGIN_IP_BACKOFF_MAX_SECONDS', default=3600, cast=int
+)
+LOGIN_USERNAME_MAX_LENGTH = config(
+    'LOGIN_USERNAME_MAX_LENGTH', default=150, cast=int
+)
+LOGIN_PASSWORD_MAX_LENGTH = config(
+    'LOGIN_PASSWORD_MAX_LENGTH', default=4096, cast=int
+)
+
+# Second-factor failures use the same exponential model.
+MFA_MAX_FAILURES = config('MFA_MAX_FAILURES', default=5, cast=int)
+MFA_FAILURE_WINDOW = config('MFA_FAILURE_WINDOW', default=300, cast=int)
+MFA_BACKOFF_BASE_SECONDS = config(
+    'MFA_BACKOFF_BASE_SECONDS', default=30, cast=int
+)
+MFA_BACKOFF_MAX_SECONDS = config(
+    'MFA_BACKOFF_MAX_SECONDS', default=900, cast=int
+)
+MFA_BACKOFF_MULTIPLIER = config(
+    'MFA_BACKOFF_MULTIPLIER', default=2, cast=int
+)
+MFA_IP_MAX_FAILURES = config('MFA_IP_MAX_FAILURES', default=20, cast=int)
+
+# Strict input limits (bytes/characters, not a substitute for form validation).
+INPUT_MAX_PATH_LENGTH = config(
+    'INPUT_MAX_PATH_LENGTH', default=2048, cast=int
+)
+INPUT_MAX_QUERY_STRING_LENGTH = config(
+    'INPUT_MAX_QUERY_STRING_LENGTH', default=4096, cast=int
+)
+INPUT_MAX_QUERY_PARAMS = config(
+    'INPUT_MAX_QUERY_PARAMS', default=50, cast=int
+)
+INPUT_MAX_QUERY_VALUE_LENGTH = config(
+    'INPUT_MAX_QUERY_VALUE_LENGTH', default=1000, cast=int
+)
+INPUT_MAX_FORM_FIELDS = config(
+    'INPUT_MAX_FORM_FIELDS', default=2000, cast=int
+)
+INPUT_MAX_FORM_VALUE_LENGTH = config(
+    'INPUT_MAX_FORM_VALUE_LENGTH', default=100_000, cast=int
+)
+INPUT_MAX_FILENAME_LENGTH = config(
+    'INPUT_MAX_FILENAME_LENGTH', default=255, cast=int
+)
 
 # Outbound fetches (threat-intel / vulnerability enrichment) are restricted to
 # these hosts. This is a defence-in-depth allowlist on top of the private-IP
@@ -342,6 +421,17 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = config(
 FILE_UPLOAD_PERMISSIONS = 0o640
 DATA_UPLOAD_MAX_NUMBER_FIELDS = config(
     'DATA_UPLOAD_MAX_NUMBER_FIELDS', default=2000, cast=int
+)
+DATA_UPLOAD_MAX_NUMBER_FILES = config(
+    'DATA_UPLOAD_MAX_NUMBER_FILES', default=20, cast=int
+)
+# Evidence/document validator cap.  Keep it below the generic upload limit so
+# an oversized evidence file is rejected with a clear field error.
+MAX_EVIDENCE_UPLOAD_SIZE = config(
+    'MAX_EVIDENCE_UPLOAD_SIZE', default=10 * 1024 * 1024, cast=int
+)
+MAX_EVIDENCE_FILENAME_LENGTH = config(
+    'MAX_EVIDENCE_FILENAME_LENGTH', default=255, cast=int
 )
 
 # --------------------------------------------------------------------------

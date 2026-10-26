@@ -5,15 +5,21 @@ The project deliberately avoids a dependency on django-csp and django-cors-
 headers. The policies here are small, explicit and testable, and they fail
 closed (no CORS headers unless an origin is explicitly configured).
 """
+import logging
 import secrets
+import uuid
 from urllib.parse import quote
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db import connection
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
+
+from .input_validation import InvalidInput, validate_request
+from .rate_limit import check_request_limit, should_skip_rate_limit
+
+logger = logging.getLogger(__name__)
 
 
 class UserTimezoneMiddleware:
@@ -180,35 +186,99 @@ class CorsLockdownMiddleware:
 
 
 # ---------------------------------------------------------------------------
+# Request validation / error context
+# ---------------------------------------------------------------------------
+
+class RequestIDMiddleware:
+    """Give every request a correlation id and return it to the caller."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        supplied = (request.headers.get('X-Request-ID') or '').strip()
+        if supplied and len(supplied) <= 128 and supplied.isprintable():
+            request.request_id = supplied
+        else:
+            request.request_id = uuid.uuid4().hex
+        response = self.get_response(request)
+        response.headers.setdefault('X-Request-ID', request.request_id)
+        return response
+
+
+class RequestValidationMiddleware:
+    """Reject malformed requests before they reach a view.
+
+    This is a transport-level schema: path/query length, parameter names and
+    value length, control characters, form content type and field sizes.  The
+    domain-level schema (required fields, choices, dates, files) is enforced by
+    Django forms and the explicit validators in ``core.input_validation``.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        try:
+            validate_request(request)
+        except InvalidInput as exc:
+            logger.warning(
+                'Rejected invalid request method=%s path=%s reason=%s',
+                request.method, request.path, exc,
+            )
+            # This middleware runs before AuthenticationMiddleware, so make
+            # sure template context processors see an anonymous user rather
+            # than crashing on a missing attribute.
+            if not hasattr(request, 'user'):
+                from django.contrib.auth.models import AnonymousUser
+                request.user = AnonymousUser()
+            return render(
+                request,
+                '400.html',
+                {'request_path': request.path},
+                status=400,
+            )
+        return self.get_response(request)
+
+
+class ErrorLoggingMiddleware:
+    """Log unexpected exceptions with full detail before Django renders 500.
+
+    The exception is re-raised so Django's normal error handling (including
+    ``DEBUG`` behaviour and the custom 500 handler) is preserved.  Users never
+    receive this log line; it is server-side only.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        try:
+            return self.get_response(request)
+        except Exception:
+            user = getattr(request, 'user', None)
+            logger.exception(
+                'Unhandled request error request_id=%s method=%s path=%s user=%s',
+                getattr(request, 'request_id', '-'),
+                request.method,
+                request.path,
+                getattr(user, 'pk', 'anonymous'),
+            )
+            raise
+
+
+# ---------------------------------------------------------------------------
 # Rate limiting
 # ---------------------------------------------------------------------------
 
-def _client_identity(request):
-    if getattr(request, 'user', None) and request.user.is_authenticated:
-        return f'u{request.user.pk}'
-    return f'ip{request.META.get("REMOTE_ADDR", "unknown")}'
-
-
-def _bucket(path, method):
-    if path in ('/login/', '/password-change/') or path.startswith('/mfa/'):
-        return 'auth', getattr(settings, 'RATE_LIMIT_AUTH', 20)
-    if path.startswith('/search/'):
-        return 'search', getattr(settings, 'RATE_LIMIT_SEARCH', 60)
-    if path.startswith('/media/'):
-        return 'media', getattr(settings, 'RATE_LIMIT_MEDIA', 120)
-    if method.upper() in ('POST', 'PUT', 'PATCH', 'DELETE'):
-        return 'write', getattr(settings, 'RATE_LIMIT_WRITE', 120)
-    return 'read', getattr(settings, 'RATE_LIMIT_READ', 1200)
-
-
 class RateLimitMiddleware:
-    """Fixed-window request limiting for auth, search, media and writes.
+    """Apply the configurable request buckets from :mod:`core.rate_limit`.
 
-    The default cache is per-process. For a multi-worker deployment set
-    ``CACHES`` to Redis so the limit is shared by every worker.
+    Auth routes are keyed per IP (the account-level backoff lives in
+    ``core.login_throttle`` and the MFA views), use a stricter limit and engage
+    exponential backoff.  Public routes get a moderate per-IP limit; signed-in
+    reads/writes are keyed per user and are intentionally looser.
     """
-
-    SKIP_PREFIXES = ('/static/', '/favicon.ico', '/admin/jsi18n/')
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -216,27 +286,22 @@ class RateLimitMiddleware:
     def __call__(self, request):
         if not getattr(settings, 'RATE_LIMIT_ENABLED', False):
             return self.get_response(request)
-        if request.method == 'OPTIONS' or request.path.startswith(self.SKIP_PREFIXES):
+        if should_skip_rate_limit(request):
             return self.get_response(request)
 
-        window = getattr(settings, 'RATE_LIMIT_WINDOW', 60)
-        bucket, limit = _bucket(request.path, request.method)
-        key = f'grc:rl:{bucket}:{_client_identity(request)}'
-        cache.add(key, 0, window)
-        count = cache.get(key, 0)
-        if count >= limit:
+        retry_after = check_request_limit(request)
+        if retry_after:
             response = render(
                 request,
                 '429.html',
-                {'request_path': request.path, 'retry_after': window},
+                {
+                    'request_path': request.path,
+                    'retry_after': retry_after,
+                },
                 status=429,
             )
-            response.headers['Retry-After'] = str(window)
+            response.headers['Retry-After'] = str(retry_after)
             return response
-        try:
-            cache.incr(key)
-        except ValueError:
-            cache.set(key, 1, window)
         return self.get_response(request)
 
 

@@ -21,6 +21,8 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import redirect
 
+from .input_validation import id_list, text
+
 # Characters that spreadsheet programs treat as the start of a formula.
 _FORMULA_PREFIXES = ('=', '+', '-', '@', '\t', '\r', '\n')
 # ...but a plain number ('-2', '+5.5') or a bare dash is inert in Excel, and
@@ -407,9 +409,12 @@ class BulkActionsMixin:
             messages.error(request, 'Unknown bulk action.')
             return redirect(request.get_full_path())
 
+        selected_ids = id_list(
+            request.POST.getlist('selected'), 'selected', max_items=1000,
+        )
         queryset = writable_queryset(
             self.get_queryset(), request.user, self.department_field
-        ).filter(pk__in=request.POST.getlist('selected'))
+        ).filter(pk__in=selected_ids)
         if not queryset.exists():
             messages.warning(request, 'No records were selected.')
             return redirect(request.get_full_path())
@@ -426,7 +431,10 @@ class BulkActionsMixin:
         if callable(choices):
             choices = choices()
         allowed = {str(value) for value, _ in choices}
-        value = request.POST.get('bulk_value', '')
+        value = text(
+            request.POST.get('bulk_value', ''), 'bulk_value', 100,
+            allow_blank=True, strip=True,
+        )
         if value not in allowed:
             messages.error(request, 'That value is not allowed for this action.')
             return redirect(request.get_full_path())

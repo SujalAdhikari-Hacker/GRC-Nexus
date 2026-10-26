@@ -6,6 +6,7 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
 from core.correlation import get_full_asset_context, get_policies_for_asset
+from core.input_validation import choice, search_query, text
 from core.mixins import (
     ChangeScopedMixin,
     BulkActionsMixin,
@@ -140,24 +141,42 @@ class AssetListView(BulkActionsMixin, SavedViewsMixin, ReportMixin, DepartmentSc
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('owner_dept', 'vendor', 'owner_user')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(
                 Q(asset_id__icontains=q) | Q(name__icontains=q) | Q(description__icontains=q)
             )
-        atype = self.request.GET.get('type')
+        atype = choice(
+            self.request.GET.get('type'),
+            {value for value, _label in Asset.ASSET_TYPE_CHOICES},
+            'type', allow_blank=True,
+        )
         if atype:
             qs = qs.filter(asset_type=atype)
-        classification = self.request.GET.get('classification')
+        classification = choice(
+            self.request.GET.get('classification'),
+            {value for value, _label in Asset.CLASSIFICATION_CHOICES},
+            'classification', allow_blank=True,
+        )
         if classification:
             qs = qs.filter(classification=classification)
-        environment = self.request.GET.get('environment')
+        environment = choice(
+            self.request.GET.get('environment'),
+            {value for value, _label in Asset.ENVIRONMENT_CHOICES},
+            'environment', allow_blank=True,
+        )
         if environment:
             qs = qs.filter(environment=environment)
-        cloud = self.request.GET.get('cloud')
+        cloud = text(
+            self.request.GET.get('cloud', ''), 'cloud', 100,
+            allow_blank=True, strip=True,
+        )
         if cloud:
             qs = qs.filter(cloud_provider=cloud)
-        os_family = self.request.GET.get('os')
+        os_family = text(
+            self.request.GET.get('os', ''), 'os', 100,
+            allow_blank=True, strip=True,
+        )
         if os_family:
             qs = qs.filter(os_family=os_family)
         return qs.order_by('asset_id')
@@ -250,7 +269,10 @@ class AssetOwnersView(DepartmentScopedMixin, TemplateView):
             self.request.user,
         )
 
-        mode = self.request.GET.get('view', 'department')
+        mode = choice(
+            self.request.GET.get('view'), {'department', 'user'}, 'view',
+            default='department',
+        )
         ctx['mode'] = mode
 
         groups = defaultdict(list)
@@ -278,13 +300,19 @@ class AssetExplorerPickerView(DepartmentScopedMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().filter(is_active=True).select_related('owner_dept')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(asset_id__icontains=q) | Q(name__icontains=q))
-        cloud = self.request.GET.get('cloud')
+        cloud = text(
+            self.request.GET.get('cloud', ''), 'cloud', 100,
+            allow_blank=True, strip=True,
+        )
         if cloud:
             qs = qs.filter(cloud_provider=cloud)
-        os_family = self.request.GET.get('os')
+        os_family = text(
+            self.request.GET.get('os', ''), 'os', 100,
+            allow_blank=True, strip=True,
+        )
         if os_family:
             qs = qs.filter(os_family=os_family)
         return qs.order_by('asset_id')

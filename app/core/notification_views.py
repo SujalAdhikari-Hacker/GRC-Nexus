@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
+from .input_validation import choice
 from .notifications import Notification
 from .notification_registry import refresh_notifications_throttled
 
@@ -45,12 +46,19 @@ class NotificationListView(LoginRequiredMixin, ListView):
         qs = _scoped(Notification.objects.filter(is_cleared=False), user)
 
         # Filter by kind if requested
-        kind = self.request.GET.get('kind')
+        kind = choice(
+            self.request.GET.get('kind'),
+            {value for value, _label in Notification.KIND_CHOICES},
+            'kind', allow_blank=True,
+        )
         if kind:
             qs = qs.filter(kind=kind)
 
         # Filter by read state
-        state = self.request.GET.get('state')
+        state = choice(
+            self.request.GET.get('state'), {'unread', 'read'}, 'state',
+            allow_blank=True,
+        )
         if state == 'unread':
             qs = qs.filter(is_read=False)
         elif state == 'read':

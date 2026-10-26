@@ -2,6 +2,7 @@ from django.db.models import Q
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
+from core.input_validation import choice, search_query
 from core.mixins import (
     ChangeScopedMixin,
     CsvExportMixin,
@@ -36,13 +37,21 @@ class KRIListView(CsvExportMixin, SavedViewsMixin, DepartmentScopedMixin, ListVi
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('owner_dept', 'owner_user')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
-        cat = self.request.GET.get('category')
+        cat = choice(
+            self.request.GET.get('category'),
+            {value for value, _label in KRI.CATEGORY_CHOICES},
+            'category', allow_blank=True,
+        )
         if cat:
             qs = qs.filter(category=cat)
-        trend = self.request.GET.get('trend')
+        trend = choice(
+            self.request.GET.get('trend'),
+            {value for value, _label in KRI.TREND_CHOICES},
+            'trend', allow_blank=True,
+        )
         if trend:
             qs = qs.filter(trend=trend)
         return qs

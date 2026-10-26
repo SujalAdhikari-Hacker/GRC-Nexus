@@ -5,6 +5,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView, View
 
 from core.correlation import get_full_policy_context
+from core.input_validation import choice, positive_int, search_query
 from core.mixins import (
     ChangeScopedMixin,
     CsvExportMixin,
@@ -40,13 +41,17 @@ class PolicyListView(SavedViewsMixin, DepartmentScopedMixin, CsvExportMixin, Lis
 
     def get_queryset(self):
         qs = super().get_queryset()
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(title__icontains=q) | Q(code__icontains=q) | Q(description__icontains=q))
         cat = self.request.GET.get('category')
         if cat:
-            qs = qs.filter(category_id=cat)
-        status = self.request.GET.get('status')
+            qs = qs.filter(category_id=positive_int(cat, 'category'))
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in Policy.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
         return qs.order_by('code')

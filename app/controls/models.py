@@ -3,6 +3,7 @@ from django.db import models
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
 from core.models import Department
+from core.validators import validate_evidence_file
 from frameworks.models import Framework, FrameworkControl
 
 
@@ -196,7 +197,10 @@ class ControlEvidence(models.Model):
     control = models.ForeignKey(
         Control, on_delete=models.CASCADE, related_name='evidence'
     )
-    file = models.FileField(upload_to='control_evidence/')
+    file = models.FileField(
+        upload_to='control_evidence/',
+        validators=[validate_evidence_file],
+    )
     description = models.CharField(max_length=300, blank=True)
     uploaded_by = models.ForeignKey(
         'core.User', on_delete=models.SET_NULL, null=True, blank=True,

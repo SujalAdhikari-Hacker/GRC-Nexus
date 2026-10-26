@@ -17,9 +17,11 @@ from django.http import FileResponse, Http404
 
 def _safe_rel_path(path):
     """Normalise a media path or return None if it escapes MEDIA_ROOT."""
-    if not path:
+    if not path or len(path) > 512:
         return None
     path = path.replace('\\', '/')
+    if ':' in path or '\x00' in path:
+        return None
     normalised = posixpath.normpath(path)
     if normalised.startswith(('/', '..')) or normalised in ('.', ''):
         return None
@@ -67,13 +69,21 @@ _INLINE_TYPES = {
 }
 
 
+def _is_within(root, candidate):
+    try:
+        return os.path.commonpath(
+            [os.path.realpath(root), os.path.realpath(candidate)]
+        ) == os.path.realpath(root)
+    except ValueError:
+        return False
+
+
 def _serve(rel_path):
     full_path = os.path.join(settings.MEDIA_ROOT, rel_path)
     if not os.path.isfile(full_path):
         raise Http404('File not found')
-    # Guard against symlink escapes.
-    real_root = os.path.realpath(settings.MEDIA_ROOT)
-    if not os.path.realpath(full_path).startswith(real_root):
+    # Guard against symlink and sibling-prefix escapes.
+    if not _is_within(settings.MEDIA_ROOT, full_path):
         raise Http404('File not found')
 
     name = posixpath.basename(rel_path)
@@ -89,10 +99,11 @@ def _serve(rel_path):
     )
     # Stop the browser from second-guessing the type we just declared.
     response['X-Content-Type-Options'] = 'nosniff'
-    if inline:
-        # Belt-and-braces: even if a file slipped through, neutralise any
-        # markup/script it might carry by sandboxing the response origin.
-        response['Content-Security-Policy'] = "default-src 'none'; sandbox"
+    response['Cache-Control'] = 'private, no-store'
+    # Belt-and-braces: even if a file slipped through, neutralise any markup
+    # or script it might carry by sandboxing the response origin.  Attachments
+    # are inert, but the header costs nothing and covers browser quirks.
+    response['Content-Security-Policy'] = "default-src 'none'; sandbox"
     return response
 
 

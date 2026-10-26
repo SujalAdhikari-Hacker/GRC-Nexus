@@ -50,10 +50,9 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   when, on the core domain models, and the **Change Log** page (`/history/`, HODs and superusers)
   merges the newest rows across every tracked register into one filterable, paginated list —
   the "show me everything that changed this quarter" page auditors ask for.
-- **Sign-in throttling** — repeated failed logins from the same IP+username are locked out
-  (5 failures / 15 min window) before the password is ever checked; configurable via
-  `LOGIN_MAX_FAILURES`, `LOGIN_FAILURE_WINDOW` and `LOGIN_LOCKOUT_SECONDS`, no extra
-  dependencies.
+- **Sign-in throttling** — failed logins are counted per account **and** per client IP, and the
+  next attempt is refused for an exponentially increasing cool-down (never a permanent
+  lockout). Configurable via `LOGIN_*` settings, no extra dependencies.
 
 ---
 
@@ -383,7 +382,7 @@ in action.
 | `ESCALATION_FALLBACK_EMAILS` | Comma-separated catch-all for escalations that have no owner and no HOD. Empty drops them |
 | `DIGEST_LOOKBACK_HOURS`, `ESCALATION_GRACE_DAYS`, `ESCALATION_WARN_DAYS` | Scheduling knobs: grace period before an item escalates, and how far ahead to warn about expiring exceptions/contracts |
 | `TIME_ZONE` | IANA zone for business date maths (`localdate()`): overdue/renewal/SLA logic. Default `UTC`; the shipped `.env` uses `Asia/Kathmandu` |
-| `LOGIN_MAX_FAILURES` / `LOGIN_FAILURE_WINDOW` / `LOGIN_LOCKOUT_SECONDS` | Sign-in throttling: failures allowed, the sliding window they count in (seconds) and the lockout duration (seconds). Defaults 5 / 900 / 900 |
+| `LOGIN_MAX_FAILURES` / `LOGIN_FAILURE_WINDOW` / `LOGIN_BACKOFF_*` | Sign-in throttling: account failures allowed, the sliding window they count in (seconds), and the exponential cool-down (base / ceiling / multiplier). Defaults 5 / 900 / 30 / 900 / 2. `LOGIN_IP_*` configures the separate per-address counter |
 
 See [`.env.example`](.env.example) for the annotated list.
 
@@ -474,7 +473,7 @@ idempotency and the escalation auto-clear rules.
 
 ```bash
 docker compose exec web python manage.py test
-# Ran 262 tests - OK
+# Ran 285 tests - OK
 ```
 
 The suite also includes a dedicated security regression module
@@ -525,13 +524,27 @@ The hardening pass is deliberately layered. No single control is trusted on its 
   before the rest of the app is reachable. `flag_default_passwords` flags accounts still on a
   known seeded password. `seed_demo` no longer ships a fixed password: use `DEMO_PASSWORD` or
   let it generate one, then rotate on first sign-in.
-- **Rate limiting.** Login and sensitive endpoints are throttled by client/user key, with
-  `Retry-After` on 429 responses. The login lockout remains in addition to the general rate
-  limiter.
+- **Rate limiting and exponential backoff.** Sign-in, password-change and MFA endpoints get
+  a strict per-IP bucket; failed sign-ins are counted per account **and** per IP with an
+  exponentially increasing cool-down (never a permanent lockout). Public reads and
+  authenticated reads/writes use looser buckets. All thresholds are settings/env values and
+  `429` responses carry `Retry-After`.
+- **Strict input validation.** A transport middleware rejects over-long paths, query strings,
+  form bodies, parameter names, control characters, unsupported POST content types and
+  oversized uploads before a view runs. Views that read raw `request.GET`/`request.POST`
+  values use typed helpers (`choice`, `integer`, `boolean`, `positive_int`, `search_query`)
+  that reject unexpected types and values instead of coercing them. Model-backed forms remain
+  the domain schema.
 - **Upload validation.** Evidence, policy documents and attachments are checked by
-  extension, filename and magic bytes (PDF, images, Office/ZIP, PCAP), with empty files and
-  renamed executables rejected. Media is served through the login- and department-scoped
-  view, never raw `/media/`.
+  extension, filename and magic bytes (PDF, images, Office/ZIP, PCAP), with empty files,
+  renamed executables and text files containing executable signatures rejected. Uploads are
+  stored in a private media volume outside the static tree and served only through the
+  login- and department-scoped media view. Non-image files download as attachments with
+  `nosniff`, a sandbox CSP and `Cache-Control: private, no-store`, so an upload can never
+  execute as same-origin code.
+- **Generic errors, full server-side logs.** Custom `400`/`403`/`404`/`429`/`500` pages never
+  include stack traces, file paths or raw database errors. `ErrorLoggingMiddleware` logs the
+  full exception with a request id; the id is also returned in `X-Request-ID` for support.
 - **SSRF-resistant outbound HTTP.** Threat-intelligence and vulnerability enrichment calls go
   through `core/safe_http.py`: HTTPS/HTTP only, host allowlist, DNS resolution checks against
   private/loopback/link-local/metadata addresses, no redirects and a response-size cap.
@@ -544,9 +557,12 @@ The hardening pass is deliberately layered. No single control is trusted on its 
   and a regression test fails if one appears.
 - **Dependencies are pinned and current.** Django 5.2 LTS replaces the EOL 4.2 line; Pillow,
   certifi, brotli and the image build tools are upgraded. `pip-audit` is used to check the
-  resolved environment.
-- **CSV/Excel formula injection** is neutralised on export. **No secrets are in the repo** -
-  `.env`, `staticfiles/`, `media/` and the local backup file are git-ignored.
+  resolved environment, and frontend packages were checked against OSV.
+- **CSV/Excel formula injection** is neutralised on export. **No secrets are tracked in the
+  current tree** — `.env`, `staticfiles/`, `media/` and the local backup file are git-ignored.
+  Run `python scripts/scan_secrets.py` before pushing; it fails on private keys and
+  high-confidence token formats. Rotate any credential that was ever committed in an earlier
+  revision, even if it has since been deleted.
 
 Report any vulnerability privately (see [Contributing](#contributing)) rather than opening a
 public issue.
@@ -570,6 +586,7 @@ Contributions are welcome — bug reports, features, docs and tests.
    docker compose exec web python manage.py check
    docker compose exec web python manage.py makemigrations --check --dry-run
    docker compose exec web python manage.py test
+   python scripts/scan_secrets.py
    ```
 4. **Commit** with a clear message (imperative mood, e.g.
    `fix: cap residual risk at a non-zero floor`).

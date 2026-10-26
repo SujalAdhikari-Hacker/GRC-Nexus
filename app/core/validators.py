@@ -5,10 +5,13 @@ user can post any file. We restrict extensions and cap size so the app cannot
 be used to store executables or exhaust disk.
 """
 import os
+import re
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 
-MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB; override with MAX_EVIDENCE_UPLOAD_SIZE
+_CONTROL_RE = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]')
 
 ALLOWED_EVIDENCE_EXTENSIONS = {
     '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp',
@@ -42,6 +45,17 @@ _MAGIC_BY_EXTENSION = {
     ),
 }
 
+# Text-like formats have no reliable signature.  They are still checked for
+# NUL bytes and for the magic of common executables/scripts so a renamed
+# binary cannot be stored as ``evidence.txt``.
+_TEXT_EXTENSIONS = {
+    '.csv', '.txt', '.md', '.json', '.log', '.eml', '.xml', '.yaml', '.yml',
+}
+_EXECUTABLE_MAGIC = (
+    b'MZ', b'\x7fELF', b'\xca\xfe\xba\xbe', b'\xcf\xfa\xed\xfe',
+    b'\xfe\xed\xfa\xce', b'\xfe\xed\xfa\xcf', b'#!',
+)
+
 
 def _read_head(value, length=16):
     """Read the first bytes of an upload without consuming the stream."""
@@ -70,27 +84,50 @@ def _magic_matches(ext, head):
 
 
 def validate_evidence_file(value):
-    """Validate an uploaded evidence file (extension, magic bytes + size)."""
-    name = getattr(value, 'name', '') or ''
+    """Validate an uploaded evidence file (name, extension, contents + size)."""
+    # django-simple-history stores the file path in a TextField.  There is no
+    # content to inspect there, so validate the stored name only and skip the
+    # magic-byte/size checks.
+    stored_path = isinstance(value, str)
+    name = value if stored_path else (getattr(value, 'name', '') or '')
     normalized = name.replace('\\', '/')
-    if '\x00' in name or '..' in normalized.split('/'):
+    max_filename = getattr(settings, 'MAX_EVIDENCE_FILENAME_LENGTH', 255)
+    if (
+        not name
+        or len(name) > max_filename
+        or '\x00' in name
+        or _CONTROL_RE.search(name)
+        or '..' in normalized.split('/')
+    ):
         raise ValidationError('The file name is not valid.')
-    ext = os.path.splitext(name)[1].lower()
+    basename = normalized.rsplit('/', 1)[-1]
+    if basename in ('', '.', '..') or len(basename) > max_filename:
+        raise ValidationError('The file name is not valid.')
+    ext = os.path.splitext(basename)[1].lower()
     if ext not in ALLOWED_EVIDENCE_EXTENSIONS:
         raise ValidationError(
-            f'Unsupported file type "{ext or name}". Allowed types: '
+            f'Unsupported file type "{ext or basename}". Allowed types: '
             + ', '.join(sorted(ALLOWED_EVIDENCE_EXTENSIONS))
             + '.'
         )
+    if stored_path:
+        return
+    max_size = getattr(settings, 'MAX_EVIDENCE_UPLOAD_SIZE', MAX_UPLOAD_SIZE)
     size = getattr(value, 'size', None)
-    if size is not None and size > MAX_UPLOAD_SIZE:
+    if size is not None and size > max_size:
         raise ValidationError(
             f'File is too large ({size / (1024 * 1024):.1f} MB). '
-            f'Maximum allowed size is {MAX_UPLOAD_SIZE // (1024 * 1024)} MB.'
+            f'Maximum allowed size is {max_size // (1024 * 1024)} MB.'
         )
     if size == 0:
         raise ValidationError('The uploaded file is empty.')
-    head = _read_head(value)
+    head = _read_head(value, 32)
+    if ext in _TEXT_EXTENSIONS:
+        if b'\x00' in head or any(head.startswith(sig) for sig in _EXECUTABLE_MAGIC):
+            raise ValidationError(
+                'The contents of this file are not valid text evidence.'
+            )
+        return
     if not _magic_matches(ext, head):
         raise ValidationError(
             f'The contents of this file do not match its "{ext}" extension. '

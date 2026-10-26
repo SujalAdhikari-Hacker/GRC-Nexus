@@ -8,12 +8,16 @@ APIs used (all free, no auth):
 
 NVD rate limit: 5 requests per 30 seconds without API key.
 """
+import logging
 from datetime import datetime
+
 from django.utils import timezone
 from core.safe_http import safe_get
 from django.db import transaction
 
 from .models import Vulnerability, Finding, compute_composite_score
+
+logger = logging.getLogger(__name__)
 
 
 NVD_URL = 'https://services.nvd.nist.gov/rest/json/cves/2.0'
@@ -44,8 +48,12 @@ def enrich_from_nvd(vuln):
         r = safe_get(NVD_URL, params={'cveId': vuln.cve_id}, timeout=HTTP_TIMEOUT)
         r.raise_for_status()
         data = r.json()
-    except Exception as e:
-        return {'ok': False, 'error': f'NVD fetch failed: {e}'}
+    except Exception:
+        logger.exception('NVD enrichment failed for vulnerability %s', vuln.pk)
+        return {
+            'ok': False,
+            'error': 'NVD lookup failed. Try again later.',
+        }
 
     items = data.get('vulnerabilities', [])
     if not items:
@@ -106,8 +114,12 @@ def enrich_from_epss(vuln):
         r = safe_get(EPSS_URL, params={'cve': vuln.cve_id}, timeout=HTTP_TIMEOUT)
         r.raise_for_status()
         data = r.json()
-    except Exception as e:
-        return {'ok': False, 'error': f'EPSS fetch failed: {e}'}
+    except Exception:
+        logger.exception('EPSS enrichment failed for vulnerability %s', vuln.pk)
+        return {
+            'ok': False,
+            'error': 'EPSS lookup failed. Try again later.',
+        }
 
     items = data.get('data', [])
     if not items:
@@ -131,8 +143,12 @@ def check_cisa_kev(vuln):
         r = safe_get(KEV_URL, timeout=HTTP_TIMEOUT)
         r.raise_for_status()
         data = r.json()
-    except Exception as e:
-        return {'ok': False, 'error': f'KEV fetch failed: {e}'}
+    except Exception:
+        logger.exception('KEV enrichment failed for vulnerability %s', vuln.pk)
+        return {
+            'ok': False,
+            'error': 'KEV lookup failed. Try again later.',
+        }
 
     for item in data.get('vulnerabilities', []):
         if item.get('cveID', '').upper() == vuln.cve_id.upper():

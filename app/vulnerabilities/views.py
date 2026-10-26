@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, FormView, ListView
 from django.urls import reverse_lazy
 
+from core.input_validation import boolean, choice, integer, search_query
 from core.mixins import (
     CsvExportMixin,
     DepartmentScopedMixin,
@@ -57,21 +58,29 @@ class FindingListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListVi
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('vulnerability', 'asset', 'owner_dept')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(
                 Q(vulnerability__cve_id__icontains=q) |
                 Q(vulnerability__title__icontains=q) |
                 Q(asset__name__icontains=q)
             )
-        status = self.request.GET.get('status')
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in Finding.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
-        severity = self.request.GET.get('severity')
+        severity = choice(
+            self.request.GET.get('severity'),
+            {value for value, _label in Vulnerability.SEVERITY_CHOICES},
+            'severity', allow_blank=True,
+        )
         if severity:
             qs = qs.filter(vulnerability__cvss_severity=severity)
-        kev = self.request.GET.get('kev')
-        if kev == '1':
+        kev = boolean(self.request.GET.get('kev'), 'kev', default=False)
+        if kev:
             qs = qs.filter(vulnerability__kev_status=True)
         return qs
 
@@ -139,14 +148,17 @@ class VulnerabilityListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().annotate(finding_count=Count('findings'))
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(cve_id__icontains=q) | Q(title__icontains=q) | Q(description__icontains=q))
-        severity = self.request.GET.get('severity')
+        severity = choice(
+            self.request.GET.get('severity'),
+            {value for value, _label in Vulnerability.SEVERITY_CHOICES},
+            'severity', allow_blank=True,
+        )
         if severity:
             qs = qs.filter(cvss_severity=severity)
-        kev = self.request.GET.get('kev')
-        if kev == '1':
+        if boolean(self.request.GET.get('kev'), 'kev', default=False):
             qs = qs.filter(kev_status=True)
         return qs.order_by('-cvss_score', '-published_date')
 
@@ -229,23 +241,26 @@ class LiveCVEFeedView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         qs = Vulnerability.objects.exclude(cve_id__isnull=True).exclude(cve_id='').filter(source='nvd')
 
-        severity = self.request.GET.get('severity')
+        severity = choice(
+            self.request.GET.get('severity'),
+            {value for value, _label in Vulnerability.SEVERITY_CHOICES},
+            'severity', allow_blank=True,
+        )
         if severity:
             qs = qs.filter(cvss_severity=severity)
 
-        kev = self.request.GET.get('kev')
-        if kev == '1':
+        if boolean(self.request.GET.get('kev'), 'kev', default=False):
             qs = qs.filter(kev_status=True)
 
-        days = self.request.GET.get('days')
+        days = integer(
+            self.request.GET.get('days'), 'days',
+            minimum=1, maximum=3650, default=0,
+        )
         if days:
-            try:
-                cutoff = timezone.localdate() - timedelta(days=int(days))
-                qs = qs.filter(published_date__gte=cutoff)
-            except ValueError:
-                pass
+            cutoff = timezone.localdate() - timedelta(days=days)
+            qs = qs.filter(published_date__gte=cutoff)
 
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(cve_id__icontains=q) | Q(title__icontains=q) | Q(description__icontains=q))
 

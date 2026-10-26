@@ -29,6 +29,9 @@ from core.mixins import (
     user_can_access,
     user_can_change,
 )
+from core.input_validation import (
+    boolean, choice, id_list, integer, positive_int, search_query,
+)
 from core.models import Department
 from core.reports import ReportMixin
 
@@ -81,29 +84,39 @@ class RiskListView(SavedViewsMixin, ReportMixin, DepartmentScopedMixin, CsvExpor
 
     def get_queryset(self):
         qs = super().get_queryset()
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q))
         cat = self.request.GET.get('category')
         if cat:
-            qs = qs.filter(category_id=cat)
-        status = self.request.GET.get('status')
+            qs = qs.filter(category_id=positive_int(cat, 'category'))
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in Risk.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
-        breach = self.request.GET.get('breach')
-        if breach == '1':
+        if boolean(self.request.GET.get('breach'), 'breach', default=False):
             qs = qs.filter(appetite_breached=True)
-        likelihood = self.request.GET.get('likelihood')
+        likelihood = integer(
+            self.request.GET.get('likelihood'), 'likelihood',
+            minimum=1, maximum=5, default=0,
+        )
         if likelihood:
             qs = qs.filter(likelihood=likelihood)
-        impact = self.request.GET.get('impact')
+        impact = integer(
+            self.request.GET.get('impact'), 'impact',
+            minimum=1, maximum=5, default=0,
+        )
         if impact:
             qs = qs.filter(impact=impact)
         assessed = self.request.GET.get('assessed')
-        if assessed == '1':
-            qs = qs.exclude(status='identified')
-        elif assessed == '0':
-            qs = qs.filter(status='identified')
+        if assessed not in (None, ''):
+            if boolean(assessed, 'assessed'):
+                qs = qs.exclude(status='identified')
+            else:
+                qs = qs.filter(status='identified')
         return qs.order_by('-residual_score')
 
     def get_context_data(self, **kwargs):
@@ -172,12 +185,18 @@ class RiskCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):
         initial = super().get_initial()
         if self.request.user.department_id:
             initial['owner_dept'] = self.request.user.department
-        likelihood = self.request.GET.get('likelihood')
-        if likelihood and likelihood.isdigit() and 1 <= int(likelihood) <= 5:
-            initial['likelihood'] = int(likelihood)
-        impact = self.request.GET.get('impact')
-        if impact and impact.isdigit() and 1 <= int(impact) <= 5:
-            initial['impact'] = int(impact)
+        likelihood = integer(
+            self.request.GET.get('likelihood'), 'likelihood',
+            minimum=1, maximum=5, default=0,
+        )
+        if likelihood:
+            initial['likelihood'] = likelihood
+        impact = integer(
+            self.request.GET.get('impact'), 'impact',
+            minimum=1, maximum=5, default=0,
+        )
+        if impact:
+            initial['impact'] = impact
         if likelihood and impact:
             initial['title'] = f'New risk (L{likelihood} x I{impact})'
         return initial
@@ -231,16 +250,19 @@ class RiskDeleteView(HODOrSuperuserMixin, ChangeScopedMixin, DeleteView):
 
 @login_required
 def risk_score_preview(request):
-    try:
-        likelihood = int(request.GET.get('likelihood', 1))
-        impact = int(request.GET.get('impact', 1))
-    except ValueError:
-        likelihood, impact = 1, 1
-    likelihood = max(1, min(5, likelihood))
-    impact = max(1, min(5, impact))
+    likelihood = integer(
+        request.GET.get('likelihood'), 'likelihood',
+        minimum=1, maximum=5, default=1,
+    )
+    impact = integer(
+        request.GET.get('impact'), 'impact',
+        minimum=1, maximum=5, default=1,
+    )
     inherent = likelihood * impact
 
-    control_ids = request.GET.getlist('controls')
+    control_ids = id_list(
+        request.GET.getlist('controls'), 'controls', max_items=100,
+    )
     residual = inherent
     if control_ids:
         from controls.models import Control
@@ -270,7 +292,9 @@ class RiskMatrixView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        show_only_assessed = self.request.GET.get('assessed') == '1'
+        show_only_assessed = boolean(
+            self.request.GET.get('assessed'), 'assessed', default=False,
+        )
 
         all_risks = scope_queryset(Risk.objects.all(), self.request.user)
         assessed_risks = all_risks.exclude(status='identified')
@@ -354,13 +378,21 @@ class TreatmentListView(DepartmentScopedMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('risk', 'owner_user').prefetch_related('controls')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(action_plan__icontains=q) | Q(risk__title__icontains=q))
-        status = self.request.GET.get('status')
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in RiskTreatment.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
-        strategy = self.request.GET.get('strategy')
+        strategy = choice(
+            self.request.GET.get('strategy'),
+            {value for value, _label in RiskTreatment.STRATEGY_CHOICES},
+            'strategy', allow_blank=True,
+        )
         if strategy:
             qs = qs.filter(strategy=strategy)
         return qs.order_by('due_date')
@@ -515,10 +547,14 @@ class RiskExceptionListView(DepartmentScopedMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('risk', 'approver', 'requested_by')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(title__icontains=q) | Q(justification__icontains=q))
-        status = self.request.GET.get('status')
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in RiskException.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
         return qs.order_by('-created_at')
@@ -571,7 +607,7 @@ class RiskExceptionCreateView(LoginRequiredMixin, CreateView):
         risk_pk = self.request.GET.get('risk')
         if risk_pk:
             try:
-                risk = Risk.objects.get(pk=risk_pk)
+                risk = Risk.objects.get(pk=positive_int(risk_pk, 'risk'))
                 if user_can_access(self.request.user, risk):
                     initial['risk'] = risk
             except Risk.DoesNotExist:

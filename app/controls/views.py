@@ -16,6 +16,7 @@ from django.views.generic import (
 )
 
 from core.correlation import get_framework_coverage, get_full_control_context
+from core.input_validation import choice, id_list, search_query
 from core.mixins import (
     ChangeScopedMixin,
     CsvExportMixin,
@@ -70,19 +71,35 @@ class ControlListView(SavedViewsMixin, DepartmentScopedMixin, CsvExportMixin, Li
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('owner_dept', 'primary_framework', 'owner_user')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(code__icontains=q) | Q(reference__icontains=q))
-        status = self.request.GET.get('status')
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in Control.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
-        category = self.request.GET.get('category')
+        category = choice(
+            self.request.GET.get('category'),
+            {value for value, _label in Control.CATEGORY_CHOICES},
+            'category', allow_blank=True,
+        )
         if category:
             qs = qs.filter(category=category)
-        lifecycle = self.request.GET.get('lifecycle')
+        lifecycle = choice(
+            self.request.GET.get('lifecycle'),
+            {value for value, _label in Control.LIFECYCLE_CHOICES},
+            'lifecycle', allow_blank=True,
+        )
         if lifecycle:
             qs = qs.filter(lifecycle_status=lifecycle)
-        effectiveness = self.request.GET.get('effectiveness')
+        effectiveness = choice(
+            self.request.GET.get('effectiveness'),
+            {value for value, _label in Control.EFFECTIVENESS_RATING_CHOICES},
+            'effectiveness', allow_blank=True,
+        )
         if effectiveness:
             qs = qs.filter(effectiveness_rating=effectiveness)
         return qs.order_by('code')
@@ -392,13 +409,15 @@ def regress_lifecycle_view(request, pk):
 @require_POST
 def set_lifecycle_view(request, pk):
     control = _get_control_for_change_or_403(request, pk)
-    target = request.POST.get('target')
-    valid = [s[0] for s in Control.LIFECYCLE_CHOICES]
-    if target in valid:
-        control.lifecycle_status = target
-        control.updated_by = request.user
-        control.save()
-        messages.success(request, f'{control.code} set to "{control.get_lifecycle_status_display()}".')
+    target = choice(
+        request.POST.get('target'),
+        {value for value, _label in Control.LIFECYCLE_CHOICES},
+        'target',
+    )
+    control.lifecycle_status = target
+    control.updated_by = request.user
+    control.save()
+    messages.success(request, f'{control.code} set to "{control.get_lifecycle_status_display()}".')
     return _redirect_back(request)
 
 
@@ -470,6 +489,11 @@ def _framework_context(self, ctx):
     if getattr(self, 'object', None):
         selected = set(str(pk) for pk in self.object.framework_controls.values_list('pk', flat=True))
     elif self.request.method == 'POST':
-        selected = set(str(pk) for pk in self.request.POST.getlist('framework_controls'))
+        selected = set(
+            str(pk) for pk in id_list(
+                self.request.POST.getlist('framework_controls'),
+                'framework_controls', max_items=1000,
+            )
+        )
     ctx['selected_fc_pks'] = selected
     return ctx

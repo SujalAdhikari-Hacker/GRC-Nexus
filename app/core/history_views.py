@@ -24,6 +24,8 @@ from django.core.paginator import Paginator  # noqa: F401
 from django.utils import timezone
 from django.views.generic import ListView
 
+from .input_validation import choice, search_query
+
 from core.mixins import HODOrSuperuserMixin
 
 import simple_history.models as _shm
@@ -66,9 +68,16 @@ class HistoryListView(HODOrSuperuserMixin, ListView):
     ]
 
     def get(self, request, *args, **kwargs):
-        self.selected = request.GET.get('model', '')
-        self.record_type = request.GET.get('type', '')
-        self.search = (request.GET.get('q') or '').strip()
+        self.selected = choice(
+            request.GET.get('model'),
+            {value for value, _label in self.MODEL_CHOICES},
+            'model', allow_blank=True,
+        )
+        self.record_type = choice(
+            request.GET.get('type'), {'+', '~', '-'}, 'type',
+            allow_blank=True,
+        )
+        self.search = search_query(request.GET.get('q', ''))
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):

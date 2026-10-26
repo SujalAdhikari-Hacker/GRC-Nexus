@@ -3,7 +3,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import check_password, make_password
-from django.core.cache import cache
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -11,14 +10,13 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
+from .input_validation import text
 from .mfa import (
     build_otpauth_uri, generate_backup_codes, generate_secret,
     normalize_backup_code, verify_totp,
 )
 from .models import UserMFA
-
-MFA_FAIL_LIMIT = 5
-MFA_FAIL_WINDOW = 5 * 60
+from .rate_limit import FailureBackoff, client_ip
 
 
 def _safe_next(request):
@@ -27,13 +25,66 @@ def _safe_next(request):
         or request.GET.get('next')
         or request.session.get('mfa_next')
     )
-    if candidate and url_has_allowed_host_and_scheme(
-        candidate,
-        allowed_hosts={request.get_host()},
-        require_https=request.is_secure(),
+    if (
+        candidate
+        and len(candidate) <= 2000
+        and url_has_allowed_host_and_scheme(
+            candidate,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        )
     ):
         return candidate
     return reverse('core:dashboard')
+
+
+def _mfa_backoffs(request):
+    return (
+        FailureBackoff(
+            'grc:mfa-user',
+            max_failures=getattr(settings, 'MFA_MAX_FAILURES', 5),
+            window=getattr(settings, 'MFA_FAILURE_WINDOW', 300),
+            base=getattr(settings, 'MFA_BACKOFF_BASE_SECONDS', 30),
+            maximum=getattr(settings, 'MFA_BACKOFF_MAX_SECONDS', 900),
+            multiplier=getattr(settings, 'MFA_BACKOFF_MULTIPLIER', 2),
+        ),
+        FailureBackoff(
+            'grc:mfa-ip',
+            max_failures=getattr(settings, 'MFA_IP_MAX_FAILURES', 20),
+            window=getattr(settings, 'MFA_FAILURE_WINDOW', 300),
+            base=getattr(settings, 'MFA_BACKOFF_BASE_SECONDS', 30),
+            maximum=getattr(settings, 'MFA_BACKOFF_MAX_SECONDS', 900),
+            multiplier=getattr(settings, 'MFA_BACKOFF_MULTIPLIER', 2),
+        ),
+    )
+
+
+def _mfa_wait(request):
+    user_backoff, ip_backoff = _mfa_backoffs(request)
+    return max(
+        user_backoff.retry_after(f'user:{request.user.pk}'),
+        ip_backoff.retry_after(client_ip(request)),
+    )
+
+
+def _mfa_failure(request):
+    user_backoff, ip_backoff = _mfa_backoffs(request)
+    user_backoff.register_failure(f'user:{request.user.pk}')
+    ip_backoff.register_failure(client_ip(request))
+
+
+def _mfa_success(request):
+    user_backoff, _ = _mfa_backoffs(request)
+    user_backoff.clear(f'user:{request.user.pk}')
+
+
+def _code(request, field='code'):
+    # 32 characters is enough for a six-digit TOTP or an 8/9-character backup
+    # code, and stops a huge value from reaching the verifier.
+    return text(
+        request.POST.get(field, ''), field, 32,
+        allow_blank=False, strip=True,
+    )
 
 
 def _consume_backup_code(mfa, code):
@@ -61,7 +112,21 @@ def mfa_setup(request):
         mfa.save(update_fields=['secret'])
 
     if request.method == 'POST' and not mfa.enabled:
-        code = request.POST.get('code', '')
+        wait = _mfa_wait(request)
+        if wait:
+            messages.error(
+                request,
+                'Too many incorrect codes. Wait a few minutes and try again.',
+            )
+            return render(request, 'core/mfa_setup.html', {
+                'mfa': mfa,
+                'otpauth_uri': build_otpauth_uri(
+                    mfa.secret, request.user.get_username(), settings.MFA_ISSUER
+                ),
+                'secret': mfa.secret,
+                'retry_after': wait,
+            }, status=429)
+        code = _code(request)
         if verify_totp(mfa.secret, code):
             codes = generate_backup_codes()
             mfa.enabled = True
@@ -70,6 +135,7 @@ def mfa_setup(request):
                 make_password(normalize_backup_code(c)) for c in codes
             ]
             mfa.save()
+            _mfa_success(request)
             request.session['mfa_verified'] = True
             messages.success(
                 request,
@@ -79,6 +145,7 @@ def mfa_setup(request):
             return render(
                 request, 'core/mfa_backup_codes.html', {'codes': codes}
             )
+        _mfa_failure(request)
         messages.error(
             request,
             'That verification code was not valid. Check your authenticator '
@@ -104,7 +171,19 @@ def mfa_disable(request):
         messages.info(request, 'Two-factor authentication is not enabled.')
         return redirect('core:settings')
 
-    if not request.user.check_password(request.POST.get('password', '')):
+    if _mfa_wait(request):
+        messages.error(
+            request,
+            'Too many incorrect codes. Wait a few minutes and try again.',
+        )
+        return redirect('core:mfa_setup')
+
+    password = text(
+        request.POST.get('password', ''), 'password', 4096,
+        allow_blank=False,
+    )
+    if not request.user.check_password(password):
+        _mfa_failure(request)
         messages.error(
             request,
             'To disable two-factor authentication, enter your password and a '
@@ -112,10 +191,11 @@ def mfa_disable(request):
         )
         return redirect('core:mfa_setup')
 
-    code = request.POST.get('code', '')
+    code = _code(request)
     # Only consume a single-use backup code after the password check succeeds;
     # otherwise a wrong-password request could burn a valid recovery code.
     if not (verify_totp(mfa.secret, code) or _consume_backup_code(mfa, code)):
+        _mfa_failure(request)
         messages.error(
             request,
             'To disable two-factor authentication, enter your password and a '
@@ -123,6 +203,7 @@ def mfa_disable(request):
         )
         return redirect('core:mfa_setup')
 
+    _mfa_success(request)
     mfa.delete()
     request.session['mfa_verified'] = True
     messages.success(request, 'Two-factor authentication has been disabled.')
@@ -137,16 +218,30 @@ def mfa_regenerate_backup_codes(request):
     if not mfa or not mfa.enabled:
         messages.info(request, 'Enable two-factor authentication first.')
         return redirect('core:mfa_setup')
-    if not request.user.check_password(request.POST.get('password', '')):
+    if _mfa_wait(request):
+        messages.error(
+            request,
+            'Too many incorrect codes. Wait a few minutes and try again.',
+        )
+        return redirect('core:mfa_setup')
+
+    password = text(
+        request.POST.get('password', ''), 'password', 4096,
+        allow_blank=False,
+    )
+    if not request.user.check_password(password):
+        _mfa_failure(request)
         messages.error(request, 'Password is incorrect.')
         return redirect('core:mfa_setup')
-    if not verify_totp(mfa.secret, request.POST.get('code', '')):
+    if not verify_totp(mfa.secret, _code(request)):
+        _mfa_failure(request)
         messages.error(request, 'Enter a current authenticator code.')
         return redirect('core:mfa_setup')
 
     codes = generate_backup_codes()
     mfa.backup_codes = [make_password(normalize_backup_code(c)) for c in codes]
     mfa.save(update_fields=['backup_codes'])
+    _mfa_success(request)
     messages.success(request, 'New backup codes generated. Store them safely.')
     return render(request, 'core/mfa_backup_codes.html', {'codes': codes})
 
@@ -161,41 +256,45 @@ def mfa_verify(request):
     if request.session.get('mfa_verified', False):
         return redirect(_safe_next(request))
 
-    fail_key = f'grc:mfa-fails:{request.user.pk}'
-    locked = cache.get(fail_key, 0) >= MFA_FAIL_LIMIT
+    wait = _mfa_wait(request)
     if request.method == 'POST':
-        if locked:
+        if wait:
             messages.error(
                 request,
                 'Too many incorrect codes. Wait a few minutes and try again.',
             )
             return render(
                 request, 'core/mfa_verify.html',
-                {'next': _safe_next(request), 'locked': True},
+                {
+                    'next': _safe_next(request),
+                    'locked': True,
+                    'retry_after': wait,
+                },
                 status=429,
             )
-        code = request.POST.get('code', '')
+        code = _code(request)
         if verify_totp(mfa.secret, code) or _consume_backup_code(mfa, code):
-            cache.delete(fail_key)
+            _mfa_success(request)
             request.session['mfa_verified'] = True
             request.session.cycle_key()
             mfa.last_used_at = timezone.now()
             mfa.save(update_fields=['last_used_at'])
             return redirect(_safe_next(request))
 
-        cache.add(fail_key, 0, MFA_FAIL_WINDOW)
-        try:
-            cache.incr(fail_key)
-        except ValueError:
-            cache.set(fail_key, 1, MFA_FAIL_WINDOW)
-        if cache.get(fail_key, 0) >= MFA_FAIL_LIMIT:
+        _mfa_failure(request)
+        wait = _mfa_wait(request)
+        if wait:
             messages.error(
                 request,
                 'Too many incorrect codes. Wait a few minutes and try again.',
             )
             return render(
                 request, 'core/mfa_verify.html',
-                {'next': _safe_next(request), 'locked': True},
+                {
+                    'next': _safe_next(request),
+                    'locked': True,
+                    'retry_after': wait,
+                },
                 status=429,
             )
         messages.error(
@@ -206,5 +305,6 @@ def mfa_verify(request):
 
     return render(request, 'core/mfa_verify.html', {
         'next': _safe_next(request),
-        'locked': cache.get(fail_key, 0) >= MFA_FAIL_LIMIT,
+        'locked': bool(wait),
+        'retry_after': wait,
     })

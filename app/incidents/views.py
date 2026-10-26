@@ -6,6 +6,7 @@ from django.views.generic import CreateView, DetailView, ListView, UpdateView, V
 from django.views.generic.detail import SingleObjectMixin
 from datetime import timedelta
 
+from core.input_validation import boolean, choice, search_query
 from core.mixins import (
     ChangeScopedMixin,
     CsvExportMixin,
@@ -49,15 +50,32 @@ class IncidentListView(CsvExportMixin, SavedViewsMixin, DepartmentScopedMixin, L
         qs = super().get_queryset().select_related('owner_dept', 'handler')
         params = self.request.GET
 
-        q = (params.get('q') or '').strip()
+        q = search_query(params.get('q'))
         if q:
             qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q)
                            | Q(reference__icontains=q) | Q(root_cause__icontains=q))
-        for field in ('status', 'severity', 'incident_type'):
-            value = params.get(field)
-            if value:
-                qs = qs.filter(**{field: value})
-        if params.get('open') == '1':
+        status = choice(
+            params.get('status'),
+            {value for value, _label in Incident.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
+        if status:
+            qs = qs.filter(status=status)
+        severity = choice(
+            params.get('severity'),
+            {value for value, _label in Incident.SEVERITY_CHOICES},
+            'severity', allow_blank=True,
+        )
+        if severity:
+            qs = qs.filter(severity=severity)
+        incident_type = choice(
+            params.get('incident_type'),
+            {value for value, _label in Incident.TYPE_CHOICES},
+            'incident_type', allow_blank=True,
+        )
+        if incident_type:
+            qs = qs.filter(incident_type=incident_type)
+        if boolean(params.get('open'), 'open', default=False):
             qs = qs.filter(status__in=_OPEN_STATUSES)
         return qs.order_by('-detected_at')
 

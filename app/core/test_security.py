@@ -295,9 +295,13 @@ class RateLimitTests(TestCase):
         cache.clear()
 
     @override_settings(
-        RATE_LIMIT_ENABLED=True, RATE_LIMIT_AUTH=2, RATE_LIMIT_WINDOW=60,
+        RATE_LIMIT_ENABLED=True,
+        RATE_LIMIT_AUTH=2,
+        RATE_LIMIT_WINDOW=60,
+        RATE_LIMIT_AUTH_BACKOFF_BASE=30,
+        RATE_LIMIT_AUTH_BACKOFF_MAX=900,
     )
-    def test_login_is_rate_limited(self):
+    def test_login_is_rate_limited_with_backoff(self):
         url = reverse('login')
         first = self.client.post(url, {'username': 'nobody', 'password': 'wrong'})
         second = self.client.post(url, {'username': 'nobody', 'password': 'wrong'})
@@ -305,7 +309,99 @@ class RateLimitTests(TestCase):
         self.assertEqual(first.status_code, 200)
         self.assertEqual(second.status_code, 200)
         self.assertEqual(third.status_code, 429)
-        self.assertEqual(third['Retry-After'], '60')
+        self.assertEqual(third['Retry-After'], '30')
+        self.assertContains(third, 'Too many requests', status_code=429)
+
+    @override_settings(RATE_LIMIT_ENABLED=True, RATE_LIMIT_PUBLIC=1)
+    def test_public_requests_are_limited_per_ip(self):
+        first = self.client.get('/')
+        second = self.client.get('/')
+        self.assertEqual(first.status_code, 302)
+        self.assertEqual(second.status_code, 429)
+
+
+class RequestValidationTests(TestCase):
+    @override_settings(INPUT_MAX_QUERY_VALUE_LENGTH=10)
+    def test_overlong_query_value_is_rejected(self):
+        response = self.client.get(reverse('login'), {'next': 'x' * 11})
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, 'Bad request', status_code=400)
+        self.assertNotContains(response, 'Traceback', status_code=400)
+
+    def test_control_characters_in_query_are_rejected(self):
+        response = self.client.get('/login/?next=bad%00value')
+        self.assertEqual(response.status_code, 400)
+
+    def test_invalid_query_parameter_name_is_rejected(self):
+        response = self.client.get('/login/?bad%20name=value')
+        self.assertEqual(response.status_code, 400)
+
+    def test_unsupported_post_content_type_is_rejected(self):
+        response = self.client.post(
+            reverse('login'),
+            data='{"username":"a","password":"b"}',
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_request_id_is_returned_and_sanitised(self):
+        response = self.client.get(
+            reverse('login'), HTTP_X_REQUEST_ID='trace-123'
+        )
+        self.assertEqual(response['X-Request-ID'], 'trace-123')
+
+        response = self.client.get(
+            reverse('login'), HTTP_X_REQUEST_ID='x' * 200
+        )
+        self.assertNotEqual(response['X-Request-ID'], 'x' * 200)
+        self.assertEqual(len(response['X-Request-ID']), 32)
+
+    def test_error_pages_do_not_leak_internal_details(self):
+        response = self.client.get('/definitely-not-a-real-route/')
+        self.assertEqual(response.status_code, 404)
+        body = response.content.decode()
+        for marker in ('Traceback', 'DisallowedHost', 'settings.py', 'django/'):
+            self.assertNotIn(marker, body)
+
+        from django.contrib.auth.models import AnonymousUser
+        from django.test import RequestFactory
+        from config.urls import handler500
+
+        request = RequestFactory().get('/boom')
+        request.request_id = 'test-request'
+        request.user = AnonymousUser()
+        response = handler500(request)
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn('Traceback', response.content.decode())
+
+
+class InputHelperTests(TestCase):
+    def test_integer_rejects_non_numeric_and_out_of_range(self):
+        from core.input_validation import InvalidInput, integer
+
+        for value in ('abc', '1.5', True, '0'):
+            with self.subTest(value=value):
+                with self.assertRaises(InvalidInput):
+                    integer(value, 'n', minimum=1, maximum=5)
+
+    def test_choice_rejects_unknown_values(self):
+        from core.input_validation import InvalidInput, choice
+
+        with self.assertRaises(InvalidInput):
+            choice('unknown', {'a', 'b'}, 'field')
+        self.assertEqual(choice('', {'a', 'b'}, 'field', allow_blank=True), '')
+
+    def test_text_rejects_overlong_values(self):
+        from core.input_validation import InvalidInput, text
+
+        with self.assertRaises(InvalidInput):
+            text('x' * 11, 'field', 10)
+
+    def test_boolean_rejects_unexpected_values(self):
+        from core.input_validation import InvalidInput, boolean
+
+        with self.assertRaises(InvalidInput):
+            boolean('maybe', 'flag')
 
 
 class MFATests(TestCase):

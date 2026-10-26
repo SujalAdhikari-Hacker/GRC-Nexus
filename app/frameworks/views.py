@@ -16,6 +16,7 @@ from core.correlation import (
     get_control_coverage_by_control_for_framework,
     get_framework_coverage,
 )
+from core.input_validation import choice, positive_int, search_query
 from core.mixins import (
     ChangeScopedMixin,
     DepartmentCreateMixin,
@@ -149,7 +150,7 @@ class FrameworkControlCreateView(SuperuserOnlyMixin, CreateView):
         initial = super().get_initial()
         fw_pk = self.request.GET.get('framework')
         if fw_pk:
-            initial['framework'] = fw_pk
+            initial['framework'] = positive_int(fw_pk, 'framework')
         return initial
 
     def form_valid(self, form):
@@ -188,10 +189,14 @@ class ComplianceAssessmentListView(DepartmentScopedMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('framework', 'assessor', 'owner_dept')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(assessment_id__icontains=q))
-        status = self.request.GET.get('status')
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in ComplianceAssessment.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
         return qs.order_by('-assessment_date')
@@ -221,7 +226,11 @@ class ComplianceAssessmentDetailView(DepartmentScopedMixin, DetailView):
             'framework_control', 'owner_user'
         ).order_by('framework_control__code')
 
-        status_filter = self.request.GET.get('item_status')
+        status_filter = choice(
+            self.request.GET.get('item_status'),
+            {value for value, _label in ComplianceAssessmentItem.STATUS_CHOICES},
+            'item_status', allow_blank=True,
+        )
         if status_filter:
             items = items.filter(status=status_filter)
 
@@ -308,9 +317,11 @@ def assessment_item_quick_status(request, pk):
     )
     if not user_can_change(request.user, item.assessment):
         raise PermissionDenied
-    new_status = request.POST.get('status')
-    valid = [s[0] for s in ComplianceAssessmentItem.STATUS_CHOICES]
-    if new_status in valid:
-        item.status = new_status
-        item.save(update_fields=['status', 'updated_at'])
+    new_status = choice(
+        request.POST.get('status'),
+        {value for value, _label in ComplianceAssessmentItem.STATUS_CHOICES},
+        'status',
+    )
+    item.status = new_status
+    item.save(update_fields=['status', 'updated_at'])
     return redirect('frameworks:assessment_detail', pk=item.assessment.pk)

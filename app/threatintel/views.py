@@ -5,6 +5,8 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from django.views.generic import ListView, DetailView, TemplateView
 
+from core.input_validation import choice, integer, search_query, text
+
 from .models import Tactic, Technique, ThreatActor, IOC, IOCFeedSync
 
 
@@ -100,7 +102,7 @@ class IOCFeedView(LoginRequiredMixin, ListView):
         qs = IOC.objects.filter(is_active=True).select_related('threat_actor')
 
         # Filters
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(
                 Q(value__icontains=q) |
@@ -108,29 +110,44 @@ class IOCFeedView(LoginRequiredMixin, ListView):
                 Q(notes__icontains=q)
             )
 
-        ioc_type = self.request.GET.get('type')
+        ioc_type = choice(
+            self.request.GET.get('type'),
+            {value for value, _label in IOC.IOC_TYPE_CHOICES},
+            'type', allow_blank=True,
+        )
         if ioc_type:
             qs = qs.filter(ioc_type=ioc_type)
 
-        threat_type = self.request.GET.get('threat')
+        threat_type = choice(
+            self.request.GET.get('threat'),
+            {value for value, _label in IOC.THREAT_TYPE_CHOICES},
+            'threat', allow_blank=True,
+        )
         if threat_type:
             qs = qs.filter(threat_type=threat_type)
 
-        source = self.request.GET.get('source')
+        source = text(
+            self.request.GET.get('source', ''), 'source', 100,
+            allow_blank=True, strip=True,
+        )
         if source:
             qs = qs.filter(source=source)
 
-        conf = self.request.GET.get('confidence')
+        # Confidence is stored as an integer (1-4), not a string.
+        conf = integer(
+            self.request.GET.get('confidence'), 'confidence',
+            minimum=1, maximum=4, default=0,
+        )
         if conf:
             qs = qs.filter(confidence=conf)
 
-        days = self.request.GET.get('days')
+        days = integer(
+            self.request.GET.get('days'), 'days',
+            minimum=1, maximum=3650, default=0,
+        )
         if days:
-            try:
-                cutoff = timezone.now() - timedelta(days=int(days))
-                qs = qs.filter(first_seen__gte=cutoff)
-            except (ValueError, TypeError):
-                pass
+            cutoff = timezone.now() - timedelta(days=days)
+            qs = qs.filter(first_seen__gte=cutoff)
 
         return qs.order_by('-first_seen', '-created_at')
 
@@ -228,7 +245,7 @@ class ThreatActorListView(LoginRequiredMixin, ListView):
             tech_count=Count('techniques', distinct=True),
             ioc_count=Count('iocs', distinct=True),
         )
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(attack_id__icontains=q))
         return qs.order_by('name')

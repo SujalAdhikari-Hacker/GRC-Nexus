@@ -15,6 +15,9 @@ from django.views.generic import (
     UpdateView,
 )
 
+from core.input_validation import (
+    choice, integer, positive_int, search_query, text,
+)
 from core.mixins import (
     ChangeScopedMixin,
     BulkActionsMixin,
@@ -64,13 +67,21 @@ class AuditListView(DepartmentScopedMixin, CsvExportMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('auditor_lead', 'owner_dept')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(scope__icontains=q))
-        atype = self.request.GET.get('type')
+        atype = choice(
+            self.request.GET.get('type'),
+            {value for value, _label in Audit.TYPE_CHOICES},
+            'type', allow_blank=True,
+        )
         if atype:
             qs = qs.filter(audit_type=atype)
-        status = self.request.GET.get('status')
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in Audit.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
         return qs.order_by('-start_date', 'name')
@@ -177,15 +188,21 @@ class EvidenceListView(DepartmentScopedMixin, CsvExportMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('related_control', 'owner_user', 'owner_dept', 'audit')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(title__icontains=q) | Q(notes__icontains=q))
-        etype = self.request.GET.get('type')
+        etype = choice(
+            self.request.GET.get('type'),
+            {value for value, _label in EvidenceItem.TYPE_CHOICES},
+            'type', allow_blank=True,
+        )
         if etype:
             qs = qs.filter(evidence_type=etype)
         control = self.request.GET.get('control')
         if control:
-            qs = qs.filter(related_control_id=control)
+            qs = qs.filter(
+                related_control_id=positive_int(control, 'control')
+            )
         return qs
 
     def get_context_data(self, **kwargs):
@@ -229,10 +246,10 @@ class EvidenceCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateVie
             initial['owner_dept'] = self.request.user.department
         control = self.request.GET.get('control')
         if control:
-            initial['related_control'] = control
+            initial['related_control'] = positive_int(control, 'control')
         audit = self.request.GET.get('audit')
         if audit:
-            initial['audit'] = audit
+            initial['audit'] = positive_int(audit, 'audit')
         return initial
 
 
@@ -309,14 +326,18 @@ class ControlTestListView(DepartmentScopedMixin, CsvExportMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('control', 'tester', 'owner_dept', 'audit')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(
                 Q(control__code__icontains=q)
                 | Q(control__name__icontains=q)
                 | Q(procedure_notes__icontains=q)
             )
-        result = self.request.GET.get('result')
+        result = choice(
+            self.request.GET.get('result'),
+            {value for value, _label in ControlTest.RESULT_CHOICES},
+            'result', allow_blank=True,
+        )
         if result:
             qs = qs.filter(result=result)
         return qs.order_by('-test_date')
@@ -347,10 +368,10 @@ class ControlTestCreateView(DepartmentCreateMixin, DepartmentScopedMixin, Create
             initial['owner_dept'] = self.request.user.department
         control = self.request.GET.get('control')
         if control:
-            initial['control'] = control
+            initial['control'] = positive_int(control, 'control')
         audit = self.request.GET.get('audit')
         if audit:
-            initial['audit'] = audit
+            initial['audit'] = positive_int(audit, 'audit')
         return initial
 
     def form_valid(self, form):
@@ -409,13 +430,21 @@ class FindingListView(BulkActionsMixin, SavedViewsMixin, DepartmentScopedMixin, 
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('related_control', 'owner_user', 'owner_dept', 'audit')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q))
-        severity = self.request.GET.get('severity')
+        severity = choice(
+            self.request.GET.get('severity'),
+            {value for value, _label in AuditFinding.SEVERITY_CHOICES},
+            'severity', allow_blank=True,
+        )
         if severity:
             qs = qs.filter(severity=severity)
-        status = self.request.GET.get('status')
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in AuditFinding.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
         return qs.order_by('-created_at')
@@ -458,10 +487,10 @@ class FindingCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView
             initial['owner_dept'] = self.request.user.department
         audit = self.request.GET.get('audit')
         if audit:
-            initial['audit'] = audit
+            initial['audit'] = positive_int(audit, 'audit')
         control = self.request.GET.get('control')
         if control:
-            initial['related_control'] = control
+            initial['related_control'] = positive_int(control, 'control')
         return initial
 
 
@@ -484,13 +513,17 @@ class EvidenceScoreListView(DepartmentScopedMixin, ListView):
         qs = super().get_queryset().select_related(
             'evidence', 'evidence__related_control', 'evidence__owner_dept', 'assessor'
         )
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(
                 Q(evidence__title__icontains=q)
                 | Q(evidence__related_control__code__icontains=q)
             )
-        rating = self.request.GET.get('rating')
+        rating = choice(
+            self.request.GET.get('rating'),
+            {'excellent', 'good', 'partial', 'weak'},
+            'rating', allow_blank=True,
+        )
         if rating == 'excellent':
             qs = qs.filter(total_score__gte=90)
         elif rating == 'good':
@@ -533,15 +566,23 @@ class ActionItemListView(DepartmentScopedMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('finding', 'owner_user', 'owner_dept')
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(
                 Q(title__icontains=q) | Q(description__icontains=q) | Q(finding__title__icontains=q)
             )
-        status = self.request.GET.get('status')
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in ActionItem.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
-        priority = self.request.GET.get('priority')
+        # ActionItem priority is stored as an integer (1-4).
+        priority = integer(
+            self.request.GET.get('priority'), 'priority',
+            minimum=1, maximum=4, default=0,
+        )
         if priority:
             qs = qs.filter(priority=priority)
         return qs.order_by('due_date', '-priority')
@@ -579,7 +620,9 @@ class ActionItemCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateV
         initial = super().get_initial()
         finding_pk = self.request.GET.get('finding')
         if finding_pk:
-            finding = AuditFinding.objects.filter(pk=finding_pk).first()
+            finding = AuditFinding.objects.filter(
+                pk=positive_int(finding_pk, 'finding')
+            ).first()
             if finding and user_can_change(self.request.user, finding):
                 initial['finding'] = finding
                 initial['owner_dept'] = finding.owner_dept
@@ -637,8 +680,13 @@ def finding_verify(request, pk):
     if not (request.user.is_superuser or request.user.is_hod):
         raise PermissionDenied
 
-    decision = request.POST.get('decision')
-    notes = (request.POST.get('verification_notes') or '').strip()[:2000]
+    decision = choice(
+        request.POST.get('decision'), {'verified', 'rejected'}, 'decision'
+    )
+    notes = text(
+        request.POST.get('verification_notes'), 'verification_notes', 2000,
+        allow_blank=True, strip=True,
+    )
 
     if decision == 'verified':
         if finding.status != 'resolved':

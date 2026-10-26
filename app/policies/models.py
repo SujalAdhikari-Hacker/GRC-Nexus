@@ -1,6 +1,7 @@
 from django.db import models
 from simple_history.models import HistoricalRecords
 from core.models import Department
+from core.validators import validate_evidence_file
 
 
 class PolicyCategory(models.Model):
@@ -44,7 +45,10 @@ class Policy(models.Model):
     )
     approval_date = models.DateField(null=True, blank=True)
     next_review_date = models.DateField(null=True, blank=True)
-    document = models.FileField(upload_to='policies/', null=True, blank=True)
+    document = models.FileField(
+        upload_to='policies/', null=True, blank=True,
+        validators=[validate_evidence_file],
+    )
     applies_to_departments = models.ManyToManyField(
         Department, blank=True, related_name='applicable_policies'
     )

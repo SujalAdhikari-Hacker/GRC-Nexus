@@ -63,21 +63,50 @@ urlpatterns += [
 # most denials in GRC Nexus are cross-department access attempts.
 # ---------------------------------------------------------------------------
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def handler400(request, exception=None):
+    from django.shortcuts import render
+    logger.warning(
+        'Bad request request_id=%s path=%s',
+        getattr(request, 'request_id', '-'), request.path,
+    )
+    return render(
+        request, '400.html', {'request_path': request.path}, status=400
+    )
+
+
 def handler403(request, exception=None):
     from django.shortcuts import render
-    return render(request, '403.html', {
-        'message': str(exception) if exception else '',
-        'request_path': request.path,
-    }, status=403)
+    logger.warning(
+        'Permission denied request_id=%s path=%s user=%s',
+        getattr(request, 'request_id', '-'),
+        request.path,
+        getattr(getattr(request, 'user', None), 'pk', 'anonymous'),
+    )
+    return render(
+        request, '403.html', {'request_path': request.path}, status=403
+    )
 
 
 def handler404(request, exception=None):
     from django.shortcuts import render
-    return render(request, '404.html', {'request_path': request.path}, status=404)
+    return render(
+        request, '404.html', {'request_path': request.path}, status=404
+    )
 
 
 def handler500(request):
     from django.shortcuts import render
+    logger.error(
+        'Rendering 500 request_id=%s path=%s',
+        getattr(request, 'request_id', '-'), request.path,
+    )
     # Pass the request so context processors (including the CSP nonce) run.
-    return render(request, '500.html', {'request_path': request.path}, status=500)
+    return render(
+        request, '500.html', {'request_path': request.path}, status=500
+    )
 

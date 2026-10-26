@@ -14,6 +14,7 @@ from django.views.generic import (
 )
 
 from core.emails import email_pref_allows, send_email, site_url
+from core.input_validation import choice, integer, positive_int, search_query, text
 from core.mixins import (
     ChangeScopedMixin,
     DepartmentCreateMixin,
@@ -56,23 +57,37 @@ class TicketListView(DepartmentScopedMixin, ListView):
         qs = super().get_queryset().select_related(
             'owner_dept', 'assigned_to', 'assigned_by'
         )
-        q = self.request.GET.get('q', '').strip()
+        q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(
                 Q(ticket_id__icontains=q) |
                 Q(title__icontains=q) |
                 Q(description__icontains=q)
             )
-        status = self.request.GET.get('status')
+        status = choice(
+            self.request.GET.get('status'),
+            {value for value, _label in Ticket.STATUS_CHOICES},
+            'status', allow_blank=True,
+        )
         if status:
             qs = qs.filter(status=status)
-        priority = self.request.GET.get('priority')
+        priority = integer(
+            self.request.GET.get('priority'), 'priority',
+            minimum=1, maximum=4, default=0,
+        )
         if priority:
             qs = qs.filter(priority=priority)
-        source = self.request.GET.get('source')
+        source = choice(
+            self.request.GET.get('source'),
+            {value for value, _label in Ticket.SOURCE_CHOICES},
+            'source', allow_blank=True,
+        )
         if source:
             qs = qs.filter(source=source)
-        assigned = self.request.GET.get('assigned')
+        assigned = choice(
+            self.request.GET.get('assigned'), {'me', 'unassigned'},
+            'assigned', allow_blank=True,
+        )
         if assigned == 'me':
             qs = qs.filter(assigned_to=self.request.user)
         elif assigned == 'unassigned':
@@ -252,14 +267,12 @@ def ticket_assign(request, pk):
         raise PermissionDenied
     ticket = _get_ticket_for_change_or_403(request, pk)
 
-    user_id = request.POST.get('assigned_to')
-    if not user_id:
-        messages.error(request, 'Please choose a user to assign.')
-        return redirect('tickets:detail', pk=pk)
-
+    user_id = positive_int(
+        request.POST.get('assigned_to'), 'assigned_to'
+    )
     try:
         assignee = User.objects.get(pk=user_id)
-    except (User.DoesNotExist, ValueError):
+    except User.DoesNotExist:
         messages.error(request, 'User not found.')
         return redirect('tickets:detail', pk=pk)
 
@@ -307,14 +320,21 @@ def ticket_assign(request, pk):
 def ticket_update_status(request, pk):
     """Quick inline status update."""
     ticket = _get_ticket_for_change_or_403(request, pk)
-    new_status = request.POST.get('status')
+    new_status = choice(
+        request.POST.get('status'),
+        {value for value, _label in Ticket.STATUS_CHOICES},
+        'status',
+    )
 
     valid = [s[0] for s in Ticket.STATUS_CHOICES]
     if new_status in valid:
         ticket.status = new_status
         ticket.updated_by = request.user
 
-        resolution = request.POST.get('resolution_notes', '').strip()
+        resolution = text(
+            request.POST.get('resolution_notes', ''), 'resolution_notes',
+            5000, allow_blank=True, strip=True,
+        )
         if resolution:
             ticket.resolution_notes = resolution
 
