@@ -618,12 +618,12 @@ GRC Nexus follows [Semantic Versioning](https://semver.org/). Releases are cut a
 signed-off tags on `main`.
 
 ```bash
-git tag -a v3.1.0 -m "GRC Nexus v3.1.0"
-git push origin v3.1.0
-gh release create v3.1.0 --title "GRC Nexus v3.1.0" --notes-file CHANGELOG.md
+git tag -a v3.1.1 -m "GRC Nexus v3.1.1"
+git push origin v3.1.1
+gh release create v3.1.1 --title "GRC Nexus v3.1.1" --notes-file CHANGELOG.md
 ```
 
-Existing tags: `v1.0.0`, `v2.0.0`, `v2.1.0`, `v2.2.0`, `v3.0.0`, `v3.1.0`.
+Existing tags: `v1.0.0`, `v2.0.0`, `v2.1.0`, `v2.2.0`, `v3.0.0`, `v3.1.0`, `v3.1.1`.
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
 

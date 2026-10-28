@@ -4,6 +4,21 @@ All notable changes to GRC Nexus are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [3.1.1] - 2026-10-28
+
+Patch release. Fixes a stacking-order defect in the layout.
+
+### Fixed
+
+- **Sticky cards painted over the top bar menus.** `.topbar` sat at
+  `z-index: 5`, below Bootstrap's `.sticky-top` (`1020`), so the bell menu and
+  the user menu were clipped by the sticky side card on form pages. The top bar
+  now sits at `1030` — above sticky content, below the mobile drawer (`1050`),
+  its backdrop (`1040`) and modals (`1055`).
+- **Sticky side cards started underneath the top bar.** `.top-1rem` used a flat
+  `top: 1rem`, which put the top of a sticky card behind the 56px top bar. It now
+  offsets by `calc(var(--topbar-h) + 1rem)` so the card clears it.
+
 ## [3.1.0] - 2026-10-28
 
 Feature release. Adds configurable email delivery and in-app announcements.
