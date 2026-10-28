@@ -4,6 +4,44 @@ All notable changes to GRC Nexus are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [3.1.0] - 2026-10-28
+
+Feature release. Adds configurable email delivery and in-app announcements.
+
+### Added
+
+- **Email delivery configured in the UI** (`core.EmailSettings`,
+  `core/email_config.py`). A superadmin sets host, port, encryption, credentials,
+  timeout and the `From:` identity at **Settings → Email delivery**; the SMTP
+  password is encrypted with `SECRET_KEY`. Changes take effect immediately — no
+  `.env` edit and no container restart. A test button sends one message and
+  reports how many the relay accepted.
+- **Announcements** (`core/announcements.py`). HODs and superadmins write a
+  message and send it to every department, a chosen set of departments, their own
+  department, or specific people. One notification row is written per department,
+  or one row addressed to a single recipient. The composer scopes the department
+  and user lists by role and re-checks the audience before writing, so a HOD
+  cannot reach another department by crafting a POST.
+- **Optional email copy per announcement.** One message goes to everyone who can
+  see the announcement, honouring each user's master email preference; it is
+  skipped when SMTP is disabled and the in-app notification is still delivered.
+- **Help page** now documents sending announcements and configuring email
+  delivery, including troubleshooting.
+- **`docs/EMAIL.md`**: Ubuntu/Postfix + Dovecot + Roundcube walkthrough for
+  `@everest.local`, plus a two-minute Mailpit alternative.
+
+### Changed
+
+- `Notification.owner_dept` is nullable. A direct message has no owning
+  department, so it is visible to the named recipient only and never to their
+  whole department.
+- `Notification` gained `body` and `sent_by`, both shown in the notifications
+  list and the bell.
+- A department-less user is no longer hidden from notifications addressed to them
+  directly.
+- Announcements are exempt from the auto-clear sweep (`MANUAL_KINDS`): they
+  describe no record, so they stay until a recipient dismisses them.
+
 ## [3.0.0] - 2026-10-26
 
 Security-focused major release. The application behaviour and UI are unchanged;

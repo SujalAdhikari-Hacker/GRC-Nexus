@@ -64,7 +64,7 @@
                 <div class="brand-name">GRC Nexus</div>
                 <div class="brand-tagline">From Assets to Assurance</div>
             </div>
-            <span class="brand-version">v3.0</span>
+            <span class="brand-version">v3.1</span>
         </a>
 
         <nav class="nav">
@@ -313,6 +313,7 @@
                             <div class="email">{{ user.email|default:"—" }}</div>
                         </div>
                         {% if user.is_hod or user.is_superuser %}
+                        <a href="{% url 'core:notification_compose' %}" class="user-menu-item"><i class="bi bi-megaphone"></i><span>Send notification</span></a>
                         <a href="{% url 'core:users_list' %}" class="user-menu-item"><i class="bi bi-people"></i><span>Users</span></a>
                         <a href="{% url 'core:departments_list' %}" class="user-menu-item"><i class="bi bi-building"></i><span>Departments</span></a>
                         <a href="{% url 'core:roles_permissions' %}" class="user-menu-item"><i class="bi bi-shield-lock"></i><span>Roles &amp; Permissions</span></a>

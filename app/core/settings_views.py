@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 
 from .settings_model import UserPreference
 from .settings_forms import UserPreferenceForm
+from .email_config import describe
 
 
 @login_required
@@ -40,6 +41,7 @@ def settings_view(request):
         'today_preview': timezone.localdate(),
         'user_timezone': timezone.get_current_timezone(),
         'server_timezone': timezone.get_default_timezone(),
+        'email_status': describe(),
     }
     return render(request, 'core/settings.html', ctx)
 

@@ -74,11 +74,9 @@ def _notification_snapshot(request):
     if user is None or not user.is_authenticated:
         setattr(request, _SNAPSHOT_ATTR, empty)
         return empty
-    if not user.is_superuser and not user.department_id:
-        # A department-less account sees nothing — never the whole organisation.
-        setattr(request, _SNAPSHOT_ATTR, empty)
-        return empty
 
+    # A department-less account never sees org-wide notifications; the filter
+    # below still keeps anything addressed to it directly.
     try:
         from django.db.models import Count
 

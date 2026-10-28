@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}Email delivery{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item">Account</li>
+    <li class="breadcrumb-item"><a href="{% url 'core:settings' %}">Settings</a></li>
+    <li class="breadcrumb-item active">Email delivery</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-8">
+
+    <div class="alert {% if cfg.is_enabled %}alert-success{% else %}alert-warning{% endif %} d-flex gap-2 align-items-start">
+      <i class="bi {% if cfg.is_enabled %}bi-check-circle{% else %}bi-exclamation-triangle{% endif %} mt-1"></i>
+      <div>
+        <strong>Current delivery mode:</strong> {{ status }}
+        {% if not cfg.is_enabled %}
+          <div class="small mt-1">
+            Messages are written to the server log only. Enable SMTP below to
+            deliver real email.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="card mb-3">
+        <div class="card-header bg-white">
+          <strong><i class="bi bi-envelope-at"></i> SMTP server</strong>
+        </div>
+        <div class="card-body">
+
+          <div class="form-check form-switch mb-3">
+            {{ form.is_enabled }}
+            <label class="form-check-label" for="{{ form.is_enabled.id_for_label }}">
+              <strong>Deliver email through this SMTP server</strong>
+            </label>
+            <div class="form-text small">
+              When off, GRC Nexus keeps using the console backend and writes
+              every message to the container log.
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label" for="{{ form.host.id_for_label }}">Host</label>
+              {{ form.host }}
+              {% for e in form.host.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+              <div class="form-text small">Hostname or IP of the SMTP server, e.g. <code>192.168.56.10</code>.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="{{ form.port.id_for_label }}">Port</label>
+              {{ form.port }}
+              {% for e in form.port.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.security.id_for_label }}">Encryption</label>
+              {{ form.security }}
+              {% for e in form.security.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+              <div class="form-text small">Local Postfix relay: <strong>None</strong>. Gmail/Workspace: STARTTLS on 587.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.timeout.id_for_label }}">Timeout (seconds)</label>
+              {{ form.timeout }}
+              {% for e in form.timeout.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+              {{ form.username }}
+              {% for e in form.username.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+              <div class="form-text small">Leave blank for an unauthenticated local relay.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+              {{ form.password }}
+              {% for e in form.password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+              <div class="form-text small">
+                {% if has_password %}
+                  A password is stored. Leave blank to keep it.
+                {% else %}
+                  No password stored yet.
+                {% endif %}
+                Encrypted with a key derived from <code>SECRET_KEY</code>.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header bg-white">
+          <strong><i class="bi bi-person-vcard"></i> Sender identity</strong>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label class="form-label" for="{{ form.from_name.id_for_label }}">From name</label>
+              {{ form.from_name }}
+              {% for e in form.from_name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-7">
+              <label class="form-label" for="{{ form.from_email.id_for_label }}">From address</label>
+              {{ form.from_email }}
+              {% for e in form.from_email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+              <div class="form-text small">For <code>@everest.local</code>, use e.g. <code>no-reply@everest.local</code>.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header bg-white">
+          <strong><i class="bi bi-bell"></i> Notification behaviour</strong>
+        </div>
+        <div class="card-body">
+          <div class="form-check form-switch">
+            {{ form.notify_on_new }}
+            <label class="form-check-label" for="{{ form.notify_on_new.id_for_label }}">
+              <strong>Email on high-signal notifications</strong>
+            </label>
+            <div class="form-text small">
+              Risk escalations and overdue items, incident SLA and GDPR
+              deadlines, KRI breaches, vulnerability SLA breaches, expired
+              vendor contracts and policy approvals are emailed to the
+              department HOD (or the named recipient). Routine housekeeping
+              stays in-app and in the digest.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-dark">
+        <i class="bi bi-save"></i> Save email settings
+      </button>
+    </form>
+
+    <div class="card mb-3 mt-3">
+      <div class="card-header bg-white">
+        <strong><i class="bi bi-send-check"></i> Send a test message</strong>
+      </div>
+      <div class="card-body">
+        <p class="small text-muted">
+          Save the settings first, then send a test through the saved
+          configuration. A failure is logged in full on the server; the page
+          only shows a generic result.
+        </p>
+        <form method="post" action="{% url 'core:send_smtp_test' %}" class="row g-2 align-items-end">
+          {% csrf_token %}
+          <div class="col-sm-8">
+            <label class="form-label" for="test-recipient">Recipient</label>
+            <input type="email" class="form-control" id="test-recipient"
+                   name="recipient" value="{{ user.email }}"
+                   placeholder="you@everest.local" required>
+          </div>
+          <div class="col-sm-4">
+            <button class="btn btn-outline-dark w-100">
+              <i class="bi bi-send"></i> Send test
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card sticky-top top-1rem">
+      <div class="card-header bg-white"><strong>Quick presets</strong></div>
+      <div class="card-body small">
+        <p class="mb-2"><strong>Local Ubuntu Postfix</strong></p>
+        <ul class="mb-3 ps-3">
+          <li>Host: your VM IP (e.g. <code>192.168.56.10</code>)</li>
+          <li>Port: <code>25</code></li>
+          <li>Encryption: <strong>None</strong></li>
+          <li>Username/password: blank</li>
+          <li>From: <code>no-reply@everest.local</code></li>
+        </ul>
+
+        <p class="mb-2"><strong>Gmail / Google Workspace</strong></p>
+        <ul class="mb-3 ps-3">
+          <li>Host: <code>smtp.gmail.com</code></li>
+          <li>Port: <code>587</code>, STARTTLS</li>
+          <li>Username: full address</li>
+          <li>Password: an App Password</li>
+        </ul>
+
+        <p class="mb-2"><strong>Mailtrap / sandbox</strong></p>
+        <ul class="mb-0 ps-3">
+          <li>Host and port from the sandbox inbox</li>
+          <li>STARTTLS, username and password from the inbox</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header bg-white"><strong>Before you enable</strong></div>
+      <div class="card-body small text-muted">
+        <ul class="mb-0 ps-3">
+          <li>Confirm the SMTP port is reachable from the web container.</li>
+          <li>If the relay authenticates, enter the username and password.</li>
+          <li>Use a From address the relay is allowed to send for.</li>
+          <li>Send a test, then check the recipient inbox and spam folder.</li>
+          <li>The full setup guide is in <code>docs/EMAIL.md</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

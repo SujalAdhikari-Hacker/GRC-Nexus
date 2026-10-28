@@ -1,9 +1,10 @@
 from django.urls import path, re_path
 from .settings_views import settings_view, send_test_email
+from .email_views import EmailSettingsView, SendSMTPTestView
 from .media import download_media
 from .object_views import share_object, saved_view_save, saved_view_delete
 from .notification_views import (
-    NotificationListView, notification_dismiss,
+    NotificationListView, NotificationComposeView, notification_dismiss,
     notification_mark_read, notification_mark_all_read,
 )
 from .views import (
@@ -43,10 +44,13 @@ urlpatterns = [
 
     # Notifications
     path('notifications/', NotificationListView.as_view(), name='notifications'),
+    path('notifications/new/', NotificationComposeView.as_view(), name='notification_compose'),
     path('notifications/<int:pk>/dismiss/', notification_dismiss, name='notification_dismiss'),
     path('notifications/<int:pk>/read/', notification_mark_read, name='notification_mark_read'),
     path('notifications/mark-all-read/', notification_mark_all_read, name='notification_mark_all_read'),
     path('settings/', settings_view, name='settings'),
+    path('settings/email/', EmailSettingsView.as_view(), name='email_settings'),
+    path('settings/email/test/', SendSMTPTestView.as_view(), name='send_smtp_test'),
     path('settings/test-email/', send_test_email, name='send_test_email'),
 
     # Two-factor authentication

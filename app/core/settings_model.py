@@ -1,6 +1,8 @@
 from django.db import models
 from simple_history.models import HistoricalRecords
 
+from .crypto import decrypt_secret, encrypt_secret
+
 
 def _tz_choices():
     return [
@@ -132,3 +134,108 @@ class UserPreference(models.Model):
             return None
         pref, _ = cls.objects.get_or_create(user=user)
         return pref
+
+
+class EmailSettings(models.Model):
+    """Organisation-wide outbound SMTP configuration.
+
+    A single row (pk=1). When ``is_enabled`` is false the project falls back to
+    the backend in ``settings.EMAIL_BACKEND`` — the console backend by default,
+    which writes messages to the server log. The SMTP password is stored
+    encrypted (see ``core.crypto``); the UI never echoes it back.
+    """
+
+    SECURITY_CHOICES = [
+        ('none', 'None — plain SMTP (local relay)'),
+        ('starttls', 'STARTTLS — usually port 587'),
+        ('ssl', 'SSL/TLS — usually port 465'),
+    ]
+
+    is_enabled = models.BooleanField(
+        default=False,
+        help_text='Deliver real mail through this SMTP server. When off, '
+                  'messages are written to the server log instead.',
+    )
+    host = models.CharField(
+        max_length=255, default='localhost',
+        help_text='Hostname or IP address of the SMTP server.',
+    )
+    port = models.PositiveIntegerField(
+        default=587,
+        help_text='25 for a local relay, 587 for STARTTLS, 465 for SSL/TLS.',
+    )
+    security = models.CharField(
+        max_length=10, choices=SECURITY_CHOICES, default='starttls',
+    )
+    username = models.CharField(
+        max_length=255, blank=True,
+        help_text='Leave blank for an unauthenticated local relay.',
+    )
+    password_encrypted = models.TextField(
+        blank=True, editable=False,
+        help_text='Encrypted with a key derived from SECRET_KEY.',
+    )
+    from_email = models.EmailField(
+        default='no-reply@everest.local',
+        help_text='Address shown in the From: header.',
+    )
+    from_name = models.CharField(
+        max_length=120, default='GRC Nexus',
+        help_text='Display name shown in the From: header.',
+    )
+    timeout = models.PositiveIntegerField(
+        default=20, help_text='SMTP connection timeout in seconds.',
+    )
+    notify_on_new = models.BooleanField(
+        default=True,
+        help_text='Email the department HOD (or the named recipient) when a '
+                  'high-signal notification is raised. Routine housekeeping '
+                  'notifications stay in-app and in the digest.',
+    )
+
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        'core.User', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='+',
+    )
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = 'Email settings'
+        verbose_name_plural = 'Email settings'
+
+    def __str__(self):
+        state = 'enabled' if self.is_enabled else 'disabled'
+        return f'SMTP {self.host}:{self.port} ({state})'
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @property
+    def password(self):
+        return decrypt_secret(self.password_encrypted)
+
+    def set_password(self, raw):
+        self.password_encrypted = encrypt_secret(raw or '')
+
+    @property
+    def use_tls(self):
+        return self.security == 'starttls'
+
+    @property
+    def use_ssl(self):
+        return self.security == 'ssl'
+
+    @property
+    def from_header(self):
+        name = (self.from_name or '').strip()
+        address = (self.from_email or '').strip()
+        if name and address:
+            return f'{name} <{address}>'
+        return address

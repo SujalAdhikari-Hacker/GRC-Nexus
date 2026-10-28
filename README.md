@@ -167,6 +167,10 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - **Command palette** (Ctrl/⌘ + K) — search across assets, risks, controls, policies, vendors,
   findings, audits, frameworks, KRIs, tickets and threat actors.
 - **Notifications** — a department-scoped work queue (unread is real unread).
+- **Announcements** — HODs and superadmins can write a message and send it to every department,
+  a chosen set of departments, their own department, or specific people. It arrives in the bell,
+  the notifications page and the badge like any other alert, and can be copied to email in the
+  same step. Announcements are never auto-cleared; they stay until a recipient dismisses them.
 - **Email digests & escalations** — a scheduled scan finds overdue tickets, findings and actions,
   risks past their target date or beyond capacity, expiring risk exceptions, lapsing vendor
   contracts, red KRIs and SLA-breached vulnerabilities, **untriaged incidents past their
@@ -174,9 +178,14 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   owning department and emailed to the responsible person (owner, else the department HOD). An
   item is only emailed once while it stays unresolved, so the job is safe to run hourly. Users
   choose Off / Daily / Weekly digests and per-event email toggles in Settings (including a
-  dedicated incident toggle), and can send themselves a test email to confirm delivery. Ships
-  with the console email backend, so it is observable out of the box via `docker compose logs
-  -f web` — point `EMAIL_BACKEND` at SMTP for real mail.
+  dedicated incident toggle), and can send themselves a test email to confirm delivery.
+  **SMTP is configured in the UI** (Settings → Email delivery), stored in the database and
+  encrypted with `SECRET_KEY`, so no `.env` edit or restart is needed. High-signal notifications
+  (risk escalations, overdue items, incident SLA/GDPR deadlines, KRI and vulnerability breaches,
+  expiring contracts, policy approvals) are also emailed immediately. With no SMTP configured,
+  the console backend keeps everything observable via `docker compose logs -f web`. See
+  [`docs/EMAIL.md`](docs/EMAIL.md) for an Ubuntu/Postfix walkthrough for `@everest.local` and a
+  two-minute Mailpit option.
 - **Dark mode** with persistence; native `type="date"` calendar pickers everywhere.
 - **CSV / Excel / PDF export** on the list views that support it.
 - **Bulk actions** — select rows on a register and apply a server-approved change (e.g. set
@@ -377,8 +386,8 @@ in action.
 | `POSTGRES_USER`, `POSTGRES_PASSWORD` | Bootstrap/break-glass superuser used by the PostgreSQL container, not the application |
 | `DB_APP_USER`, `DB_APP_PASSWORD` | Non-superuser runtime role the application uses; row-level security applies to it |
 | `ABUSECH_AUTH_KEY`, `OTX_API_KEY` | Optional; enable ThreatFox / OTX IOC sync |
-| `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`, `EMAIL_USE_SSL` | Outbound mail. Defaults to the **console** backend (messages land in the app log); switch to the SMTP backend for real delivery |
-| `DEFAULT_FROM_EMAIL` | `From:` header on every message |
+| `EMAIL_BACKEND` | Fallback backend used only while SMTP is disabled in the UI (console by default). Real SMTP is configured at Settings → Email delivery |
+| `DEFAULT_FROM_EMAIL` | Fallback `From:` header used while SMTP is disabled in the UI |
 | `SITE_BASE_URL` | Absolute base URL used to build the links inside emails (a cron job has no request) |
 | `ESCALATION_FALLBACK_EMAILS` | Comma-separated catch-all for escalations that have no owner and no HOD. Empty drops them |
 | `DIGEST_LOOKBACK_HOURS`, `ESCALATION_GRACE_DAYS`, `ESCALATION_WARN_DAYS` | Scheduling knobs: grace period before an item escalates, and how far ahead to warn about expiring exceptions/contracts |
@@ -400,6 +409,12 @@ Configuration lives in `app/config/settings/`:
 Select the module with `DJANGO_SETTINGS_MODULE`.
 
 ### Scheduled jobs (digests & escalations)
+
+Configure outbound mail first: sign in as a superuser, open **Settings → Email delivery** and
+either enable SMTP or leave the console backend in place. The full walkthrough — including a
+local Ubuntu/Postfix server for `@everest.local` and a two-minute Mailpit alternative — is in
+[`docs/EMAIL.md`](docs/EMAIL.md). Use **Send a test message** on that page to confirm delivery
+before scheduling anything.
 
 Two idempotent management commands do the outbound mail. Neither needs a request, so they are safe
 to run from cron, a scheduler or a sidecar:
@@ -603,12 +618,12 @@ GRC Nexus follows [Semantic Versioning](https://semver.org/). Releases are cut a
 signed-off tags on `main`.
 
 ```bash
-git tag -a v3.0.0 -m "GRC Nexus v3.0.0"
-git push origin v3.0.0
-gh release create v3.0.0 --title "GRC Nexus v3.0.0" --notes-file CHANGELOG.md
+git tag -a v3.1.0 -m "GRC Nexus v3.1.0"
+git push origin v3.1.0
+gh release create v3.1.0 --title "GRC Nexus v3.1.0" --notes-file CHANGELOG.md
 ```
 
-Existing tags: `v1.0.0`, `v2.0.0`, `v2.1.0`, `v2.2.0`, `v3.0.0`.
+Existing tags: `v1.0.0`, `v2.0.0`, `v2.1.0`, `v2.2.0`, `v3.0.0`, `v3.1.0`.
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
 

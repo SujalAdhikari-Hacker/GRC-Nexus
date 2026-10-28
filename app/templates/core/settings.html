@@ -11,6 +11,17 @@
 {% endblock %}
 
 {% block content %}
+{% if user.is_superuser %}
+<div class="alert alert-dark d-flex flex-wrap gap-3 align-items-center justify-content-between mb-3">
+    <div>
+        <strong><i class="bi bi-envelope-at"></i> Email delivery</strong>
+        <div class="small">{{ email_status }}</div>
+    </div>
+    <a href="{% url 'core:email_settings' %}" class="btn btn-sm btn-light">
+        <i class="bi bi-gear"></i> Configure SMTP
+    </a>
+</div>
+{% endif %}
 <div class="row g-3">
     <div class="col-md-8">
         <form method="post">
@@ -156,8 +167,13 @@
                     <strong>{{ user.email|default:"your inbox" }}</strong>.
                     <br>
                     <span class="text-body-secondary">
-                        No mail server configured? Messages are written to the
-                        server log instead — <code>docker compose logs -f web</code>.
+                        Current mode: <strong>{{ email_status }}</strong>.
+                        {% if user.is_superuser %}
+                            <a href="{% url 'core:email_settings' %}">Configure SMTP delivery</a>.
+                        {% else %}
+                            Ask an administrator to configure SMTP under
+                            Settings &rarr; Email delivery.
+                        {% endif %}
                     </span>
                 </div>
                 <form method="post" action="{% url 'core:send_test_email' %}">
@@ -243,8 +259,17 @@
         <div class="card mt-3">
             <div class="card-header bg-white"><strong>System</strong></div>
             <ul class="list-group list-group-flush">
+                {% if user.is_superuser %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Email delivery</strong>
+                        <div class="small text-muted">{{ email_status }}</div>
+                    </div>
+                    <a href="{% url 'core:email_settings' %}" class="btn btn-sm btn-outline-dark">Configure</a>
+                </li>
+                {% endif %}
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">App</span><span>GRC Nexus</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Version</span><code>v2.2.0</code></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Version</span><code>v3.1.0</code></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Server timezone</span><code>{{ server_timezone }}</code></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Your timezone</span><code>{{ user_timezone }}</code></li>
             </ul>

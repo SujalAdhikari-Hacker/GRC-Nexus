@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Help &amp; Support{% endblock %}
-{% block meta_description %}How to use GRC Nexus: module guide, roles and permissions, notifications, keyboard shortcuts and where to get support.{% endblock %}
+{% block meta_description %}How to use GRC Nexus: module guide, roles and permissions, notifications, sending announcements, email delivery setup, keyboard shortcuts and where to get support.{% endblock %}
 {% block breadcrumb %}<h1 class="h5 mb-0">Help &amp; Support</h1>{% endblock %}
 
 {% block content %}
@@ -111,12 +111,147 @@
             <div class="card-header bg-white"><i class="bi bi-bell me-1"></i> Notifications &amp; escalation</div>
             <div class="card-body small">
                 <p class="mb-2">The bell shows unread notifications for your department. Email alerts can be enabled per user in <a href="{% url 'core:settings' %}">Settings</a>.</p>
+                <p class="mb-2">HODs and superadmins can also write and send their own announcements — see <a href="#sending-notifications">Sending notifications</a> below.</p>
                 <p class="mb-2">Overdue controls, expiring policies, breached KRIs and incident SLAs escalate automatically to the record owner, then the department HOD, then the platform escalation list.</p>
                 <p class="mb-0">Incident severity sets the response SLA: critical 1h, high 4h, medium 24h, low 72h. Personal-data breaches also start a 72-hour notification clock.</p>
             </div>
         </div>
     </div>
 </div>
+
+<div class="card mb-4" id="sending-notifications">
+    <div class="card-header bg-white"><i class="bi bi-megaphone me-1"></i> Sending notifications</div>
+    <div class="card-body">
+        <p class="text-muted mb-3">
+            Most notifications in GRC Nexus are raised automatically when a record needs attention.
+            An <strong>announcement</strong> is the opposite: a message a person writes on purpose —
+            a phishing drill, a policy reminder, a maintenance window, a change of process. It is
+            delivered in the app like any other notification, and optionally by email, so you do not
+            have to rely on a separate mailing list.
+        </p>
+
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <h3 class="h6 mb-2">How to send one</h3>
+                <ol class="small text-muted ps-3 mb-0">
+                    <li class="mb-1">Open <strong>Notifications</strong>, then <strong>Send notification</strong> (also in the user menu).</li>
+                    <li class="mb-1">Write a <strong>title</strong> and an optional <strong>message</strong>. The title is what people see in the bell.</li>
+                    <li class="mb-1">Under <strong>Who should receive it?</strong>, pick one audience and tick the departments or people it applies to.</li>
+                    <li class="mb-1">Leave <strong>Also send by email</strong> on if people should get a copy in their inbox.</li>
+                    <li class="mb-0">Press <strong>Send notification</strong>. The summary panel on the right shows the audience before you send.</li>
+                </ol>
+            </div>
+            <div class="col-lg-5">
+                <h3 class="h6 mb-2">Who can send what</h3>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr><th scope="col">Audience</th><th scope="col" class="text-end">Superadmin</th><th scope="col" class="text-end">HOD</th></tr>
+                        </thead>
+                        <tbody class="small">
+                            <tr><td>Every department</td><td class="text-end text-success"><i class="bi bi-check-lg"></i></td><td class="text-end text-muted">—</td></tr>
+                            <tr><td>Specific departments</td><td class="text-end text-success"><i class="bi bi-check-lg"></i></td><td class="text-end text-muted">—</td></tr>
+                            <tr><td>My department</td><td class="text-end text-success"><i class="bi bi-check-lg"></i></td><td class="text-end text-success"><i class="bi bi-check-lg"></i></td></tr>
+                            <tr><td>Specific people</td><td class="text-end text-success"><i class="bi bi-check-lg"></i></td><td class="text-end text-muted">Own department only</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="small text-muted mt-2">A superadmin without a department cannot pick <em>My department</em>; a HOD without one cannot send at all until an administrator assigns a department.</div>
+            </div>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="fw-semibold small mb-1"><i class="bi bi-bell me-1"></i>In the bell</div>
+                <div class="small text-muted">Unread announcements appear in the bell menu and count towards the badge, exactly like an automatic alert.</div>
+            </div>
+            <div class="col-md-4">
+                <div class="fw-semibold small mb-1"><i class="bi bi-list-ul me-1"></i>On the Notifications page</div>
+                <div class="small text-muted">The full message, the sending department and the sender are listed. Recipients can dismiss it once they have read it.</div>
+            </div>
+            <div class="col-md-4">
+                <div class="fw-semibold small mb-1"><i class="bi bi-envelope me-1"></i>By email</div>
+                <div class="small text-muted">One copy per recipient, sent to the address on their account. Each person can opt out of all email in <a href="{% url 'core:settings' %}">Settings</a>.</div>
+            </div>
+        </div>
+
+        <div class="alert alert-light border small mt-3 mb-0">
+            <strong>Why announcements behave differently:</strong> every other notification kind is
+            cleared automatically once the underlying record is fixed. An announcement describes no
+            record, so it stays until a recipient dismisses it.
+        </div>
+    </div>
+</div>
+
+{% if user.is_superuser %}
+<div class="card mb-4" id="email-delivery">
+    <div class="card-header bg-white"><i class="bi bi-envelope-at me-1"></i> Email delivery setup</div>
+    <div class="card-body">
+        <p class="text-muted mb-3">
+            GRC Nexus can hand messages to an SMTP server so notifications and announcements also
+            reach people's inboxes. The settings live in the database, so they can be changed from
+            the UI without editing <code>.env</code> or restarting the container. Only a superadmin
+            can change them.
+        </p>
+
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <h3 class="h6 mb-2">Configure it</h3>
+                <ol class="small text-muted ps-3 mb-0">
+                    <li class="mb-1">Go to <a href="{% url 'core:settings' %}">Settings</a> → <strong>Email delivery</strong> → <strong>Configure</strong>.</li>
+                    <li class="mb-1">Turn on <strong>Deliver email through this SMTP server</strong>.</li>
+                    <li class="mb-1">Enter the <strong>host</strong>, <strong>port</strong>, <strong>encryption</strong> and — for a relay that needs a login — the <strong>username</strong> and <strong>password</strong>.</li>
+                    <li class="mb-1">Set the <strong>from name</strong> and <strong>from address</strong> recipients should see.</li>
+                    <li class="mb-1">Save, then use <strong>Send test message</strong> to prove delivery before relying on it.</li>
+                    <li class="mb-0">Confirm the result: the page reports how many messages the relay accepted.</li>
+                </ol>
+            </div>
+            <div class="col-lg-5">
+                <h3 class="h6 mb-2">Typical values</h3>
+                <div class="table-responsive">
+                    <table class="table table-sm small mb-0">
+                        <thead class="table-light"><tr><th scope="col">Field</th><th scope="col">Local relay</th><th scope="col">Gmail / Workspace</th></tr></thead>
+                        <tbody>
+                            <tr><td>Host</td><td><code>192.168.48.142</code></td><td><code>smtp.gmail.com</code></td></tr>
+                            <tr><td>Port</td><td><code>25</code></td><td><code>587</code></td></tr>
+                            <tr><td>Encryption</td><td>None</td><td>STARTTLS</td></tr>
+                            <tr><td>Username</td><td class="text-muted">blank</td><td>full address</td></tr>
+                            <tr><td>Password</td><td class="text-muted">blank</td><td>app password</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="fw-semibold small mb-1"><i class="bi bi-shield-lock me-1"></i>Stored safely</div>
+                <div class="small text-muted">The SMTP password is encrypted at rest. Leaving the password field blank on a later save keeps the stored one.</div>
+            </div>
+            <div class="col-md-4">
+                <div class="fw-semibold small mb-1"><i class="bi bi-slash-circle me-1"></i>When it is off</div>
+                <div class="small text-muted">Nothing breaks: messages are written to the container log instead, and in-app notifications are unaffected.</div>
+            </div>
+            <div class="col-md-4">
+                <div class="fw-semibold small mb-1"><i class="bi bi-person-check me-1"></i>Per-user choice</div>
+                <div class="small text-muted">Each user can switch email off in Settings. Automatic alerts also respect each person's notification preferences.</div>
+            </div>
+        </div>
+
+        <h3 class="h6 mt-4 mb-2">If email does not arrive</h3>
+        <ul class="small text-muted mb-0 ps-3">
+            <li class="mb-1"><strong>Nothing was sent at all</strong> — check the mode banner at the top of the Email delivery page. If SMTP is disabled, only the log is written.</li>
+            <li class="mb-1"><strong>The test fails</strong> — host, port or encryption is wrong, or the relay refused the connection. Port 25 is often blocked outbound; use 587 with STARTTLS for a hosted provider.</li>
+            <li class="mb-1"><strong>The test succeeds but a person gets nothing</strong> — check the address on their account and whether they turned email off in Settings.</li>
+            <li class="mb-0"><strong>Mail is accepted but never lands</strong> — look at the mail server's own log and the recipient mailbox. On the bundled Ubuntu relay, the deployment notes in <code>docs/EMAIL.md</code> cover Postfix, Dovecot and webmail.</li>
+        </ul>
+    </div>
+</div>
+{% endif %}
 
 <div class="card">
     <div class="card-body d-flex flex-wrap gap-3 align-items-center justify-content-between">
@@ -125,6 +260,7 @@
             <div class="small text-muted">Ask your platform administrator, or review the audit trail of any change in the change log.</div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
+            {% if user.is_hod or user.is_superuser %}<a class="btn btn-outline-dark btn-sm" href="{% url 'core:notification_compose' %}"><i class="bi bi-megaphone me-1"></i>Send notification</a>{% endif %}
             {% if user.is_hod or user.is_superuser %}<a class="btn btn-outline-dark btn-sm" href="{% url 'core:history' %}"><i class="bi bi-clock-history me-1"></i>Change Log</a>{% endif %}
             <a class="btn btn-outline-dark btn-sm" href="{% url 'core:notifications' %}"><i class="bi bi-bell me-1"></i>Notifications</a>
             <a class="btn btn-dark btn-sm" href="{% url 'core:dashboard' %}"><i class="bi bi-grid-1x2 me-1"></i>Dashboard</a>

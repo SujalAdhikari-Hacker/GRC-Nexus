@@ -2213,13 +2213,21 @@ class NotificationClearRuleTests(TestCase):
 
     def test_every_notification_kind_has_a_clear_rule(self):
         from core.notifications import Notification
-        from core.notification_registry import CLEAR_RULES
+        from core.notification_registry import CLEAR_RULES, MANUAL_KINDS
 
         missing = [
             kind for kind, _label in Notification.KIND_CHOICES
-            if kind not in CLEAR_RULES
+            if kind not in CLEAR_RULES and kind not in MANUAL_KINDS
         ]
         self.assertEqual([], missing)
+
+    def test_manual_kinds_exist(self):
+        """Kinds exempted from auto-clearing must still be real choices."""
+        from core.notifications import Notification
+        from core.notification_registry import MANUAL_KINDS
+
+        known = {kind for kind, _label in Notification.KIND_CHOICES}
+        self.assertTrue(MANUAL_KINDS <= known)
 
     def test_ruleless_kind_is_detected_by_the_guard(self):
         """The guard above would actually catch a new rule-less kind."""

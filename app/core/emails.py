@@ -16,6 +16,8 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import escape
 
+from .email_config import build_connection, from_header
+
 logger = logging.getLogger(__name__)
 
 # Neutral, light, email-client-safe palette. HTML email cannot rely on
@@ -108,8 +110,9 @@ def send_email(subject, text_body, recipients, *, html_body=None):
         message = EmailMultiAlternatives(
             subject=subject,
             body=text_body,
-            from_email=settings.DEFAULT_FROM_EMAIL,
+            from_email=from_header(),
             to=recipients,
+            connection=build_connection(),
         )
         if html_body:
             message.attach_alternative(html_body, 'text/html')

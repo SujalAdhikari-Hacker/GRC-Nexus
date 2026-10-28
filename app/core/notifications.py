@@ -41,11 +41,16 @@ class Notification(models.Model):
         ('incident_open',           'Security incident needs attention'),
         ('incident_sla_breach',     'Incident past its triage SLA'),
         ('incident_breach_due',     'Personal-data breach notification deadline'),
+        # --- messages composed by a HOD or superuser in the app ---
+        ('announcement',            'Announcement'),
     ]
 
     owner_dept = models.ForeignKey(
         'core.Department', on_delete=models.CASCADE,
-        related_name='notifications'
+        related_name='notifications',
+        # Empty for a message addressed to one person: the recipient is the
+        # only thing that decides who sees it.
+        null=True, blank=True,
     )
     # Optional single-user target. When set, the notification is delivered to
     # that one person (e.g. the named approver on a risk exception) in addition
@@ -58,6 +63,14 @@ class Notification(models.Model):
     kind = models.CharField(max_length=50, choices=KIND_CHOICES)
     title = models.CharField(max_length=300)
     action_url = models.CharField(max_length=500, blank=True)
+
+    # Free text written by whoever composed an announcement.
+    body = models.TextField(blank=True)
+    sent_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='sent_notifications',
+        help_text='Who composed this message, when it was sent from the app.',
+    )
 
     # What object this is about — used for auto-clearing
     ref_model = models.CharField(max_length=60, blank=True)
@@ -116,6 +129,7 @@ class Notification(models.Model):
             'incident_open':           'bi-fire',
             'incident_sla_breach':     'bi-alarm',
             'incident_breach_due':     'bi-shield-exclamation',
+            'announcement':            'bi-megaphone',
         }
         return icons.get(self.kind, 'bi-bell')
 
@@ -157,7 +171,7 @@ def create_notification(kind, title, action_url, owner_dept, ref_obj=None, recip
     ).exists():
         return None
 
-    return Notification.objects.create(
+    notification = Notification.objects.create(
         owner_dept=owner_dept,
         recipient=recipient,
         kind=kind,
@@ -166,3 +180,11 @@ def create_notification(kind, title, action_url, owner_dept, ref_obj=None, recip
         ref_model=ref_model,
         ref_id=ref_id,
     )
+
+    # High-signal notifications also go out by email when an administrator has
+    # enabled SMTP. The send is deferred until the surrounding transaction
+    # commits, and a failure never breaks the save that raised the alert.
+    from .email_config import schedule_notification_email
+    schedule_notification_email(notification)
+
+    return notification

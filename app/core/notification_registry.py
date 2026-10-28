@@ -113,6 +113,11 @@ CLEAR_RULES = {
 }
 
 
+# Kinds that are meant to stay until a person dismisses them. They describe no
+# record, so there is nothing to re-check and no clear rule to write.
+MANUAL_KINDS = {'announcement'}
+
+
 def refresh_notifications(dept=None, is_super=False):
     """
     Check every active notification and mark it cleared if its condition

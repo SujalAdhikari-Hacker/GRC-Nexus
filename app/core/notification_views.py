@@ -1,12 +1,16 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from django.views import View
 from django.views.generic import ListView
 
+from .announcements import AUDIENCE_USERS, send_announcement
 from .input_validation import choice
+from .mixins import HODOrSuperuserMixin
+from .notification_forms import NotificationComposeForm
 from .notifications import Notification
 from .notification_registry import refresh_notifications_throttled
 
@@ -116,3 +120,65 @@ def notification_mark_all_read(request):
     count = qs.update(is_read=True, read_at=timezone.now())
     messages.success(request, f'{count} notification(s) marked as read.')
     return redirect('core:notifications')
+
+
+class NotificationComposeView(HODOrSuperuserMixin, View):
+    """Send a notification to departments or individual people.
+
+    Superusers may address every department; a HOD is limited to their own
+    department and to people inside it. The form scopes both querysets, so the
+    limit is enforced before anything is written.
+    """
+
+    template_name = 'core/notification_compose.html'
+
+    def _render(self, request, form):
+        return render(request, self.template_name, {
+            'form': form,
+            'is_superuser': request.user.is_superuser,
+            'own_department': request.user.department,
+            # Keeps the matching picker open when a submission fails, even
+            # before the page's script runs.
+            'selected_audience': request.POST.get('audience', ''),
+        })
+
+    def get(self, request):
+        user = request.user
+        if not user.is_superuser and not user.department_id:
+            messages.error(
+                request,
+                'Your account has no department, so there is nobody to notify. '
+                'Ask an administrator to assign you to one.',
+            )
+            return redirect('core:notifications')
+        return self._render(request, NotificationComposeForm(user=user))
+
+    def post(self, request):
+        user = request.user
+        form = NotificationComposeForm(request.POST, user=user)
+        if not form.is_valid():
+            messages.error(request, 'Please fix the errors below.')
+            return self._render(request, form)
+
+        payload = form.targets()
+        created = send_announcement(
+            user,
+            title=form.cleaned_data['title'],
+            body=form.cleaned_data.get('body', ''),
+            **payload,
+        )
+
+        if not created:
+            messages.warning(
+                request,
+                'Nothing was sent — the chosen audience had no recipients.',
+            )
+            return redirect('core:notifications')
+
+        noun = 'person' if payload['audience'] == AUDIENCE_USERS else 'department'
+        plural = '' if len(created) == 1 else 's'
+        message = f'Notification sent to {len(created)} {noun}{plural}.'
+        if payload['email']:
+            message += ' An email copy will go to everyone who allows email.'
+        messages.success(request, message)
+        return redirect('core:notifications')
