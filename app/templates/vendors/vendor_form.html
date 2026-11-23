@@ -122,6 +122,58 @@
                 </div>
             </div>
 
+            {# ─────────── Supplier assurance (NIS2) ─────────── #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-clipboard-check"></i> Supplier assurance</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Recognised certifications</label>
+                        <div class="d-flex flex-wrap gap-3">
+                            {% for cb in form.certifications %}
+                                <div class="form-check">
+                                    {{ cb.tag }}
+                                    <label class="form-check-label" for="{{ cb.id_for_label }}">{{ cb.choice_label }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text small">Each certification adds its assurance weight; the component is capped at 25 points.</div>
+                        {% if form.certifications.errors %}<div class="text-danger small">{{ form.certifications.errors }}</div>{% endif %}
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Jurisdiction</label>
+                            {{ form.jurisdiction }}
+                            <div class="form-text small">Third-country suppliers need transfer safeguards.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Breach notification (hours)</label>
+                            {{ form.breach_notification_hours }}
+                            <div class="form-text small">24 or fewer earns the full 3 points.</div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                {{ form.security_clauses }}
+                                <label class="form-check-label" for="{{ form.security_clauses.id_for_label }}">Security clauses in contract</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                {{ form.audit_rights }}
+                                <label class="form-check-label" for="{{ form.audit_rights.id_for_label }}">Right to audit</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                {{ form.sla_defined }}
+                                <label class="form-check-label" for="{{ form.sla_defined.id_for_label }}">Defined SLA</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {# ─────────── Ownership ─────────── #}
             <div class="card mb-3">
                 <div class="card-header bg-white"><strong><i class="bi bi-person"></i> Ownership</strong></div>
@@ -239,6 +291,7 @@
         <div class="card mt-3">
             <div class="card-header bg-white"><strong>Data sensitivity</strong></div>
             <div class="card-body small text-muted">
+                <div><strong>No access</strong> — vendor holds no organisational data</div>
                 <div><strong>Public</strong> — freely shareable</div>
                 <div><strong>Internal</strong> — org-only</div>
                 <div><strong>Confidential</strong> — restricted access</div>

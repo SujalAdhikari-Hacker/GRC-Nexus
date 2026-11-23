@@ -30,6 +30,11 @@ class VendorAdmin(SimpleHistoryAdmin):
         ('Classification', {
             'fields': ('service', 'tier', 'data_sensitivity', 'status')
         }),
+        ('Supplier assurance (NIS2)', {
+            'fields': ('certifications', 'jurisdiction'),
+            'description': 'Certification keys are one JSON list, e.g. '
+                           '["ISO27001", "SOC2"]. Scores are derived on read.'
+        }),
         ('Ownership', {
             'fields': ('owner_dept', 'owner_user')
         }),
@@ -37,7 +42,11 @@ class VendorAdmin(SimpleHistoryAdmin):
             'fields': ('contact_name', 'contact_email', 'contact_phone')
         }),
         ('Contract', {
-            'fields': ('contract_start', 'contract_renewal_date')
+            'fields': (
+                'contract_start', 'contract_renewal_date',
+                'security_clauses', 'audit_rights', 'sla_defined',
+                'breach_notification_hours',
+            )
         }),
         ('Compliance', {
             'fields': ('compliance_attestations', 'compliance_notes'),

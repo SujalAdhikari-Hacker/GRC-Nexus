@@ -49,7 +49,8 @@
                     <th scope="col">Owner</th>
                     <th scope="col" class="text-center">Status</th>
                     <th scope="col">Contract renewal</th>
-                    <th scope="col" class="text-center">Score</th>
+                    <th scope="col" class="text-center">Risk score</th>
+                    <th scope="col" class="text-center">Assurance</th>
                     <th scope="col"></th>
                 </tr>
             </thead>
@@ -81,16 +82,20 @@
                     </td>
                     <td class="text-center">
                         {% if v.latest_score is not None %}
-                            {% if v.latest_score >= 4.5 %}<span class="badge bg-danger">{{ v.latest_score }}</span>
-                            {% elif v.latest_score >= 3.5 %}<span class="badge bg-orange">{{ v.latest_score }}</span>
-                            {% elif v.latest_score >= 2.5 %}<span class="badge bg-warning text-dark">{{ v.latest_score }}</span>
+                            {# latest_score is the 0-100 assessment risk total; bands mirror VendorAssessment.save(). #}
+                            {% if v.latest_score >= 76 %}<span class="badge bg-danger">{{ v.latest_score }}</span>
+                            {% elif v.latest_score >= 51 %}<span class="badge bg-orange">{{ v.latest_score }}</span>
+                            {% elif v.latest_score >= 26 %}<span class="badge bg-warning text-dark">{{ v.latest_score }}</span>
                             {% else %}<span class="badge bg-success">{{ v.latest_score }}</span>{% endif %}
                         {% else %}<small class="text-muted">—</small>{% endif %}
+                    </td>
+                    <td class="text-center">
+                        <span class="badge {{ v.scorecard.band_css }}" title="Higher is better">{{ v.scorecard.score }}</span>
                     </td>
                     <td class="text-end"><a href="{% url 'vendors:detail' v.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>
                 </tr>
             {% empty %}
-                <tr><td colspan="9" class="text-center text-muted py-4">No vendors match your filters.</td></tr>
+                <tr><td colspan="10" class="text-center text-muted py-4">No vendors match your filters.</td></tr>
             {% endfor %}
             </tbody>
         </table>

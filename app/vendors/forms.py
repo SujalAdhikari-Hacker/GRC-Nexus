@@ -1,13 +1,24 @@
 from django import forms
 from .models import Vendor, VendorAssessment
+from .services import CERTIFICATION_CHOICES
 
 
 class VendorForm(forms.ModelForm):
+    certifications = forms.MultipleChoiceField(
+        choices=CERTIFICATION_CHOICES,
+        required=False,
+        widget=forms.CheckboxSelectMultiple(
+            attrs={'class': 'form-check-input'}
+        ),
+    )
+
     class Meta:
         model = Vendor
         fields = [
             'name', 'description', 'service', 'tier', 'data_sensitivity', 'status',
             'owner_dept', 'owner_user',
+            'certifications', 'jurisdiction', 'security_clauses',
+            'audit_rights', 'sla_defined', 'breach_notification_hours',
             'contact_name', 'contact_email', 'contact_phone',
             'contract_start', 'contract_renewal_date',
             'compliance_attestations', 'compliance_notes', 'notes',
@@ -19,6 +30,14 @@ class VendorForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'rows': 3}),
             'contract_start': forms.DateInput(attrs={'type': 'date'}),
             'contract_renewal_date': forms.DateInput(attrs={'type': 'date'}),
+            'security_clauses': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}),
+            'audit_rights': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}),
+            'sla_defined': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}),
+            'breach_notification_hours': forms.NumberInput(
+                attrs={'min': 1, 'max': 720}),
         }
 
 

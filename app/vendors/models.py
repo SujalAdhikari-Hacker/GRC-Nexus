@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.utils.functional import cached_property
 from simple_history.models import HistoricalRecords
 from core.models import Department
 
@@ -11,10 +12,16 @@ class Vendor(models.Model):
         (3, 'Tier 3 — Standard'),
     ]
     SENSITIVITY_CHOICES = [
+        (0, 'No access'),
         (1, 'Public'),
         (2, 'Internal'),
         (3, 'Confidential'),
         (4, 'Restricted'),
+    ]
+    JURISDICTION_CHOICES = [
+        ('unknown', 'Not confirmed'),
+        ('eu', 'EU / EEA'),
+        ('third', 'Third country'),
     ]
     SERVICE_CHOICES = [
         ('cloud', 'Cloud Hosting / Infrastructure'),
@@ -54,6 +61,38 @@ class Vendor(models.Model):
     )
     data_sensitivity = models.PositiveSmallIntegerField(
         choices=SENSITIVITY_CHOICES, default=2
+    )
+
+    # ---- Supplier assurance inputs (NIS2 Art. 18 / Art. 21(2)(d)) ----
+    # Scored by vendors.services.score_vendor; never stored, so a score can
+    # never go stale against the facts it is derived from.
+    certifications = models.JSONField(
+        default=list, blank=True,
+        help_text='Recognised certification keys, e.g. ["ISO27001", "SOC2"].'
+    )
+    jurisdiction = models.CharField(
+        max_length=10, choices=JURISDICTION_CHOICES, default='unknown',
+        help_text='Where the vendor processes data. Third country needs '
+                  'documented transfer safeguards.'
+    )
+    security_clauses = models.BooleanField(
+        default=False,
+        verbose_name='Security clauses in contract',
+        help_text='Confidentiality, access control and incident terms.'
+    )
+    audit_rights = models.BooleanField(
+        default=False, verbose_name='Right to audit',
+        help_text='Contract grants the organisation audit or inspection rights.'
+    )
+    sla_defined = models.BooleanField(
+        default=False, verbose_name='Defined SLA',
+        help_text='Availability and service levels are contractually defined.'
+    )
+    breach_notification_hours = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        verbose_name='Breach notification (hours)',
+        help_text='Contractual window to notify a breach. 24 or fewer earns '
+                  'the full credit.'
     )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='active'
@@ -181,6 +220,19 @@ class Vendor(models.Model):
     @property
     def latest_assessment(self):
         return self.assessments.order_by('-assessment_date').first()
+
+    @property
+    def last_assessment_date(self):
+        # Prefer the prefetched rows so list pages do not query per vendor.
+        return max(
+            (a.assessment_date for a in self.assessments.all()), default=None
+        )
+
+    @cached_property
+    def scorecard(self):
+        """Derived 0-100 supplier assurance score (see vendors.services)."""
+        from .services import score_vendor
+        return score_vendor(self)
 
 
 class VendorAssessment(models.Model):

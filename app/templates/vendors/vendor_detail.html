@@ -119,6 +119,47 @@
     </div>
 
     <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-clipboard-check"></i> Supplier assurance score</strong>
+                <span class="badge {{ scorecard.band_css }}">{{ scorecard.band_label }}</span>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-baseline gap-2 mb-3">
+                    <span class="display-6 fw-semibold">{{ scorecard.score }}</span>
+                    <span class="text-muted">/ 100 · NIS2 Art. 18 / Art. 21(2)(d)</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Component</th>
+                                <th scope="col" class="text-center">Awarded</th>
+                                <th scope="col">Basis</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for c in scorecard.components %}
+                            <tr>
+                                <td>{{ c.label }}</td>
+                                <td class="text-center"><strong>{{ c.awarded }}</strong><span class="text-muted">/{{ c.max_points }}</span></td>
+                                <td><small class="text-muted">{{ c.rationale }}</small></td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if scorecard.flags %}
+                <div class="alert alert-warning mt-3 mb-0 py-2">
+                    <div class="small fw-semibold mb-1">Review flags</div>
+                    <ul class="mb-0 small">
+                        {% for f in scorecard.flags %}<li>{{ f }}</li>{% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header bg-white"><strong>Description</strong></div>
             <div class="card-body">{{ vendor.description|default:"—"|linebreaks }}</div>

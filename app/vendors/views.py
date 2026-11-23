@@ -46,12 +46,14 @@ class VendorListView(DepartmentScopedMixin, CsvExportMixin, ListView):
         ('Contact Name', 'contact_name'),
         ('Contact Email', 'contact_email'),
         ('Latest Score', lambda v: v.latest_score if v.latest_score is not None else ''),
+        ('Assurance', lambda v: f'{v.scorecard.score} ({v.scorecard.band_label})'),
         ('Assets', lambda v: v.provides_assets.count()),
         ('Contract Renewal', lambda v: v.contract_renewal_date or ''),
     ]
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('owner_dept', 'owner_user')
+        qs = qs.prefetch_related('assessments')
         q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(
@@ -103,9 +105,13 @@ class VendorDetailView(DepartmentScopedMixin, DetailView):
     template_name = 'vendors/vendor_detail.html'
     context_object_name = 'vendor'
 
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related('assessments')
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_vendor_context(self.object))
+        ctx['scorecard'] = self.object.scorecard
         ctx['now_date'] = timezone.localdate()
         return ctx
 
