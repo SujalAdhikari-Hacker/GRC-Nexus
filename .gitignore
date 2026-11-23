@@ -76,3 +76,16 @@ Thumbs.db
 # ---------------------------------------------------------------------------
 deploy/Caddyfile
 deploy/nginx.conf
+
+# ---------------------------------------------------------------------------
+# Personal submission, report and planning material (not part of the platform)
+# ---------------------------------------------------------------------------
+/Submit/
+/GRC Nexus - Wireframe Pack/
+GRC Nexus - *.docx
+GRC Nexus - *.pdf
+GRC Nexus - *.md
+SECYOURFLOW_vs_GRCNEXUS_FULL_COMPARISON.md
+Sujal Adhikari CyberSecurity proposal*.docx
+Sujal Adhikari CyberSecurity proposal*.pdf
+GRC PLATFORM.txt
