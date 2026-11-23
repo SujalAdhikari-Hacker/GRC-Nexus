@@ -43,6 +43,8 @@ class IncidentListView(CsvExportMixin, SavedViewsMixin, DepartmentScopedMixin, L
         ('Assets affected', lambda i: i.affected_assets.count()),
         ('Data subjects affected', 'data_subjects_affected'),
         ('Regulatory notification', lambda i: 'yes' if i.regulatory_notification_required else 'no'),
+        ('NIS2 significant', lambda i: 'yes' if i.nis2_significant else 'no'),
+        ('NIS2 next report', lambda i: i.nis2_phase if i.nis2_significant else ''),
         ('Root cause', 'root_cause'),
     ]
 
@@ -120,6 +122,10 @@ class IncidentDetailView(DepartmentScopedMixin, DetailView):
             incident.status
         )
         ctx['incidents_sla'] = f'{TRIAGE_SLA_HOURS.get(incident.severity, 24)}h'
+        ctx['nis2_clocks'] = (
+            incident.nis2_clocks if incident.nis2_significant else []
+        )
+        ctx['nis2_breach'] = incident.nis2_breach
         return ctx
 
 

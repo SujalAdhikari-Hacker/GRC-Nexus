@@ -74,6 +74,15 @@ def _exception_no_longer_awaiting(obj):
     return obj.status != 'pending'
 
 
+def _nis2_clock_clear(obj):
+    """Clear once no Article 23 obligation is still due or overdue."""
+    if obj.status == 'closed' or not obj.nis2_significant:
+        return True
+    return not any(
+        clock.state in ('due_soon', 'breached') for clock in obj.nis2_clocks
+    )
+
+
 CLEAR_RULES = {
     'asset_needs_vendor':      lambda o: o.vendors.exists(),
     'asset_needs_owner':       lambda o: o.owner_user_id is not None,
@@ -110,6 +119,8 @@ CLEAR_RULES = {
         or o.regulatory_notified_at is not None
         or not o.regulatory_notification_required
     ),
+    'incident_nis2_due':       _nis2_clock_clear,
+    'incident_nis2_breach':    _nis2_clock_clear,
 }
 
 

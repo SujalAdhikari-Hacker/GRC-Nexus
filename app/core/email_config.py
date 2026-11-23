@@ -30,6 +30,8 @@ IMMEDIATE_KINDS = {
     'incident_open',
     'incident_sla_breach',
     'incident_breach_due',
+    'incident_nis2_due',
+    'incident_nis2_breach',
     'policy_needs_approval',
 }
 

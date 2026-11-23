@@ -41,6 +41,8 @@ class Notification(models.Model):
         ('incident_open',           'Security incident needs attention'),
         ('incident_sla_breach',     'Incident past its triage SLA'),
         ('incident_breach_due',     'Personal-data breach notification deadline'),
+        ('incident_nis2_due',       'NIS2 Art. 23 report deadline approaching'),
+        ('incident_nis2_breach',    'NIS2 Art. 23 report deadline missed'),
         # --- messages composed by a HOD or superuser in the app ---
         ('announcement',            'Announcement'),
     ]
@@ -129,6 +131,8 @@ class Notification(models.Model):
             'incident_open':           'bi-fire',
             'incident_sla_breach':     'bi-alarm',
             'incident_breach_due':     'bi-shield-exclamation',
+            'incident_nis2_due':       'bi-alarm',
+            'incident_nis2_breach':    'bi-exclamation-octagon',
             'announcement':            'bi-megaphone',
         }
         return icons.get(self.kind, 'bi-bell')

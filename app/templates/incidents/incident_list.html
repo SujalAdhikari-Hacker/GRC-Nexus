@@ -74,6 +74,11 @@
                             <a href="{% url 'incidents:detail' incident.pk %}" class="text-decoration-none text-body">{{ incident.title|truncatechars:60 }}</a>
                             {% if incident.is_breach %}<span class="badge bg-dark ms-1">PII</span>{% endif %}
                             {% if incident.regulatory_notification_required %}<span class="badge bg-danger ms-1" title="Regulatory notification required">REG</span>{% endif %}
+                            {% with nis2=incident.nis2_status %}
+                                {% if nis2 == 'breached' %}<span class="badge bg-danger ms-1" title="NIS2 Article 23 deadline missed">NIS2 late</span>
+                                {% elif nis2 == 'due_soon' %}<span class="badge bg-warning text-dark ms-1" title="NIS2 Article 23 deadline within 2 hours">NIS2 due</span>
+                                {% elif nis2 %}<span class="badge bg-secondary ms-1" title="NIS2 Article 23 applies">NIS2</span>{% endif %}
+                            {% endwith %}
                         </td>
                         <td class="text-muted small">{{ incident.get_incident_type_display }}</td>
                         <td><span class="badge {{ incident.severity_badge }}">{{ incident.get_severity_display }}</span></td>

@@ -24,6 +24,10 @@ class IncidentForm(forms.ModelForm):
             'affected_assets',
             'data_subjects_affected',
             'regulatory_notification_required', 'regulatory_notified_at',
+            'nis2_significant',
+            'nis2_early_warning_submitted_at',
+            'nis2_notification_submitted_at',
+            'nis2_final_report_submitted_at',
             'root_cause', 'lessons_learned',
             'risks',
         ]
@@ -37,6 +41,15 @@ class IncidentForm(forms.ModelForm):
             'regulatory_notified_at': forms.DateTimeInput(
                 attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'
             ),
+            'nis2_early_warning_submitted_at': forms.DateTimeInput(
+                attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'
+            ),
+            'nis2_notification_submitted_at': forms.DateTimeInput(
+                attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'
+            ),
+            'nis2_final_report_submitted_at': forms.DateTimeInput(
+                attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -48,6 +61,14 @@ class IncidentForm(forms.ModelForm):
             self.initial['regulatory_notified_at'] = timezone.localtime(
                 self.instance.regulatory_notified_at
             )
+        for field in (
+            'nis2_early_warning_submitted_at',
+            'nis2_notification_submitted_at',
+            'nis2_final_report_submitted_at',
+        ):
+            value = getattr(self.instance, field, None)
+            if value:
+                self.initial[field] = timezone.localtime(value)
         self.fields['root_cause'].widget.attrs['placeholder'] = (
             'Fill in when known; required before closure.'
         )

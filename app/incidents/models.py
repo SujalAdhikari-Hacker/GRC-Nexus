@@ -26,6 +26,8 @@ from simple_history.models import HistoricalRecords
 
 from core.models import Department
 
+from .nis2 import PHASE_CHOICES, SUBMISSION_FIELDS, derive_phase, phase_clocks
+
 # Added today - relative to detected_at - for each severity. Zero means "no
 # deadline of its own"; the regulatory window (below) applies on top of it.
 TRIAGE_SLA_HOURS = {'critical': 1, 'high': 4, 'medium': 24, 'low': 72}
@@ -123,6 +125,29 @@ class Incident(models.Model):
         help_text='When the supervisory authority was actually notified.'
     )
 
+    # --- NIS2 Article 23 reports ---
+    # Only significant incidents owe the 24 h / 72 h / 30-day reports. The
+    # deadlines themselves are derived from ``detected_at`` on read, so
+    # correcting the detection time moves the clock instead of leaving stale
+    # dates behind.
+    nis2_significant = models.BooleanField(
+        default=False,
+        help_text='Article 23 applies: significant impact, so the 24 h, 72 h '
+                  'and 30-day reports are due.'
+    )
+    nis2_early_warning_submitted_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='When the early warning (24 h) was filed with the CSIRT.'
+    )
+    nis2_notification_submitted_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='When the incident notification (72 h) was filed.'
+    )
+    nis2_final_report_submitted_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='When the final report (30 days) was filed.'
+    )
+
     # --- closure record ---
     root_cause = models.TextField(
         blank=True, help_text='Technical or procedural cause, once established.'
@@ -178,6 +203,13 @@ class Incident(models.Model):
             errors['triaged_at'] = 'Triage cannot happen before the incident was detected.'
         if self.contained_at and self.detected_at and self.contained_at < self.detected_at:
             errors['contained_at'] = 'Containment cannot happen before detection.'
+        for phase, field in SUBMISSION_FIELDS.items():
+            submitted_at = getattr(self, field)
+            if submitted_at and self.detected_at and submitted_at < self.detected_at:
+                errors[field] = (
+                    'A NIS2 report cannot be filed before the incident was '
+                    'detected.'
+                )
         if errors:
             raise ValidationError({**errors})
 
@@ -249,6 +281,47 @@ class Incident(models.Model):
         return round((deadline - timezone.now()).total_seconds() / 3600, 1)
 
     @property
+    def nis2_submissions(self):
+        """Phase -> datetime for the Article 23 reports already filed."""
+        return {
+            phase: getattr(self, field)
+            for phase, field in SUBMISSION_FIELDS.items()
+        }
+
+    @property
+    def nis2_clocks(self):
+        """The three Article 23 phase clocks, derived from ``detected_at``."""
+        return phase_clocks(self.detected_at, self.nis2_submissions)
+
+    @property
+    def nis2_phase(self):
+        """The next report owed, or ``complete``."""
+        return derive_phase(self.nis2_submissions)
+
+    @property
+    def nis2_breach(self):
+        """The first phase whose deadline has passed without a report."""
+        return next(
+            (clock for clock in self.nis2_clocks if clock.state == 'breached'),
+            None,
+        )
+
+    @property
+    def nis2_status(self):
+        """Aggregate state for list badges; None when Article 23 does not apply."""
+        if not self.nis2_significant:
+            return None
+        clocks = self.nis2_clocks
+        states = {clock.state for clock in clocks}
+        if 'breached' in states:
+            return 'breached'
+        if 'due_soon' in states:
+            return 'due_soon'
+        if states == {'submitted'}:
+            return 'complete'
+        return 'open'
+
+    @property
     def sla_breached(self):
         """Triage deadline for the severity missed while still untriaged."""
         if self.status != 'detected' or not self.detected_at:
@@ -295,6 +368,40 @@ class Incident(models.Model):
             'medium': 'bg-info',
             'low': 'bg-secondary',
         }.get(self.severity, 'bg-secondary')
+
+
+class Nis2DeadlineAlert(models.Model):
+    """Dispatch ledger for Article 23 deadline alerts.
+
+    One row per incident, phase and kind. The unique constraint is what makes
+    an hourly sweep idempotent across retries and concurrent runs; the row
+    also stays as evidence after its notification has been read or cleared.
+    """
+
+    KIND_CHOICES = [
+        ('pre_deadline', 'Pre-deadline warning'),
+        ('breach', 'Deadline missed'),
+    ]
+
+    incident = models.ForeignKey(
+        Incident, on_delete=models.CASCADE, related_name='nis2_alerts'
+    )
+    phase = models.CharField(max_length=20, choices=PHASE_CHOICES)
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'NIS2 deadline alert'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('incident', 'phase', 'kind'),
+                name='nis2_alert_once_per_phase_kind',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.incident_id} {self.phase} {self.kind}'
 
 
 def open_incidents(dept=None):
