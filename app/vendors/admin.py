@@ -15,13 +15,22 @@ class VendorAssessmentInline(admin.TabularInline):
 class VendorAdmin(SimpleHistoryAdmin):
     list_display = (
         'vendor_id', 'name', 'service', 'tier', 'data_sensitivity',
-        'status', 'owner_dept', 'latest_score', 'contract_renewal_date'
+        'status', 'owner_dept', 'latest_score', 'assurance',
+        'contract_renewal_date'
     )
     list_filter = ('service', 'tier', 'data_sensitivity', 'status', 'owner_dept')
     search_fields = ('vendor_id', 'name', 'contact_name', 'contact_email', 'notes')
     filter_horizontal = ('compliance_attestations', 'provides_assets')
     readonly_fields = ('vendor_id', 'created_at', 'updated_at')
     inlines = [VendorAssessmentInline]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('assessments')
+
+    @admin.display(description='Assurance')
+    def assurance(self, obj):
+        card = obj.scorecard
+        return f'{card.score} / 100 ({card.band_label})'
 
     fieldsets = (
         ('Identification', {
