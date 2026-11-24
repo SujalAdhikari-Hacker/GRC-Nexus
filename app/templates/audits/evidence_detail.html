@@ -128,4 +128,60 @@
         </div>
     </div>
 </div>
+
+{% if item.versions.exists or item.attachment %}
+<div class="card mt-3">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <strong><i class="bi bi-clock-history"></i> File versions</strong>
+        <small class="text-muted">SHA-256 is recorded for every upload · the bytes of each version stay downloadable</small>
+    </div>
+    {% if item.versions.exists %}
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Version</th>
+                        <th scope="col">File</th>
+                        <th scope="col">Size</th>
+                        <th scope="col">SHA-256</th>
+                        <th scope="col">Uploaded</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for v in item.versions.all %}
+                    <tr>
+                        <td class="text-nowrap">
+                            v{{ v.version }}
+                            {% if forloop.first %}<span class="badge bg-success ms-1">current</span>{% endif %}
+                        </td>
+                        <td class="small">{{ v.file_name }}</td>
+                        <td class="small text-muted text-nowrap">{{ v.size_bytes|filesizeformat }}</td>
+                        <td><code class="small" style="word-break:break-all;">{{ v.sha256 }}</code></td>
+                        <td class="small text-muted text-nowrap">
+                            {{ v.uploaded_at|date:"Y-m-d H:i" }}
+                            {% if v.uploaded_by %}<br>{{ v.uploaded_by.username }}{% endif %}
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-sm btn-outline-dark"
+                               href="{% url 'audits:evidence_version_download' item.pk v.version %}">
+                                <i class="bi bi-download"></i> Download
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card-body small text-muted">
+        No versions recorded yet: this file was attached before version tracking. Its checksum is
+        recorded the next time the record is saved, and uploading a replacement keeps the current
+        file as a version.
+    </div>
+    {% endif %}
+</div>
+{% endif %}
 {% endblock %}

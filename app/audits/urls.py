@@ -7,7 +7,7 @@ from .views import (
     ControlTestListView, ControlTestCreateView, ControlTestUpdateView,
     FindingListView, FindingDetailView, FindingCreateView, FindingUpdateView,
     ActionItemListView, ActionItemDetailView, ActionItemCreateView, ActionItemUpdateView,
-    action_mark_complete, finding_verify,
+    action_mark_complete, finding_verify, evidence_version_download,
 )
 
 app_name = 'audits'
@@ -35,6 +35,10 @@ urlpatterns = [
     # Evidence detail routes
     path('evidence/<int:pk>/', EvidenceDetailView.as_view(), name='evidence_detail'),
     path('evidence/<int:pk>/edit/', EvidenceUpdateView.as_view(), name='evidence_update'),
+    path(
+        'evidence/<int:pk>/versions/<int:version>/download/',
+        evidence_version_download, name='evidence_version_download',
+    ),
     path('evidence/<int:evidence_pk>/score/new/', EvidenceScoreCreateView.as_view(), name='evidence_score_create'),
     path('evidence/score/<int:pk>/edit/', EvidenceScoreUpdateView.as_view(), name='evidence_score_update'),
 

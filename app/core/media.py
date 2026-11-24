@@ -78,7 +78,8 @@ def _is_within(root, candidate):
         return False
 
 
-def _serve(rel_path):
+def serve_stored_file(rel_path):
+    """Serve one file from MEDIA_ROOT with safe disposition and headers."""
     full_path = os.path.join(settings.MEDIA_ROOT, rel_path)
     if not os.path.isfile(full_path):
         raise Http404('File not found')
@@ -115,5 +116,5 @@ def download_media(request, path):
         raise Http404('Invalid path')
     for queryset, field in _candidate_querysets(request.user):
         if queryset.filter(**{field: rel_path}).exists():
-            return _serve(rel_path)
+            return serve_stored_file(rel_path)
     raise Http404('File not found')

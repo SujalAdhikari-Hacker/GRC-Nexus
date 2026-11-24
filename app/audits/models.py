@@ -1,4 +1,8 @@
+import hashlib
+import posixpath
+
 from django.core.exceptions import ValidationError
+from django.core.files.storage import default_storage
 from django.db import models
 from simple_history.models import HistoricalRecords
 from core.models import Department
@@ -158,6 +162,93 @@ class EvidenceItem(models.Model):
         if is_safe_external_url(value):
             return value
         return ''
+
+    def save(self, *args, **kwargs):
+        previous_path = None
+        if self.pk:
+            previous_path = type(self).objects.filter(pk=self.pk).values_list(
+                'attachment', flat=True
+            ).first()
+        super().save(*args, **kwargs)
+        if not self.attachment:
+            return
+        current = self.attachment.name
+        # A replacement file must not bury the one it displaces: record the
+        # old file first, even when it predates version tracking.
+        if previous_path and previous_path != current:
+            self.record_version(previous_path)
+        self.record_version(current)
+
+    def record_version(self, path):
+        """Record a stored file as the next version, once.
+
+        The checksum is taken from the bytes on disk *now*, so a version row
+        always describes exactly what a later download will return.
+        """
+        if self.versions.filter(file_path=path).exists():
+            return None
+        try:
+            with default_storage.open(path, 'rb') as fh:
+                digest = hashlib.sha256(fh.read()).hexdigest()
+                size = fh.size
+        except OSError:
+            # The row outlived its file; there is nothing to checksum.
+            return None
+        # shortcut: concurrent uploads to one evidence item are not
+        # serialised; the unique constraints reject the duplicate instead of
+        # mis-numbering an existing version.
+        next_version = (
+            self.versions.aggregate(models.Max('version'))['version__max'] or 0
+        ) + 1
+        return self.versions.create(
+            version=next_version,
+            file_path=path,
+            file_name=posixpath.basename(path)[:255],
+            size_bytes=size,
+            sha256=digest,
+            uploaded_by=self.updated_by or self.created_by,
+        )
+
+
+class EvidenceVersion(models.Model):
+    """One uploaded evidence file, kept as an immutable snapshot.
+
+    The bytes stay where Django stored them; this row records the path, size
+    and SHA-256 so an auditor can download a specific version and prove it is
+    the file that was filed at that time.
+    """
+
+    evidence = models.ForeignKey(
+        EvidenceItem, on_delete=models.CASCADE, related_name='versions'
+    )
+    version = models.PositiveIntegerField()
+    file_path = models.CharField(max_length=500)
+    file_name = models.CharField(max_length=255)
+    size_bytes = models.PositiveBigIntegerField()
+    sha256 = models.CharField(max_length=64)
+    uploaded_by = models.ForeignKey(
+        'core.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='uploaded_evidence_versions'
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-version']
+        verbose_name = 'Evidence version'
+        verbose_name_plural = 'Evidence versions'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('evidence', 'version'),
+                name='evidence_version_unique',
+            ),
+            models.UniqueConstraint(
+                fields=('evidence', 'file_path'),
+                name='evidence_version_path_unique',
+            ),
+        ]
+
+    def __str__(self):
+        return f'Evidence {self.evidence_id} v{self.version}'
 
 
 class EvidenceScore(models.Model):

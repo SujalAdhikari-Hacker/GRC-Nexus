@@ -29,6 +29,7 @@ from core.mixins import (
     scope_queryset,
     user_can_change,
 )
+from core.media import serve_stored_file
 from core.reports import render_pdf
 
 from .forms import (
@@ -39,7 +40,15 @@ from .forms import (
     EvidenceItemForm,
     EvidenceScoreForm,
 )
-from .models import ActionItem, Audit, AuditFinding, ControlTest, EvidenceItem, EvidenceScore
+from .models import (
+    ActionItem,
+    Audit,
+    AuditFinding,
+    ControlTest,
+    EvidenceItem,
+    EvidenceScore,
+    EvidenceVersion,
+)
 
 
 # ==================================================================
@@ -252,6 +261,12 @@ class EvidenceCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateVie
             initial['audit'] = positive_int(audit, 'audit')
         return initial
 
+    def form_valid(self, form):
+        # Stamped before save so the upload's version row names its uploader.
+        form.instance.created_by = self.request.user
+        form.instance.updated_by = self.request.user
+        return super().form_valid(form)
+
 
 class EvidenceUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = EvidenceItem
@@ -259,6 +274,26 @@ class EvidenceUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     template_name = 'audits/evidence_form.html'
     success_url = reverse_lazy('audits:evidence_list')
     department_field = 'owner_dept'
+
+    def form_valid(self, form):
+        form.instance.updated_by = self.request.user
+        return super().form_valid(form)
+
+
+@login_required
+def evidence_version_download(request, pk, version):
+    """Serve one recorded version of an evidence file.
+
+    Authorisation goes through the evidence item, so a guessed version number
+    still 404s for anyone who cannot see the record.
+    """
+    item = get_object_or_404(
+        scope_queryset(EvidenceItem.objects.all(), request.user), pk=pk
+    )
+    stored = get_object_or_404(EvidenceVersion, evidence=item, version=version)
+    response = serve_stored_file(stored.file_path)
+    response['X-Checksum-SHA256'] = stored.sha256
+    return response
 
 
 class EvidenceScoreCreateView(LoginRequiredMixin, CreateView):

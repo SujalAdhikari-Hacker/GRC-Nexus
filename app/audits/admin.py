@@ -1,7 +1,10 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from simple_history.admin import SimpleHistoryAdmin
-from .models import Audit, EvidenceItem, EvidenceScore, ControlTest, AuditFinding, ActionItem
+from .models import (
+    Audit, ControlTest, ActionItem, AuditFinding, EvidenceItem, EvidenceScore,
+    EvidenceVersion,
+)
 
 
 # ============================================================
@@ -115,12 +118,32 @@ class EvidenceScoreInline(admin.StackedInline):
     )
 
 
+class EvidenceVersionInline(admin.TabularInline):
+    model = EvidenceVersion
+    extra = 0
+    can_delete = False
+    ordering = ('-version',)
+    fields = ('version', 'file_name', 'size_bytes', 'sha256', 'uploaded_by', 'uploaded_at')
+    readonly_fields = fields
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(EvidenceItem)
 class EvidenceItemAdmin(SimpleHistoryAdmin):
     list_display = ('title', 'evidence_type', 'related_control', 'owner_user', 'owner_dept', 'score_display', 'created_at')
     list_filter = ('evidence_type', 'owner_dept', 'audit')
     search_fields = ('title', 'notes', 'url_location')
-    inlines = [EvidenceScoreInline]
+    inlines = [EvidenceScoreInline, EvidenceVersionInline]
+
+    def save_model(self, request, obj, form, change):
+        # Attribute an upload to the person who made it; the version row reads
+        # these stamps during save.
+        if not obj.created_by_id:
+            obj.created_by = request.user
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
 
     @admin.display(description='Score')
     def score_display(self, obj):
