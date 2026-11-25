@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Department, UserMFA
+from .models import User, Department, UserMFA, ServiceRun
 from simple_history.admin import SimpleHistoryAdmin
 from .models import OrganisationProfile
 
@@ -22,6 +22,25 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('department', 'is_hod', 'must_change_password'),
         }),
     )
+
+
+@admin.register(ServiceRun)
+class ServiceRunAdmin(admin.ModelAdmin):
+    """Operational history; written by the commands, never by hand."""
+
+    list_display = ('service', 'status', 'started_at', 'finished_at', 'counts')
+    list_filter = ('status', 'service')
+    search_fields = ('service', 'message')
+    date_hierarchy = 'started_at'
+    readonly_fields = (
+        'service', 'status', 'started_at', 'finished_at', 'counts', 'message',
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(UserMFA)

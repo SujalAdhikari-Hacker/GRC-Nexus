@@ -11,10 +11,11 @@ command respects that window, so a daily run will not mail someone who chose
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 from django.utils import timezone
 
 from core.emails import email_pref_allows, send_digest_email
+from core.management.base import LoggedCommand
 from core.notification_registry import refresh_notifications
 from core.notifications import Notification
 from core.settings_model import UserPreference
@@ -77,7 +78,7 @@ def _digest_items(user):
     return items, overdue
 
 
-class Command(BaseCommand):
+class Command(LoggedCommand):
     help = 'Email opted-in users a digest of their outstanding notifications.'
 
     def add_arguments(self, parser):
@@ -151,6 +152,12 @@ class Command(BaseCommand):
                 self.stdout.write(f"  emailed {user.username} ({len(items)} items)")
 
         verb = 'would send' if options['dry_run'] else 'sent'
+        self.record_counts(
+            sent=sent,
+            skipped_window=skipped_window,
+            skipped_empty=skipped_empty,
+            skipped_optout=skipped_optout,
+        )
         self.stdout.write(self.style.SUCCESS(
             f"Digest complete — {verb} {sent}; "
             f"skipped: {skipped_window} outside window, "

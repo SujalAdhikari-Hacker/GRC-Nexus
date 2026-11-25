@@ -7,12 +7,11 @@ Intended to run on a schedule (hourly or daily), e.g.::
 It is safe to run as often as you like — an item is only emailed once while it
 remains unresolved.
 """
-from django.core.management.base import BaseCommand
-
 from core.escalations import run_escalations
+from core.management.base import LoggedCommand
 
 
-class Command(BaseCommand):
+class Command(LoggedCommand):
     help = (
         'Find overdue tasks, breached tolerances, expiring exceptions and '
         'lapsed vendor contracts; notify the responsible people in-app and by '
@@ -52,6 +51,12 @@ class Command(BaseCommand):
             f"{summary['created']} newly notified; "
             f"{summary['emailed']} item(s) emailed to "
             f"{summary['recipients']} recipient(s)."
+        )
+        self.record_counts(
+            found=summary['found'],
+            created=summary['created'],
+            emailed=summary['emailed'],
+            recipients=summary['recipients'],
         )
         if (
             not options['no_email']

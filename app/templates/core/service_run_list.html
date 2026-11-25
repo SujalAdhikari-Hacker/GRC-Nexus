@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Service Runs{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Service Runs</h1>{% endblock %}
+
+{% block content %}
+<p class="text-muted small">
+    Every scheduled service (the management commands a cron job runs) records one row per
+    invocation: what ran, when it started, whether it finished, and the counts it reported.
+    A row stuck on <span class="badge bg-secondary">Running</span> means the process never
+    finished. Runs older than 90 days are pruned automatically; threat-intel feed syncs keep
+    their own log under <a href="{% url 'threatintel:overview' %}">Threat Intel</a>.
+</p>
+
+<form method="get" class="row g-2 align-items-center mb-3">
+    <div class="col-md-4">
+        <select name="service" class="form-select form-select-sm" aria-label="Service">
+            <option value="">All services</option>
+            {% for service in services %}
+                <option value="{{ service }}" {% if selected_service == service %}selected{% endif %}>{{ service }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select name="status" class="form-select form-select-sm" aria-label="Status">
+            <option value="">All statuses</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2"><button class="btn btn-sm btn-dark w-100">Filter</button></div>
+</form>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Service</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Started</th>
+                        <th scope="col">Duration</th>
+                        <th scope="col">Counts</th>
+                        <th scope="col">Message</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for run in runs %}
+                    <tr>
+                        <td class="small"><code>{{ run.service }}</code></td>
+                        <td>
+                            {% if run.status == 'ok' %}<span class="badge bg-success">OK</span>
+                            {% elif run.status == 'failed' %}<span class="badge bg-danger">Failed</span>
+                            {% else %}<span class="badge bg-secondary">Running</span>{% endif %}
+                        </td>
+                        <td class="small text-muted text-nowrap">{{ run.started_at|date:"M d, Y H:i:s" }}</td>
+                        <td class="small text-nowrap">
+                            {% if run.duration_seconds is not None %}{{ run.duration_seconds }} s{% else %}&mdash;{% endif %}
+                        </td>
+                        <td class="small">
+                            {% for key, value in run.counts.items %}
+                                <span class="badge bg-light text-dark border me-1">{{ key }}={{ value }}</span>
+                            {% empty %}
+                                <span class="text-muted">&mdash;</span>
+                            {% endfor %}
+                        </td>
+                        <td class="small text-muted">{{ run.message|truncatechars:140 }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">
+                        No service runs recorded yet. They appear the first time a scheduled command runs.
+                    </td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -16,6 +16,7 @@ from .views import (
     HelpView,
 )
 from .history_views import HistoryListView
+from .service_run_views import ServiceRunListView
 from .mfa_views import (
     mfa_disable, mfa_regenerate_backup_codes, mfa_setup, mfa_verify,
 )
@@ -61,6 +62,7 @@ urlpatterns = [
          name='mfa_regenerate_backup_codes'),
     path('help/', HelpView.as_view(), name='help'),
     path('history/', HistoryListView.as_view(), name='history'),
+    path('admin-ui/service-runs/', ServiceRunListView.as_view(), name='service_runs'),
 
     # Object-level sharing (django-guardian)
     path(

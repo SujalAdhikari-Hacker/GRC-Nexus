@@ -7,12 +7,12 @@ Intended to run hourly, e.g.::
 Safe to run as often as you like: each (incident, phase, kind) alert is
 recorded once, so a repeated sweep never re-notifies.
 """
-from django.core.management.base import BaseCommand
+from core.management.base import LoggedCommand
 
 from incidents.services import sweep_deadlines
 
 
-class Command(BaseCommand):
+class Command(LoggedCommand):
     help = (
         'Raise pre-deadline and breach alerts for NIS2 Article 23 incident '
         'reports (24 h / 72 h / 30 days).'
@@ -43,5 +43,9 @@ class Command(BaseCommand):
         self.stdout.write(
             f"Scanned {result['scanned']} incident(s); "
             f"{len(result['dispatched'])} new alert(s) raised."
+        )
+        self.record_counts(
+            scanned=result['scanned'],
+            raised=len(result['dispatched']),
         )
         self.stdout.write(self.style.SUCCESS('NIS2 deadline sweep complete.'))

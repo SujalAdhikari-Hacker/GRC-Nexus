@@ -224,6 +224,11 @@
             <a href="{% url 'core:roles_permissions' %}" class="sidebar-link toggle-item" data-section="admin" style="display: {% if urlname == 'roles_permissions' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-shield-lock"></i><span>Roles &amp; Permissions</span>
             </a>
+            {% if user.is_superuser %}
+            <a href="{% url 'core:service_runs' %}" class="sidebar-link toggle-item" data-section="admin" style="display: {% if urlname == 'service_runs' %}flex{% else %}none{% endif %};">
+                <i class="bi bi-activity"></i><span>Service Runs</span>
+            </a>
+            {% endif %}
             {% endif %}
 
         </nav>

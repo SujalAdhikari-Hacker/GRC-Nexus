@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
 
@@ -142,6 +143,54 @@ class SavedView(models.Model):
 
     def __str__(self):
         return f'{self.name} ({self.model_label})'
+
+
+class ServiceRun(models.Model):
+    """One invocation of a scheduled service (a management command).
+
+    The cron jobs are the only part of the system that can fail with nobody
+    watching: they run unattended, print a summary to a terminal nobody reads
+    and leave no trace. This row is that trace - what ran, when, whether it
+    succeeded, and the counts it reported - so an operator can answer "did
+    last night's escalation sweep actually run?" without shell access.
+
+    A run that never finishes (the process was killed) stays ``running``; that
+    is the visible signal that something stopped mid-flight.
+    """
+
+    STATUS_CHOICES = [
+        ('running', 'Running'),
+        ('ok', 'OK'),
+        ('failed', 'Failed'),
+    ]
+
+    service = models.CharField(max_length=100, db_index=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='running')
+    started_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    counts = models.JSONField(default=dict, blank=True)
+    message = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-started_at']
+        verbose_name = 'Service run'
+        verbose_name_plural = 'Service runs'
+
+    def __str__(self):
+        return f'{self.service} at {self.started_at:%Y-%m-%d %H:%M} ({self.status})'
+
+    @property
+    def duration_seconds(self):
+        if self.finished_at is None:
+            return None
+        return round((self.finished_at - self.started_at).total_seconds(), 1)
+
+    def finish(self, status, message=''):
+        self.status = status
+        self.message = (message or '')[:2000]
+        self.finished_at = timezone.now()
+        self.save(update_fields=['status', 'message', 'finished_at', 'counts'])
+
 
 # Import for Django model discovery
 from .settings_model import UserPreference  # noqa

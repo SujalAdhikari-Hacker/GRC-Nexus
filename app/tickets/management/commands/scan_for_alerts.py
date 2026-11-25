@@ -1,9 +1,9 @@
-from django.core.management.base import BaseCommand
+from core.management.base import LoggedCommand
 
 from tickets.alerts import scan_and_create_tickets
 
 
-class Command(BaseCommand):
+class Command(LoggedCommand):
     help = 'Scan the system for alert conditions and auto-create tickets.'
 
     def add_arguments(self, parser):
@@ -28,6 +28,7 @@ class Command(BaseCommand):
                 )
 
         self.stdout.write('')
+        self.record_counts(tickets_created=total_created, events_found=total_events)
         self.stdout.write(self.style.SUCCESS(
             f'Scan complete. {total_created} ticket(s) created from {total_events} alert event(s).'
         ))
