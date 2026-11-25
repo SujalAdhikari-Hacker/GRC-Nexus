@@ -1,0 +1,927 @@
+[
+ {
+  "code": "NRB-CRG-001",
+  "title": "Set up a cross-disciplinary internal steering committee (senior management plus staff from business, finance, risk, audit, operations, cyber, IT, communications, legal, HR) to develop the cyber resilience strategy and framework covering people, processes and technology.",
+  "description": "B. Governance · Cyber Resilience Strategy · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-002",
+  "title": "Make sure the strategy covers vision and mission; goals and outcomes; importance to stakeholders; cyber risk tolerance; risks borne from and posed to participants and third parties; reviewed maturity targets; governance; delivery and funding; and integration across the LI.",
+  "description": "B. Governance · Cyber Resilience Strategy · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-003",
+  "title": "The board approves the cyber resilience plan and ensures it is regularly reevaluated and updated against the threat landscape.",
+  "description": "B. Governance · Cyber Resilience Strategy · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-004",
+  "title": "Have a framework that sets out how cyber resilience objectives and risk tolerance are determined and how cyber risks are identified, mitigated and managed.",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-005",
+  "title": "The board approves the framework so it is consistent with the strategy.",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-006",
+  "title": "Review and update the framework regularly.",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-007",
+  "title": "Review and update the framework when strategy or objectives change, using a review process that considers evolving threats, threat intelligence, critical functions and third parties, incidents, audit findings, performance metrics and new business developments.",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-008",
+  "title": "Include requirements for timely communication and coordination so the LI can work with relevant parties to respond to and recover from attacks.",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-009",
+  "title": "Align the framework with the enterprise operational risk management framework and enterprise architecture.",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-010",
+  "title": "Consider cyber risks from and to the LI's ecosystem (participants, other LIs, suppliers, vendors, service providers).",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-011",
+  "title": "Use leading standards such as the ISO/IEC 27000 series as benchmarks.",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-012",
+  "title": "Define roles, responsibilities and decision accountability for identifying, mitigating and managing risks.",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-013",
+  "title": "Systematically include requirements for governance, identification, protection, detection, response and recovery, testing, situational awareness, and learning and evolving.",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-014",
+  "title": "Periodically evaluate the sufficiency and effectiveness of the framework and adherence to it through independent compliance programs and audits by qualified staff; use metrics and maturity models; routinely order an external audit.",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Mandatory"
+ },
+ {
+  "code": "NRB-CRG-015",
+  "title": "Continuously monitor progress from the current state to a target maturity level.",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-016",
+  "title": "Have a strategy and roadmaps, including resourcing and delivery, for reaching the target maturity level.",
+  "description": "B. Governance · Cyber Resilience Framework · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-017",
+  "title": "The board is ultimately responsible for managing cyber risk: it sets cyber risk tolerance and strategy, assigns roles and duties, and endorses the framework.",
+  "description": "B. Governance · Board and Senior Management · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-018",
+  "title": "Establish an ongoing process to identify and address cyber risk, with all business units involved in decisions to accept, mitigate or avoid risks.",
+  "description": "B. Governance · Board and Senior Management · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-019",
+  "title": "Develop risk metrics and trends so management and the board can make risk-informed decisions and show progress.",
+  "description": "B. Governance · Board and Senior Management · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-020",
+  "title": "Regularly evaluate cyber risks and their management at board meetings.",
+  "description": "B. Governance · Board and Senior Management · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-021",
+  "title": "Senior management oversees implementation: allocating resources and priorities, assessing cyber maturity through self-assessments, acting on test results, making sure responsible staff have skills and resources, and reviewing skills needs.",
+  "description": "B. Governance · Board and Senior Management · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-022",
+  "title": "Ensure every employee knows their responsibility for reducing cyber risk and has access to training.",
+  "description": "B. Governance · Board and Senior Management · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-023",
+  "title": "Create succession plans and recruitment criteria (cyber skills, expertise, experience) for high-risk roles such as senior management, system administrators, developers and critical system operators.",
+  "description": "B. Governance · Board and Senior Management · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-024",
+  "title": "Help plan and take part in industry-wide drills that test the ecosystem's cyber resilience.",
+  "description": "B. Governance · Board and Senior Management · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-025",
+  "title": "Board and senior management build strong awareness of and commitment to cyber resilience at all levels.",
+  "description": "B. Governance · Culture · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-026",
+  "title": "Make sure everyone understands cyber risk and update the training curriculum frequently for the evolving threat landscape.",
+  "description": "B. Governance · Culture · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-027",
+  "title": "Create policies setting out consequences for staff and contractors who do not follow cyber security rules; make them precise and proportionate.",
+  "description": "B. Governance · Culture · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-028",
+  "title": "Provide situational awareness materials to staff after highly visible incidents or threat landscape changes.",
+  "description": "B. Governance · Culture · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-029",
+  "title": "Board and senior management should have the right expertise to understand and control cyber risk and challenge management credibly: appoint at least one board member with cyber security expertise and train the board and management on their responsibilities.",
+  "description": "B. Governance · Skills · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-030",
+  "title": "The board and senior management appoint a senior executive (e.g., a CISO) responsible for carrying out the cyber resilience architecture.",
+  "description": "B. Governance · Accountability · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-031",
+  "title": "Give staff and contractors with privileged accounts and access to sensitive assets additional training based on business criticality.",
+  "description": "B. Governance · Accountability · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-032",
+  "title": "Make sure the senior executive has sufficient authority and resources, direct reporting access to the board, operational independence from IT operations, and the necessary skills.",
+  "description": "B. Governance · Accountability · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-033",
+  "title": "Identify and document critical functions, key roles and supporting processes, and update them regularly.",
+  "description": "C. Identification · Identification and Classification · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-034",
+  "title": "Identify and document processes that depend on third-party providers and their interconnections, and update regularly.",
+  "description": "C. Identification · Identification and Classification · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-035",
+  "title": "Perform a business impact analysis to quantify the impact of disruptions on critical operations.",
+  "description": "C. Identification · Identification and Classification · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-036",
+  "title": "Have an enterprise risk management framework to identify risks and assess them regularly.",
+  "description": "C. Identification · Identification and Classification · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-037",
+  "title": "Classify functions and processes by criticality and use this to prioritize protective, detective, response and recovery measures.",
+  "description": "C. Identification · Identification and Classification · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-038",
+  "title": "Create and maintain a simplified network map showing IPs of routing and security devices and servers supporting critical functions and links to the outside world.",
+  "description": "C. Identification · Identification and Classification · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-039",
+  "title": "Compulsorily conduct risk assessments before deploying new or updated technologies, products, services and connections.",
+  "description": "C. Identification · Identification and Classification · Obligation: Mandatory"
+ },
+ {
+  "code": "NRB-CRG-040",
+  "title": "Identify the information assets supporting business processes (owned and relied-on): set a classification standard, keep a central up-to-date inventory with system configurations, and maintain a network diagram including internal and external service links.",
+  "description": "C. Identification · Identification and Classification · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-041",
+  "title": "Adopt a cyber security risk assessment process and maintain a risk register that categorizes risks by criticality, with criteria for when assessments are updated.",
+  "description": "C. Identification · Identification and Classification · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-042",
+  "title": "Conduct and document risk assessments of information assets per the risk assessment process.",
+  "description": "C. Identification · Identification and Classification · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-043",
+  "title": "Update the risk register from assessment results and use results to select and prioritize security controls.",
+  "description": "C. Identification · Identification and Classification · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-044",
+  "title": "Maintain a central, protected repository of individual and system accounts and permissions that shows access rights and supports detection of anomalies.",
+  "description": "C. Identification · Identification and Classification · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-045",
+  "title": "Integrate identification with processes such as acquisition and change management so the process list, credentials and asset inventory stay current.",
+  "description": "C. Identification · Identification and Classification · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-046",
+  "title": "Identify cyber risks the LI bears from and poses to its ecosystem, coordinate with relevant entities, and act collectively on shared vulnerabilities and threats.",
+  "description": "C. Identification · Interconnections · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-047",
+  "title": "Consider a wide range of threat vectors from participant interconnections, assessing likelihood and impact, and assess risks to the wider ecosystem.",
+  "description": "C. Identification · Interconnections · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-048",
+  "title": "Know the services and operations of each third-party provider (using public data, self-assessments, third-party assessments) to evaluate interconnection risk.",
+  "description": "C. Identification · Interconnections · Obligation: Mandatory"
+ },
+ {
+  "code": "NRB-CRG-049",
+  "title": "Implement protective controls aligned with leading standards such as ISO to reduce the likelihood and impact of attacks on critical functions, assets and data (the CRG does not replace existing LI standards).",
+  "description": "D. Protection · Protection of Processes and Assets · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-050",
+  "title": "Implement controls based on the risk analysis from the identification phase.",
+  "description": "D. Protection · Protection of Processes and Assets · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-051",
+  "title": "Make controls proportionate to the LI's threat landscape and systemic role and consistent with its risk tolerance.",
+  "description": "D. Protection · Protection of Processes and Assets · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-052",
+  "title": "Implement multiple independent security controls at the earliest possible stage.",
+  "description": "D. Protection · Protection of Processes and Assets · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-053",
+  "title": "Build resilience in from design through the life cycle (a-j): secure development methodology, secure engineering principles, security requirements captured with system requirements, separate dev/test/production, regular control assessment, defense in depth, test environment mirroring production, ri…",
+  "description": "D. Protection · Resilience by Design · Obligation: Should · Full requirement: Build resilience in from design through the life cycle (a-j): secure development methodology, secure engineering principles, security requirements captured with system requirements, separate dev/test/production, regular control assessment, defense in depth, test environment mirroring production, rigorous security testing, reduced attack surface, and change control during development."
+ },
+ {
+  "code": "NRB-CRG-054",
+  "title": "Protect confidentiality, integrity and availability of data at rest and in use (a-n): anti-malware, anti-phishing, file integrity verification, encryption and key management to recognized standards, physical key protection, regular vulnerability assessment, input validation, media protection and se…",
+  "description": "D. Protection · Data and Information Protection · Obligation: Should · Full requirement: Protect confidentiality, integrity and availability of data at rest and in use (a-n): anti-malware, anti-phishing, file integrity verification, encryption and key management to recognized standards, physical key protection, regular vulnerability assessment, input validation, media protection and secure disposal, secure transport of media, clean desk and screen policy, and controlled removable media."
+ },
+ {
+  "code": "NRB-CRG-055",
+  "title": "Implement strong network security controls (a-f): secure protocols and encryption, intrusion detection/prevention and endpoint security, controls against unauthorized devices with rogue device scanning, DDoS protection, regular scanning of legacy technology, and control of the whole attack surface…",
+  "description": "D. Protection · Communications and Network Security · Obligation: Should · Full requirement: Implement strong network security controls (a-f): secure protocols and encryption, intrusion detection/prevention and endpoint security, controls against unauthorized devices with rogue device scanning, DDoS protection, regular scanning of legacy technology, and control of the whole attack surface including backup and non-core systems."
+ },
+ {
+  "code": "NRB-CRG-056",
+  "title": "Have a configuration and change management policy and process based on recognized standards such as ITIL (a-k): approval by board or change advisory board, monitoring changes, testing and documenting before production, automated controls on unauthorized changes, documented baseline configurations,…",
+  "description": "D. Protection · Configuration and Change Management · Obligation: Should · Full requirement: Have a configuration and change management policy and process based on recognized standards such as ITIL (a-k): approval by board or change advisory board, monitoring changes, testing and documenting before production, automated controls on unauthorized changes, documented baseline configurations, software installation control with whitelisting for critical systems, scheduled and communicated changes, security impact analysis, authorized initiators only, emergency change process with review, and rollback plans."
+ },
+ {
+  "code": "NRB-CRG-057",
+  "title": "Configure ICT systems with security settings consistent with the defined protection level (a-e): baseline security configuration standards, industry standards, regular enforcement checks, a risk-based exception process, and periodic review of baselines.",
+  "description": "D. Protection · Security Settings · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-058",
+  "title": "Make protective controls support detection of anomalous activity: define a baseline profile of system and business activity, build capabilities and alert triggers to detect deviations, and implement SIEM or equivalent tools.",
+  "description": "D. Protection · Layered Protection for Response and Recovery · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-059",
+  "title": "Where feasible, develop the ability to block suspected activity at application and/or network level to contain it.",
+  "description": "D. Protection · Layered Protection for Response and Recovery · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-060",
+  "title": "Segregate systems and data of different criticality (a-e): secure boundary with trusted and untrusted zones and deny-all/permit-by-exception between zones, managed networks, a separate administration network, connections that can be segmented or severed instantly, and automated isolation of affecte…",
+  "description": "D. Protection · Layered Protection for Response and Recovery · Obligation: Should · Full requirement: Segregate systems and data of different criticality (a-e): secure boundary with trusted and untrusted zones and deny-all/permit-by-exception between zones, managed networks, a separate administration network, connections that can be segmented or severed instantly, and automated isolation of affected assets."
+ },
+ {
+  "code": "NRB-CRG-061",
+  "title": "Implement protective measures for risks from ecosystem entities, with controls based on the identification-phase risk assessment of each entity.",
+  "description": "D. Protection · Interconnections · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-062",
+  "title": "Where necessary, specify participation requirements, including connectivity restrictions, access control and privileged accounts, authentication, encryption, vulnerability and patch management, detection and response, and security awareness.",
+  "description": "D. Protection · Interconnections · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-063",
+  "title": "Obtain assurance from participants that they meet cyber resilience requirements, through self-attestation or external certification.",
+  "description": "D. Protection · Interconnections · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-064",
+  "title": "Ask third-party vendors and service providers (including ICT suppliers) to confirm they meet requirements, and record cyber resilience clauses in contracts (validation of security capabilities, information security requirements, confidentiality, supply chain risks, notification of changes).",
+  "description": "D. Protection · Interconnections · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-065",
+  "title": "Update the third-party part of the risk profile when notified of changes to service levels or security functionality.",
+  "description": "D. Protection · Interconnections · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-066",
+  "title": "Monitor anomalous user behavior and use data loss identification and prevention techniques to stop sensitive data leaving the network.",
+  "description": "D. Protection · Insider Threats · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-067",
+  "title": "Screen and background-check new hires, repeat checks periodically in line with access to critical systems, and have controls for staff who leave or change responsibilities.",
+  "description": "D. Protection · Insider Threats · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-068",
+  "title": "Build cyber security into the whole employment life cycle (a-d): background checks and contractual security responsibilities, compliance by staff and contractors, prompt revocation of access that is no longer needed on role change, and prompt revocation of access and return of property on departure.",
+  "description": "D. Protection · Insider Threats · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-069",
+  "title": "Require employees, contractors and outside parties to wear institution-issued ID cards, and alert security staff to anyone without one.",
+  "description": "D. Protection · Insider Threats · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-070",
+  "title": "Grant access to secure areas or confidential processing facilities (including to outside support staff) only when necessary, authorized and monitored.",
+  "description": "D. Protection · Insider Threats · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-071",
+  "title": "Apply strong logical access controls (a-m): identity verification before account creation, unique identification and authentication, authentication strength matched to criticality, multi-factor authentication for critical systems and password complexity, a formal access control model, separation of…",
+  "description": "D. Protection · Logical Access Control · Obligation: Should · Full requirement: Apply strong logical access controls (a-m): identity verification before account creation, unique identification and authentication, authentication strength matched to criticality, multi-factor authentication for critical systems and password complexity, a formal access control model, separation of duties (e.g., four-eyes), controlled account lifecycle, login attempt limits, an up-to-date account record, automated account management, notification of privilege elevation, need-to-use privileged access, and automated monitoring of account changes."
+ },
+ {
+  "code": "NRB-CRG-072",
+  "title": "Apply physical security (a-e): defined security perimeters, entry controls limiting access to authorized staff, environmental protection of critical equipment (water, fire, temperature, power, lighting), protected cabling and wireless access points, and proper equipment maintenance.",
+  "description": "D. Protection · Physical Access Control · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-073",
+  "title": "All employees (including senior management and board) and contractors comply with the LI's cyber resilience policies, standards and procedures.",
+  "description": "D. Protection · Training · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-074",
+  "title": "Train all staff, full-time and temporary, in cyber awareness and skills (a-g): spear phishing, reporting of unusual activity, roles and responsibilities, onboarding course, training before new systems go live, familiarity with standard operating procedures, and assessment of training effectiveness.",
+  "description": "D. Protection · Training · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-075",
+  "title": "Identify high-risk groups of staff and subcontractors (e.g., privileged access or sensitive roles) and give them specialized security training.",
+  "description": "D. Protection · Training · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-076",
+  "title": "Implement continuous monitoring against the baseline profile of system activities.",
+  "description": "E. Detection · Continuous Monitoring · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-077",
+  "title": "Implement automated detection (e.g., SIEM) that correlates alerts across business units; monitor user activity, network connections, external providers, devices and software; inspect network traffic and endpoints; compare traffic to expected levels; define alert thresholds; and routinely review, te…",
+  "description": "E. Detection · Continuous Monitoring · Obligation: Should · Full requirement: Implement automated detection (e.g., SIEM) that correlates alerts across business units; monitor user activity, network connections, external providers, devices and software; inspect network traffic and endpoints; compare traffic to expected levels; define alert thresholds; and routinely review, test and update detection capabilities in a controlled way."
+ },
+ {
+  "code": "NRB-CRG-078",
+  "title": "Monitor broadly and deeply (a-e): collect and analyze patterns and behavior (including emerging analytics, ML and AI) for insider threats, use threat and vulnerability information, add advanced threat detection for known and zero-day threats, anticipate misuse by insiders and trusted third parties,…",
+  "description": "E. Detection · Scope of Monitoring · Obligation: Should · Full requirement: Monitor broadly and deeply (a-e): collect and analyze patterns and behavior (including emerging analytics, ML and AI) for insider threats, use threat and vulnerability information, add advanced threat detection for known and zero-day threats, anticipate misuse by insiders and trusted third parties, and monitor activity that breaks security policy."
+ },
+ {
+  "code": "NRB-CRG-079",
+  "title": "Use multi-layered detection across people, processes and technology, and apply approaches that delay or disrupt attackers moving through the attack sequence.",
+  "description": "E. Detection · Layered Detection · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-080",
+  "title": "Continually investigate new technologies and techniques to prevent lateral movement, triggering alerts on malicious activity.",
+  "description": "E. Detection · Layered Detection · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-081",
+  "title": "Periodically review, test and update detection capabilities.",
+  "description": "E. Detection · Layered Detection · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-082",
+  "title": "Make detection capabilities notify the concerned staff.",
+  "description": "E. Detection · Incident Response Support · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-083",
+  "title": "Support forensic investigation: record anomalies in logs, provide enough log storage, include useful log content (event type, time, user/address), and protect audit data and tools from unauthorized access, modification or deletion.",
+  "description": "E. Detection · Incident Response Support · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-084",
+  "title": "Back up logs in a secure location with controls against alteration.",
+  "description": "E. Detection · Incident Response Support · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-085",
+  "title": "Implement time synchronization so correlated logs have consistent times.",
+  "description": "E. Detection · Incident Response Support · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-086",
+  "title": "Have a process to collect, centralize and correlate event information from multiple sources to continuously monitor the IT environment, for example through a SOC or network operations center.",
+  "description": "E. Detection · Security Analytics · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-087",
+  "title": "Have a comprehensive incident response capability covering detection and analysis, containment, elimination, recovery and post-incident activity, possibly with agreements with external incident response providers.",
+  "description": "F. Response and Recovery · Incident Response Planning · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-088",
+  "title": "Have the resources, policies and procedures to investigate an attack thoroughly, including root cause analysis, starting as soon as an attack is detected.",
+  "description": "F. Response and Recovery · Incident Response Planning · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-089",
+  "title": "When an attack is confirmed, use investigative capability to determine its nature, extent and damage.",
+  "description": "F. Response and Recovery · Incident Response Planning · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-090",
+  "title": "During investigation, take immediate action to contain the attack and begin efforts to resume operations.",
+  "description": "F. Response and Recovery · Incident Response Planning · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-091",
+  "title": "Set criteria and procedures for escalating incidents to the board and senior management based on impact and criticality.",
+  "description": "F. Response and Recovery · Incident Response Planning · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-092",
+  "title": "Have procedures to escalate investigations to law enforcement as needed.",
+  "description": "F. Response and Recovery · Incident Response Planning · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-093",
+  "title": "Make sure the incident response team has the skills and training to handle cyber incidents.",
+  "description": "F. Response and Recovery · Incident Response Planning · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-094",
+  "title": "Train employees on their roles in handling digital evidence so it is not compromised and stays valid under local jurisdiction requirements.",
+  "description": "F. Response and Recovery · Incident Response Planning · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-095",
+  "title": "Plan for and test the safe resumption of critical operations within two hours of a disruption and completion of settlement by end of day, even in extreme but plausible scenarios (PFMI key consideration 17.6).",
+  "description": "F. Response and Recovery · Two-Hour RTO · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-096",
+  "title": "Involve technical and business teams in planning for the two-hour objective, and use judgment (agreed with regulators and stakeholders) when resuming so risks do not escalate.",
+  "description": "F. Response and Recovery · Two-Hour RTO · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-097",
+  "title": "Aim for resumption within two hours but prepare for when that is not achieved: prioritize recovery of critical functions and interdependencies, and plan for unavailable people, processes or systems, including manual processing where feasible and safe.",
+  "description": "F. Response and Recovery · Contingency Planning · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-098",
+  "title": "Have a backup plan for when two-hour resumption is not possible, covering recovery objectives and priorities, roles and responsibilities, and options for rerouting or substituting critical functions.",
+  "description": "F. Response and Recovery · Contingency Planning · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-099",
+  "title": "Plan how to operate in reduced capacity or restore services safely over time, based on priorities and reliable information about resumption possibility.",
+  "description": "F. Response and Recovery · Contingency Planning · Obligation: Mandatory"
+ },
+ {
+  "code": "NRB-CRG-100",
+  "title": "Develop response, resumption and recovery plans (can be part of the BCP): the response plan sets actions on detection, the resumption plan restores critical operations (target two hours), and the recovery plan returns the LI to normal operation.",
+  "description": "F. Response and Recovery · Planning and Preparation · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-101",
+  "title": "Define policies, procedures and roles for escalating, responding to and recovering from cyber incidents.",
+  "description": "F. Response and Recovery · Planning and Preparation · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-102",
+  "title": "Include a range of extreme but plausible scenarios and consult relevant business units and external stakeholders when developing plans.",
+  "description": "F. Response and Recovery · Planning and Preparation · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-103",
+  "title": "Regularly update plans: review scenarios, redo business impact assessments, and include lessons from past incidents and root cause findings.",
+  "description": "F. Response and Recovery · Planning and Preparation · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-104",
+  "title": "Test response, resumption and recovery plans against a variety of scenarios on a regular basis.",
+  "description": "F. Response and Recovery · Planning and Preparation · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-105",
+  "title": "Consult external stakeholders (participants, service providers, other LIs) to improve plans.",
+  "description": "F. Response and Recovery · Planning and Preparation · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-106",
+  "title": "Continuously improve plans using cyber threat intelligence and information shared in the ecosystem.",
+  "description": "F. Response and Recovery · Planning and Preparation · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-107",
+  "title": "Integrate incident response, resumption and recovery closely with crisis management, business continuity and disaster recovery.",
+  "description": "F. Response and Recovery · Planning and Preparation · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-108",
+  "title": "Design systems and processes for critical functions so they support incident response as much as possible.",
+  "description": "F. Response and Recovery · Design Elements · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-109",
+  "title": "Design systems to minimize incident impact, resume critical operations within two hours, complete settlement by end of day, and maintain transaction integrity.",
+  "description": "F. Response and Recovery · Design Elements · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-110",
+  "title": "Consider a variety of scenarios and response actions and their implications when designing systems.",
+  "description": "F. Response and Recovery · Design Elements · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-111",
+  "title": "Choose settlement methods, technologies and tools for recovering configuration and data that support two-hour resumption, taking into account system design, complexity, volumes and life-cycle stage; seek incremental improvements for legacy systems.",
+  "description": "F. Response and Recovery · Design Elements · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-112",
+  "title": "Define and back up the data critical for resuming services (transactions, source code, business reference data, configuration data) and be able to recover it in a reasonable time.",
+  "description": "F. Response and Recovery · Data Integrity · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-113",
+  "title": "Have plans to quickly determine the status of all transactions and member positions after a disruption, backed by recovery point objectives, and design and test systems to recover accurate data after a breach.",
+  "description": "F. Response and Recovery · Data Integrity · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-114",
+  "title": "Keep recovery point objectives consistent with the resumption time objective for critical operations.",
+  "description": "F. Response and Recovery · Data Integrity · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-115",
+  "title": "Set recovery point objectives and data recovery options in close collaboration with business and IT functions.",
+  "description": "F. Response and Recovery · Data Integrity · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-116",
+  "title": "Configure backups to match transaction frequency and volume; daily backups alone are inadequate for high transaction volumes without added database transaction recovery.",
+  "description": "F. Response and Recovery · Data Integrity · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-117",
+  "title": "Integrate backup and recovery methods into system infrastructure at the development or acquisition phase.",
+  "description": "F. Response and Recovery · Data Integrity · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-118",
+  "title": "Maintain a redundant secondary system at a different location from the primary that can be activated without losing information or disrupting operations.",
+  "description": "F. Response and Recovery · Data Integrity · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-119",
+  "title": "Include data recovery measures in the framework and choose options based on analysis of critical data and cyber scenarios such as data loss and manipulation.",
+  "description": "F. Response and Recovery · Data Integrity · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-120",
+  "title": "Protect backups at rest and in transit and test them regularly for availability and integrity.",
+  "description": "F. Response and Recovery · Data Integrity · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-121",
+  "title": "Consider data recovery options such as database record recovery (rollback, roll-forward), frequent independent reconciliation of participants' positions, keeping copies of received and processed data, and secure storage (data vaults, write-once-read-many drives).",
+  "description": "F. Response and Recovery · Data Integrity · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-122",
+  "title": "Have data-sharing agreements with third parties and participants, as appropriate, to obtain uncorrupted data needed to resume operations.",
+  "description": "F. Response and Recovery · Data-Sharing and Contagion · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-123",
+  "title": "Regularly review information-sharing rules, agreements and protocols to prevent improper disclosure of sensitive information.",
+  "description": "F. Response and Recovery · Data-Sharing and Contagion · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-124",
+  "title": "Develop policies and procedures for working with interconnected entities to resume operations after a large-scale incident (critical functions first) without putting the sector at risk of contagion.",
+  "description": "F. Response and Recovery · Data-Sharing and Contagion · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-125",
+  "title": "Develop a communication plan and procedures for participants, linked FMIs, authorities and others, informed by scenario analysis and experience.",
+  "description": "F. Response and Recovery · Crisis Communication · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-126",
+  "title": "Identify in the incident response plan who must be notified, decision responsibilities and authorities, what must be shared, and when.",
+  "description": "F. Response and Recovery · Crisis Communication · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-127",
+  "title": "Immediately report any cyber incident that could be material or systemic to relevant oversight and regulatory authorities, following NRB's applicable directive or guideline.",
+  "description": "F. Response and Recovery · Crisis Communication · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-128",
+  "title": "Have procedures to escalate investigations to law enforcement when there are signs of criminal intent (e.g., fraud, extortion).",
+  "description": "F. Response and Recovery · Crisis Communication · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-129",
+  "title": "Have a policy and procedures for responsible disclosure of potential vulnerabilities and risks within the ecosystem while responding to an incident.",
+  "description": "F. Response and Recovery · Responsible Disclosure · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-130",
+  "title": "Prioritize disclosures that help participants and stakeholders respond quickly and reduce their own risk.",
+  "description": "F. Response and Recovery · Responsible Disclosure · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-131",
+  "title": "Develop capability to support forensic investigations, including logging policies on audit log content, time synchronization and retention periods.",
+  "description": "F. Response and Recovery · Forensic Readiness · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-132",
+  "title": "Have procedures to securely handle, collect and preserve digital evidence, keeping it authentic and intact.",
+  "description": "F. Response and Recovery · Forensic Readiness · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-133",
+  "title": "Integrate forensic readiness with incident management and related business planning.",
+  "description": "F. Response and Recovery · Forensic Readiness · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-134",
+  "title": "Train staff involved in an incident on handling digital evidence so it stays valid under local jurisdiction.",
+  "description": "F. Response and Recovery · Forensic Readiness · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-135",
+  "title": "Establish and maintain a comprehensive, risk-based testing program that uses a wide range of methods and tools to evaluate the framework's core components.",
+  "description": "G. Testing · Comprehensive Testing Program · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-136",
+  "title": "Review and update the testing program regularly given the threat landscape and asset criticality.",
+  "description": "G. Testing · Comprehensive Testing Program · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-137",
+  "title": "Involve all relevant internal stakeholders, including business continuity and incident and crisis response teams.",
+  "description": "G. Testing · Comprehensive Testing Program · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-138",
+  "title": "Collaborate with ecosystem entities to strengthen ecosystem resilience.",
+  "description": "G. Testing · Comprehensive Testing Program · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-139",
+  "title": "Involve the board and senior management appropriately (e.g., in crisis management teams) and inform them of test results.",
+  "description": "G. Testing · Comprehensive Testing Program · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-140",
+  "title": "Have policies and procedures to prioritize and resolve issues found in tests and validate afterward that gaps are closed.",
+  "description": "G. Testing · Comprehensive Testing Program · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-141",
+  "title": "Make sure tests are carried out by independent parties, internal or external.",
+  "description": "G. Testing · Comprehensive Testing Program · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-142",
+  "title": "Use a wide range of testing methods: vulnerability assessments, scenario-based testing, penetration tests and red team tests.",
+  "description": "G. Testing · Methodologies and Tools · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-143",
+  "title": "Develop and regularly update a vulnerability management process to classify, prioritize and resolve vulnerabilities and validate fixes.",
+  "description": "G. Testing · Vulnerability Assessment · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-144",
+  "title": "Use the process to find exploitable weaknesses in critical systems and conditions that allow human error.",
+  "description": "G. Testing · Vulnerability Assessment · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-145",
+  "title": "Regularly scan external-facing services and internal systems and networks, rotating between environments so all are covered during the year.",
+  "description": "G. Testing · Vulnerability Assessment · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-146",
+  "title": "Run vulnerability assessments before deploying or redeploying services for critical functions, with change and release management in place.",
+  "description": "G. Testing · Vulnerability Assessment · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-147",
+  "title": "Assess running services, applications and infrastructure regularly and evaluate control effectiveness and compliance.",
+  "description": "G. Testing · Vulnerability Assessment · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-148",
+  "title": "Use effective practices and tools such as bug bounty programs and static and dynamic code reviews, with safeguards.",
+  "description": "G. Testing · Vulnerability Assessment · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-149",
+  "title": "Run scenario-based tests (tabletop exercises or simulations), including extreme but plausible scenarios, to evaluate detection, response, resumption and recovery; review and test scenarios regularly.",
+  "description": "G. Testing · Scenario-Based Testing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-150",
+  "title": "Design tests that cover a broad range of scenarios, challenge assumptions (including governance and communication plans), include data destruction, corruption, loss and availability, and cover breaches across multiple ecosystem components.",
+  "description": "G. Testing · Scenario-Based Testing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-151",
+  "title": "Use cyber threat intelligence and threat modelling to imitate real threat characteristics.",
+  "description": "G. Testing · Scenario-Based Testing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-152",
+  "title": "Run exercises testing staff and processes on unfamiliar scenarios.",
+  "description": "G. Testing · Scenario-Based Testing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-153",
+  "title": "Work with the ecosystem to build incident scenarios involving significant financial loss for stress tests of spillover and contagion risk.",
+  "description": "G. Testing · Scenario-Based Testing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-154",
+  "title": "Involve the board and senior management in scenario-based testing when appropriate.",
+  "description": "G. Testing · Scenario-Based Testing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-155",
+  "title": "Perform penetration tests simulating real attacks to find vulnerabilities in systems, networks, applications, people or processes.",
+  "description": "G. Testing · Penetration Tests · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-156",
+  "title": "Conduct penetration tests regularly and after major updates or deployments of systems.",
+  "description": "G. Testing · Penetration Tests · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-157",
+  "title": "Include critical internal and external stakeholders (application and system owners, continuity and incident response teams) as appropriate.",
+  "description": "G. Testing · Penetration Tests · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-158",
+  "title": "Include testing in enterprise risk management to deal with vulnerabilities from new products, services or interconnections.",
+  "description": "G. Testing · Penetration Tests · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-159",
+  "title": "Perform security assessments and tests at all stages of the system development life cycle and at business, application and technology levels for the whole application portfolio, including mobile apps.",
+  "description": "G. Testing · Penetration Tests · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-160",
+  "title": "Use best practices and automated tools to fix weaknesses found in testing and to check compliance with approved policies and configurations.",
+  "description": "G. Testing · Penetration Tests · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-161",
+  "title": "Use red teams to bring an adversary perspective in a controlled setting and test vulnerabilities and the effectiveness of people, process and technology controls.",
+  "description": "G. Testing · Red Team Testing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-162",
+  "title": "Red teams (employees and/or outside experts, independent of the function tested) run regular exercises and share findings with the defense (blue) team.",
+  "description": "G. Testing · Red Team Testing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-163",
+  "title": "Use cyber threat intelligence to design red team tests simulating advanced threat capabilities and extreme but plausible scenarios.",
+  "description": "G. Testing · Red Team Testing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-164",
+  "title": "Take an active part in industry-wide exercises to test cooperation, coordination and communication plans.",
+  "description": "G. Testing · Red Team Testing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-165",
+  "title": "Promote, organize and manage exercises testing response, resumption and recovery plans, including participants, critical service providers and linked FMIs where appropriate.",
+  "description": "G. Testing · Coordination · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-166",
+  "title": "Take part in industry-wide tests and exercises organized by relevant authorities.",
+  "description": "G. Testing · Coordination · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-167",
+  "title": "Include scenarios covering breaches affecting multiple components of the LI's ecosystem.",
+  "description": "G. Testing · Coordination · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-168",
+  "title": "Identify cyber threats that could materially affect operations or have knock-on effects in the ecosystem, including extreme but plausible events, and review the analysis regularly.",
+  "description": "H. Situational Awareness · Cyber Threat Intelligence · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-169",
+  "title": "Create a process to gather and analyze threat information with internal and external business context, assess the impact on the framework, keep the intelligence reviewed and updated, and use multiple internal and external sources (logs, security products, trusted providers, public information, othe…",
+  "description": "H. Situational Awareness · Cyber Threat Intelligence · Obligation: Should · Full requirement: Create a process to gather and analyze threat information with internal and external business context, assess the impact on the framework, keep the intelligence reviewed and updated, and use multiple internal and external sources (logs, security products, trusted providers, public information, other sectors, geopolitical events)."
+ },
+ {
+  "code": "NRB-CRG-170",
+  "title": "Belong to or subscribe to a threat and vulnerability information-sharing source or ISAC where available.",
+  "description": "H. Situational Awareness · Cyber Threat Intelligence · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-171",
+  "title": "Include analysis of real-world attacker tactics, techniques and procedures and geopolitical developments that could trigger attacks on the ecosystem.",
+  "description": "H. Situational Awareness · Cyber Threat Intelligence · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-172",
+  "title": "Use threat information to determine actor motivations and capabilities, reassess technical vulnerability risk, analyze incidents at other organizations, analyze likelihood and impact of attacks, share information with the ecosystem, and analyze attacks already conducted by these actors.",
+  "description": "H. Situational Awareness · Cyber Threat Intelligence · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-173",
+  "title": "Continuously use the intelligence to assess threats and vulnerabilities, implement threat-informed controls and improve the framework.",
+  "description": "H. Situational Awareness · Cyber Threat Intelligence · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-174",
+  "title": "Make intelligence available to staff at strategic, tactical and operational levels, align the CTI process with the SOC, and use CTI to update the testing program.",
+  "description": "H. Situational Awareness · Cyber Threat Intelligence · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-175",
+  "title": "Define information-sharing objectives (timely exchange to help detection, response, resumption and recovery), scope (types of information, when sharing is allowed, with whom), and how received information will be acted on (e.g., Traffic Light Protocol).",
+  "description": "H. Situational Awareness · Information-Sharing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-176",
+  "title": "Establish and regularly review information-sharing rules and agreements and share promptly while protecting sensitive data.",
+  "description": "H. Situational Awareness · Information-Sharing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-177",
+  "title": "Set protocols with employees for sharing threat, vulnerability and incident information based on their roles.",
+  "description": "H. Situational Awareness · Information-Sharing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-178",
+  "title": "Take an active part in information-sharing groups (cross-industry, cross-government, cross-border) to gather and assess information on practices, threats and early warnings.",
+  "description": "H. Situational Awareness · Information-Sharing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-179",
+  "title": "Consider exchanging information on the LI's cyber resilience framework with trusted stakeholders to coordinate security of linked systems.",
+  "description": "H. Situational Awareness · Information-Sharing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-180",
+  "title": "Take part in efforts to find and fix gaps in information-sharing mechanisms to support ecosystem-wide response to large incidents.",
+  "description": "H. Situational Awareness · Information-Sharing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-181",
+  "title": "Plan to share information through trusted channels during an incident to support detection, response, resumption and recovery across the ecosystem.",
+  "description": "H. Situational Awareness · Information-Sharing · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-182",
+  "title": "Identify and categorize strategic, tactical and operational lessons from real incidents, internal and external.",
+  "description": "I. Learning and Evolving · Lessons from Cyber Events · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-183",
+  "title": "Incorporate key lessons from incidents and tests (own and others') into risk mitigation, response, resumption, recovery and contingency plans.",
+  "description": "I. Learning and Evolving · Lessons from Cyber Events · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-184",
+  "title": "Make cyber security awareness materials available to staff after highly visible cyber events or regulatory alerts.",
+  "description": "I. Learning and Evolving · Lessons from Cyber Events · Obligation: Should"
+ },
+ {
+  "code": "NRB-CRG-185",
+  "title": "Incorporate lessons learned into staff training and awareness programs and materials on an ongoing basis, and validate their effectiveness (text of this item is cut off in the source copy used).",
+  "description": "I. Learning and Evolving · Lessons from Cyber Events · Obligation: Should"
+ }
+]

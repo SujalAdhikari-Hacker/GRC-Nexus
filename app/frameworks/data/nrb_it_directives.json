@@ -1,0 +1,67 @@
+[
+ {
+  "code": "NRB-ITD-01",
+  "title": "The board approves the IT strategy and an IT governance structure with clear accountability.",
+  "description": "NRB IT and cyber security directives for banks and financial institutions - IT governance. The board approves IT policy and strategy, a senior executive owns IT risk, and IT decisions are documented and reported to the board. Source: curated summary of the NRB directives; verify against the current directive for your institution class."
+ },
+ {
+  "code": "NRB-ITD-02",
+  "title": "Assess IT risk as part of the enterprise risk framework and review it at least annually.",
+  "description": "NRB IT and cyber security directives - IT risk management. Identify, assess and treat IT risk (including cyber, third-party and emerging technology risk) in the enterprise risk register, with a defined risk appetite and annual review. Source: curated summary; verify against the current directive."
+ },
+ {
+  "code": "NRB-ITD-03",
+  "title": "Maintain a tested business continuity and disaster recovery plan for critical systems.",
+  "description": "NRB IT and cyber security directives - business continuity. Define recovery time and recovery point objectives for critical systems, keep an off-site or alternate recovery capability, and test the plan at the prescribed frequency with results reported to the board. Source: curated summary; verify against the current directive."
+ },
+ {
+  "code": "NRB-ITD-04",
+  "title": "Report cyber security incidents to NRB within the prescribed time and format.",
+  "description": "NRB IT and cyber security directives - incident reporting. Significant cyber incidents, frauds and outages affecting customer service must be reported to Nepal Rastra Bank within the prescribed timeline, followed by a root-cause report. Source: curated summary; verify against the current directive."
+ },
+ {
+  "code": "NRB-ITD-05",
+  "title": "Protect customer information and keep it confidential throughout its lifecycle.",
+  "description": "NRB IT and cyber security directives - customer data confidentiality. Customer data must be protected in storage, transit and use, accessed on least privilege, and never shared with third parties without consent or legal authority. Source: curated summary; verify against the current directive."
+ },
+ {
+  "code": "NRB-ITD-06",
+  "title": "Perform due diligence and ongoing monitoring before outsourcing IT services or using cloud.",
+  "description": "NRB IT and cyber security directives - outsourcing and cloud. Assess the provider's security and financial standing, obtain NRB approval where required, contract for audit rights, data location, breach notification and exit, and monitor the provider throughout the engagement. Source: curated summary; verify against the current directive."
+ },
+ {
+  "code": "NRB-ITD-07",
+  "title": "Have IT and information security audited by an independent function every year.",
+  "description": "NRB IT and cyber security directives - IT audit. An independent internal or external audit covers IT general controls, cyber security and the core banking system, and findings are tracked to closure and reported to the audit committee. Source: curated summary; verify against the current directive."
+ },
+ {
+  "code": "NRB-ITD-08",
+  "title": "Run vulnerability assessments and penetration tests on internet-facing and critical systems.",
+  "description": "NRB IT and cyber security directives - security testing. Conduct vulnerability assessment and penetration testing at the prescribed frequency, before major releases and after significant change, and remediate findings by severity within agreed timelines. Source: curated summary; verify against the current directive."
+ },
+ {
+  "code": "NRB-ITD-09",
+  "title": "Control access to systems with unique identities, least privilege and periodic review.",
+  "description": "NRB IT and cyber security directives - access control. Grant access on least privilege and need to know, prohibit shared accounts on critical systems, require multi-factor authentication for privileged and remote access, and review access rights periodically. Source: curated summary; verify against the current directive."
+ },
+ {
+  "code": "NRB-ITD-10",
+  "title": "Manage changes to critical systems through testing, approval and rollback.",
+  "description": "NRB IT and cyber security directives - change management. Changes to core and critical systems are tested in a non-production environment, approved by the owner and IT security, scheduled, logged and reversible. Source: curated summary; verify against the current directive."
+ },
+ {
+  "code": "NRB-ITD-11",
+  "title": "Log and monitor security events and retain logs for the prescribed period.",
+  "description": "NRB IT and cyber security directives - logging and monitoring. Record privileged activity, authentication events and security-relevant system events, protect the logs from tampering, review them continuously, and retain them for the period the directive requires. Source: curated summary; verify against the current directive."
+ },
+ {
+  "code": "NRB-ITD-12",
+  "title": "Protect data centres and critical infrastructure with physical and environmental controls.",
+  "description": "NRB IT and cyber security directives - physical security. Restrict and log physical access to data centres and network rooms, and provide fire, power, cooling and water-sensing protection with tested alarms. Source: curated summary; verify against the current directive."
+ },
+ {
+  "code": "NRB-ITD-13",
+  "title": "Train staff on cyber security and run awareness exercises at the prescribed frequency.",
+  "description": "NRB IT and cyber security directives - awareness and training. All staff complete security awareness training on induction and periodically, with additional role-based training for privileged users, and phishing or tabletop exercises are run and recorded. Source: curated summary; verify against the current directive."
+ }
+]

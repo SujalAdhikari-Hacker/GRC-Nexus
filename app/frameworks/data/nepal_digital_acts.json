@@ -1,0 +1,137 @@
+[
+ {
+  "code": "NEPAL-ETA-01",
+  "title": "Recognise electronic records as legally valid where the law requires information in writing.",
+  "description": "Electronic Transactions Act, 2063 (2008) - legal recognition of electronic records. A record, document or communication in electronic form is not denied legal effect solely because it is electronic. Source: curated summary; verify against the published act before relying on it for legal advice."
+ },
+ {
+  "code": "NEPAL-ETA-02",
+  "title": "Recognise digital signatures as meeting a legal requirement for a signature.",
+  "description": "Electronic Transactions Act, 2063 (2008) - legal recognition of digital signatures. Where law requires a signature, a digital signature made in the prescribed manner satisfies that requirement. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-03",
+  "title": "Authenticate electronic records through a licensed certifying authority.",
+  "description": "Electronic Transactions Act, 2063 (2008) - authentication of electronic records. Authentication relies on a digital signature certificate issued by a certifying authority licensed under the act and the rules. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-04",
+  "title": "Issue digital signature certificates only from a licensed certifying authority.",
+  "description": "Electronic Transactions Act, 2063 (2008) - licensing of certifying authorities. A person may not act as a certifying authority without a licence granted under the act. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-05",
+  "title": "Certifying authorities must verify subscriber identity, issue securely and keep records.",
+  "description": "Electronic Transactions Act, 2063 (2008) - duties of a certifying authority. Identity verification before issuing a certificate, secure key and certificate handling, publication of the certificate practice statement, record keeping, and revocation on request or compromise. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-06",
+  "title": "Recognise foreign certifying authorities only on the conditions set by the Government.",
+  "description": "Electronic Transactions Act, 2063 (2008) - recognition of foreign certifying authorities. Certificates issued abroad are recognised subject to the conditions, limits and procedures prescribed by the Government of Nepal. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-07",
+  "title": "Admit electronic records and digital signatures as evidence in legal proceedings.",
+  "description": "Electronic Transactions Act, 2063 (2008) - admissibility of electronic records. Electronic records are admissible in evidence subject to the act and the law of evidence; this is why integrity, retention and chain of custody of electronic records matter. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-08",
+  "title": "Retain electronic records in their original format, complete and retrievable.",
+  "description": "Electronic Transactions Act, 2063 (2008) - retention of electronic records. Where a law requires a record to be retained, retention in electronic form is acceptable if the record is kept in the format in which it was generated, complete, and accessible for later reference. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-09",
+  "title": "Treat unauthorised access to a computer, system or network as an offence.",
+  "description": "Electronic Transactions Act, 2063 (2008) - offences: unauthorised access. Accessing a computer, computer system or network without the permission of the owner or person in control is an offence punishable under the act. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-10",
+  "title": "Treat damage to computer source code, data or programs as an offence.",
+  "description": "Electronic Transactions Act, 2063 (2008) - offences: damage to computer source code and data. Destroying, altering, deleting or otherwise damaging source code, data or programs without permission is an offence. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-11",
+  "title": "Treat publication of illegal material in electronic form as an offence.",
+  "description": "Electronic Transactions Act, 2063 (2008) - offences: publication of illegal material. Publishing or causing to be published material prohibited by law in electronic form is an offence, and intermediaries may be required to remove it on notice. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-12",
+  "title": "Treat disclosure of personal information held in electronic form without consent as an offence.",
+  "description": "Electronic Transactions Act, 2063 (2008) - offences: breach of privacy. Disclosing or publishing personal information held in a computer or electronic record without the consent of the person concerned is an offence, with limited exceptions for legal process and public duty. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-13",
+  "title": "Treat identity theft and electronic spoofing as offences.",
+  "description": "Electronic Transactions Act, 2063 (2008) - offences: identity theft and electronic spoofing. Using another person's identity, electronic signature or certificate to deceive, or spoofing a source of an electronic message, is an offence. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-14",
+  "title": "Subscribers must protect their private key and report its compromise.",
+  "description": "Electronic Transactions Act, 2063 (2008) - duties of subscribers. A subscriber must keep the private key under control, use the certificate only for the stated purpose, and notify the certifying authority without delay if the key is compromised or the certificate details change. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETA-15",
+  "title": "Cooperate with investigation and preserve electronic records on lawful request.",
+  "description": "Electronic Transactions Act, 2063 (2008) - investigation and evidence gathering. A person in control of a computer or electronic record must provide access and assistance to an authorised officer acting under the act, and must not destroy records under investigation. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-ETR-01",
+  "title": "Follow the prescribed application and identity-proof procedure before issuing a certificate.",
+  "description": "Electronic Transactions Rules, 2064 (2008) - certificate issuance. The applicant's identity and credentials must be verified in the prescribed manner, the subscriber agreement recorded, and the certificate issued with the prescribed content and validity. Source: curated summary; verify against the published rules."
+ },
+ {
+  "code": "NEPAL-ETR-02",
+  "title": "Suspend or revoke a digital signature certificate on the prescribed grounds.",
+  "description": "Electronic Transactions Rules, 2064 (2008) - suspension and revocation. A certifying authority must revoke or suspend a certificate on subscriber request, key compromise, death or dissolution of the subscriber, or a material error in the certificate, and publish notice of revocation. Source: curated summary; verify against the published rules."
+ },
+ {
+  "code": "NEPAL-ETR-03",
+  "title": "Keep certificate and subscriber records for the prescribed period and allow inspection.",
+  "description": "Electronic Transactions Rules, 2064 (2008) - records and audit. Certifying authorities must retain issuance, revocation and audit records for the prescribed period and make them available to the licensing authority on request. Source: curated summary; verify against the published rules."
+ },
+ {
+  "code": "NEPAL-IPA-01",
+  "title": "Obtain consent before collecting or processing an individual's personal information.",
+  "description": "Individual Privacy Act, 2075 (2018) - consent. Personal information may be collected or processed only with the informed consent of the individual, save for the limited exceptions the act allows. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-IPA-02",
+  "title": "Tell the individual what is collected and why before or at collection.",
+  "description": "Individual Privacy Act, 2075 (2018) - notice and purpose. The data subject must be informed of the purpose of collection, the recipient of the information, and the consequences of refusing consent. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-IPA-03",
+  "title": "Use personal information only for the stated purpose and collect no more than needed.",
+  "description": "Individual Privacy Act, 2075 (2018) - purpose limitation and minimisation. Information collected for one purpose may not be used or disclosed for another without fresh consent or a legal basis. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-IPA-04",
+  "title": "Apply reasonable security safeguards to personal information in your custody.",
+  "description": "Individual Privacy Act, 2075 (2018) - security of personal information. The controller must protect personal information against loss, unauthorised access, modification and disclosure, and must bind staff and processors to confidentiality. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-IPA-05",
+  "title": "Do not disclose personal information to a third party without consent or legal authority.",
+  "description": "Individual Privacy Act, 2075 (2018) - disclosure. Disclosure to a third party requires the data subject's consent or a lawful basis; disclosures to courts, regulators and investigators must be recorded. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-IPA-06",
+  "title": "Give the individual access to their personal information and a way to correct it.",
+  "description": "Individual Privacy Act, 2075 (2018) - access and correction. A data subject may inspect the personal information held about them and require inaccurate or incomplete information to be corrected or updated. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-IPA-07",
+  "title": "Notify the affected individual when their personal information is breached.",
+  "description": "Individual Privacy Act, 2075 (2018) - breach handling. A controller that suffers loss, unauthorised access or disclosure of personal information must inform the affected individual and the prescribed authority without undue delay. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-IPA-08",
+  "title": "Do not intercept, monitor or surveil communications except as the law allows.",
+  "description": "Individual Privacy Act, 2075 (2018) - privacy of communication. Interception, monitoring or recording of communications and surveillance of a person requires consent or a lawful authorisation; bulk or covert monitoring must be justified and documented. Source: curated summary; verify against the published act."
+ },
+ {
+  "code": "NEPAL-IPA-09",
+  "title": "Keep a record of personal information held, its purpose and who it was shared with.",
+  "description": "Individual Privacy Act, 2075 (2018) - accountability. Maintain an inventory of personal information processed, the purpose, retention period, recipients and the safeguards applied, so the obligations above can be evidenced. Source: curated summary; verify against the published act."
+ }
+]

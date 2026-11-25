@@ -110,7 +110,10 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   the newest assessment (covered / partially covered / gap / excluded), with CSV export for
   auditors.
 - Ships with a seeder for **ISO/IEC 27001, NIST CSF, SOC 2, PCI DSS, GDPR and CIS Controls**
-  (500+ framework requirements).
+  (500+ framework requirements), plus Nepal-specific content: the **NRB Cyber Resilience
+  Guidelines 2023** (185 requirements), the **NRB AI Guidelines 2025** (61), the **Nepal Digital &
+  Electronic Acts** (Electronic Transactions Act 2063, Electronic Transactions Rules 2064,
+  Individual Privacy Act 2075) and a curated set of **NRB IT & cyber security directives**.
 
 ### Incident management
 - **Security incident register** — `INC-YYYY-NNNN` references, incident types, detection source,
@@ -353,6 +356,7 @@ docker compose exec web python manage.py seed_demo
 
 # Optional extras
 docker compose exec web python manage.py seed_frameworks_extra   # additional frameworks
+docker compose exec web python manage.py seed_nrb_frameworks     # NRB + Nepal digital/electronic acts
 docker compose exec web python manage.py seed_kris               # key risk indicators + readings
 docker compose exec web python manage.py seed_vulnerabilities    # sample CVE catalogue
 docker compose exec web python manage.py populate_assessment_items
@@ -444,6 +448,7 @@ is fixed — and will alert again if the problem comes back.
 A sample crontab (inside the host, where the compose project lives):
 
 ```cron
+*/15 * * * * cd /srv/grc-nexus && docker compose exec -T web python manage.py sweep_nis2_deadlines
 15 * * * *  cd /srv/grc-nexus && docker compose exec -T web python manage.py send_escalations
 0 7 * * *   cd /srv/grc-nexus && docker compose exec -T web python manage.py send_email_digest
 ```
