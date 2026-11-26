@@ -1,11 +1,13 @@
 import secrets
 
 from decouple import config
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from core.models import Department, User
 from assets.models import Asset, AssetCategory
 from frameworks.models import Framework, FrameworkControl
+from frameworks.propagation import paused
 from django.utils import timezone
 from datetime import timedelta
 from vendors.models import Vendor, VendorAssessment
@@ -298,9 +300,11 @@ class Command(BaseCommand):
                 }
             )
             if created:
-                # Link to framework controls
+                # Link to framework controls. Propagation stays off here so a
+                # seed produces the same rows every time.
                 fw_qs = FrameworkControl.objects.filter(code__in=fw_codes)
-                ctl.framework_controls.set(fw_qs)
+                with paused():
+                    ctl.framework_controls.set(fw_qs)
                 self.stdout.write(f"  Control: {code}")
             controls_by_code[code] = ctl
 
@@ -373,6 +377,11 @@ class Command(BaseCommand):
                 # Now compute residual score (cascade will re-trigger too, but this ensures consistency)
                 recalculate_risk(risk)
                 self.stdout.write(f"  Risk: {title}")
+
+        # ---------- Nepal frameworks (NRB + digital/electronic acts) ----------
+        # The catalogues live in frameworks/data and seed idempotently; the
+        # command also proposes a topic-based control crosswalk for review.
+        call_command('seed_nrb_frameworks', stdout=self.stdout)
 
         # ---------- Summary ----------
         self.stdout.write(self.style.SUCCESS('\n✔ Seed complete.\n'))

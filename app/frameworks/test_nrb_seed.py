@@ -5,6 +5,8 @@ from io import StringIO
 from django.core.management import call_command
 from django.test import TestCase
 
+from controls.models import Control, ControlFrameworkMapping
+from core.models import Department
 from frameworks.models import Framework, FrameworkControl
 from frameworks.management.commands.seed_nrb_frameworks import DATA_DIR
 
@@ -57,3 +59,34 @@ class SeedNrbFrameworksTests(TestCase):
         self.assertTrue(framework.controls.filter(code__startswith='NEPAL-ETA-').exists())
         self.assertTrue(framework.controls.filter(code__startswith='NEPAL-ETR-').exists())
         self.assertTrue(framework.controls.filter(code__startswith='NEPAL-IPA-').exists())
+
+
+class NrbCrosswalkTests(TestCase):
+    def setUp(self):
+        self.dept = Department.objects.create(name='IT')
+        self.mfa = Control.objects.create(
+            code='CTL-MFA', name='Multi-Factor Authentication', owner_dept=self.dept,
+        )
+
+    def test_topic_matches_propose_reviewable_mappings(self):
+        call_command('seed_nrb_frameworks', stdout=StringIO())
+
+        mapping = ControlFrameworkMapping.objects.filter(control=self.mfa).first()
+        self.assertIsNotNone(mapping)
+        self.assertEqual(mapping.relationship, 'intersects')
+        self.assertIn('review', mapping.notes.lower())
+
+    def test_reseeding_leaves_reviewed_mappings_alone(self):
+        call_command('seed_nrb_frameworks', stdout=StringIO())
+        total = ControlFrameworkMapping.objects.count()
+        mapping = ControlFrameworkMapping.objects.first()
+        mapping.relationship = 'equal'
+        mapping.notes = 'Reviewed by the control owner.'
+        mapping.save()
+
+        call_command('seed_nrb_frameworks', stdout=StringIO())
+
+        self.assertEqual(ControlFrameworkMapping.objects.count(), total)
+        mapping.refresh_from_db()
+        self.assertEqual(mapping.relationship, 'equal')
+        self.assertEqual(mapping.notes, 'Reviewed by the control owner.')

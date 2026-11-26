@@ -265,7 +265,14 @@ class ControlFrameworkMappingCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.control = self.control
         response = super().form_valid(form)
-        messages.success(self.request, f'Framework mapping added to control {self.control.code}.')
+        message = f'Framework mapping added to control {self.control.code}.'
+        linked = form.instance.auto_linked_count
+        if linked:
+            message += (
+                f' {linked} equivalent requirement(s) in other frameworks were '
+                f'proposed too; review them on the control page.'
+            )
+        messages.success(self.request, message)
         return response
 
     def get_success_url(self):

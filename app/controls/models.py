@@ -249,5 +249,22 @@ class ControlFrameworkMapping(models.Model):
         unique_together = ('control', 'framework_control')
         ordering = ['control', 'framework_control']
 
+    def save(self, *args, **kwargs):
+        """On creation, propose the same control for equivalent requirements elsewhere."""
+        is_new = self._state.adding
+        self.auto_linked_count = 0
+        super().save(*args, **kwargs)
+        if is_new and not self.is_auto_linked:
+            from frameworks.propagation import propagate_mapping
+
+            self.auto_linked_count = propagate_mapping(self)
+
+    @property
+    def is_auto_linked(self):
+        """True when the cross-framework matcher proposed this row."""
+        from frameworks.propagation import AUTO_PREFIX
+
+        return (self.notes or '').startswith(AUTO_PREFIX)
+
     def __str__(self):
         return f"{self.control.code} → {self.framework_control}"

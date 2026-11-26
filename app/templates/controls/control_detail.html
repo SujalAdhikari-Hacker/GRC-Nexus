@@ -97,7 +97,7 @@
                         <tr>
                             <td><span class="badge bg-dark">{{ m.framework_control.framework.name }}</span></td>
                             <td><code>{{ m.framework_control.code }}</code> {{ m.framework_control.title|truncatechars:80 }}</td>
-                            <td><small>{{ m.get_relationship_display }}</small></td>
+                            <td><small>{{ m.get_relationship_display }}{% if m.is_auto_linked %} <span class="badge bg-info text-dark">Auto</span>{% endif %}</small></td>
                         </tr>
                     {% empty %}
                         <tr><td colspan="3" class="text-center text-muted py-3">No framework mappings yet.</td></tr>

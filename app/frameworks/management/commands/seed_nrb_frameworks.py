@@ -14,6 +14,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from frameworks.models import Framework, FrameworkControl
+from frameworks.nrb_mapping import suggest_mappings
+from frameworks.propagation import paused
 
 DATA_DIR = Path(__file__).resolve().parents[2] / 'data'
 
@@ -72,6 +74,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        frameworks = []
         for catalogue in CATALOGUES:
             path = DATA_DIR / catalogue['file']
             if not path.exists():
@@ -89,6 +92,7 @@ class Command(BaseCommand):
                     'description': catalogue['description'],
                 },
             )
+            frameworks.append(framework)
 
             created = updated = 0
             for item in requirements:
@@ -107,3 +111,10 @@ class Command(BaseCommand):
                 f'{framework}: {len(requirements)} requirement(s) '
                 f'({created} created, {updated} updated)'
             ))
+
+        with paused():
+            mapped = suggest_mappings(frameworks)
+        self.stdout.write(self.style.SUCCESS(
+            f'Suggested {mapped} control mapping(s) for review '
+            f'(existing mappings left untouched).'
+        ))
