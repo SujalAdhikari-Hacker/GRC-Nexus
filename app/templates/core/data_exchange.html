@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Data Exchange{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Data Exchange</h1>{% endblock %}
+
+{% block content %}
+<p class="text-muted small">
+    Download a workbook for any record type, edit it in Excel, then upload it back.
+    Rows with an ID update that record; rows with a blank ID are added. Blank cells
+    leave the stored value unchanged, so a partial sheet never wipes a record.
+    Downloads contain only the rows you are allowed to see.
+</p>
+
+{% if result %}
+    {% if result.error %}
+        <div class="alert alert-danger">{{ result.error }}</div>
+    {% else %}
+        <div class="alert alert-success">
+            <strong>{{ result.entity.label }}:</strong>
+            {{ result.created }} created, {{ result.updated }} updated.
+        </div>
+        {% if result.errors %}
+            <div class="alert alert-warning">
+                <p class="mb-2">{{ result.errors|length }} row(s) were skipped:</p>
+                <ul class="mb-0 small">
+                    {% for row, message in result.errors %}
+                        <li>Row {{ row }}: {{ message }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    {% endif %}
+{% endif %}
+
+<div class="row g-3">
+    {% for card in cards %}
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="mb-0">{{ card.entity.label }}</h6>
+                        <span class="badge bg-light text-dark border">
+                            {{ card.count }} record{{ card.count|pluralize }}
+                        </span>
+                    </div>
+                    <p class="text-muted small flex-grow-1">{{ card.entity.note }}</p>
+                    <a class="btn btn-sm btn-outline-dark mb-2"
+                       href="{% url 'core:data_export' card.entity.key %}">
+                        <i class="bi bi-download"></i> Download Excel
+                    </a>
+                    <form method="post" enctype="multipart/form-data" class="d-flex gap-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="entity" value="{{ card.entity.key }}">
+                        <input class="form-control form-control-sm" type="file"
+                               name="file" accept=".xlsx" required>
+                        <button class="btn btn-sm btn-dark text-nowrap">Upload</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -17,6 +17,7 @@ from .views import (
 )
 from .history_views import HistoryListView
 from .service_run_views import ServiceRunListView
+from .exchange_views import DataExchangeView, DataExportView
 from .mfa_views import (
     mfa_disable, mfa_regenerate_backup_codes, mfa_setup, mfa_verify,
 )
@@ -62,6 +63,8 @@ urlpatterns = [
          name='mfa_regenerate_backup_codes'),
     path('help/', HelpView.as_view(), name='help'),
     path('history/', HistoryListView.as_view(), name='history'),
+    path('data-exchange/', DataExchangeView.as_view(), name='data_exchange'),
+    path('data-exchange/export/<slug:entity>/', DataExportView.as_view(), name='data_export'),
     path('admin-ui/service-runs/', ServiceRunListView.as_view(), name='service_runs'),
 
     # Object-level sharing (django-guardian)

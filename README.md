@@ -109,6 +109,12 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   (`/frameworks/soa/`): one row per requirement with the verdict from your control mappings and
   the newest assessment (covered / partially covered / gap / excluded), with CSV export for
   auditors.
+- **Cross-framework propagation** — mapping a control to one requirement proposes the closest
+  equivalent in every other framework (same topic, best title match), so satisfying an ISO
+  requirement surfaces its NIST/CIS/PCI/SOC 2/NRB counterparts instead of leaving them as gaps.
+  Proposals are marked `intersects` and badged **Auto** on the control page until a reviewer
+  confirms them. New mappings propagate automatically; `manage.py propagate_framework_mappings`
+  backfills the ones recorded earlier (`--dry-run` counts first).
 - Ships with a seeder for **ISO/IEC 27001, NIST CSF, SOC 2, PCI DSS, GDPR and CIS Controls**
   (500+ framework requirements), plus Nepal-specific content: the **NRB Cyber Resilience
   Guidelines 2023** (185 requirements), the **NRB AI Guidelines 2025** (61), the **Nepal Digital &
@@ -191,6 +197,10 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   two-minute Mailpit option.
 - **Dark mode** with persistence; native `type="date"` calendar pickers everywhere.
 - **CSV / Excel / PDF export** on the list views that support it.
+- **Bulk Excel round-trip** (`/data-exchange/`) — download risks, vendors, controls, audits or
+  audit findings as an editable workbook, add or change rows offline, upload it back. A row with
+  an ID updates in place, a blank ID creates a record, blank cells leave stored values alone, and
+  a bad row is reported by row number without blocking the rest.
 - **Bulk actions** — select rows on a register and apply a server-approved change (e.g. set
   severity, set classification) in one step, scoped to what you can see.
 - **Saved views** — name the filters you use most and recall them from a dropdown on the list.
@@ -349,6 +359,8 @@ docker compose exec web python manage.py createsuperuser
 `seed_demo` is idempotent and creates a realistic starting point: departments, HOD/demo users,
 asset categories and assets, vendors with assessments, policy categories and policies, controls,
 risk categories, appetites and risks, plus the compliance frameworks and their requirements.
+It also seeds the Nepal frameworks and proposes a topic-based crosswalk from their requirements to
+the seeded controls (marked `intersects` and noted as suggested, for a reviewer to confirm).
 
 ```bash
 # Core demo dataset (departments, users, assets, vendors, policies, controls, risks, frameworks)
