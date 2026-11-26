@@ -25,9 +25,10 @@ from core.mixins import csv_safe, writable_queryset
 from core.models import Department, User
 from incidents.models import Incident
 from policies.models import Policy, PolicyCategory
-from risks.models import Risk, RiskCategory
+from risks.models import Risk, RiskCategory, RiskTreatment
+from tickets.models import Ticket
 from vendors.models import Vendor
-from vulnerabilities.models import Vulnerability
+from vulnerabilities.models import Finding as VulnerabilityFinding, Vulnerability
 
 ID_HEADER = 'ID'
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
@@ -163,16 +164,55 @@ def _policy_category(value):
     return category
 
 
+def _risk_ref(value):
+    title = str(value).strip()
+    matches = list(Risk.objects.filter(title__iexact=title)[:2])
+    if not matches:
+        raise ValueError(f'unknown risk "{title}"')
+    if len(matches) > 1:
+        raise ValueError(f'multiple risks are titled "{title}"; make the titles unique')
+    return matches[0]
+
+
+def _asset_ref(value):
+    ref = str(value).strip()
+    asset = Asset.objects.filter(asset_id__iexact=ref).first()
+    if asset is not None:
+        return asset
+    matches = list(Asset.objects.filter(name__iexact=ref)[:2])
+    if not matches:
+        raise ValueError(f'unknown asset "{ref}"')
+    if len(matches) > 1:
+        raise ValueError(f'multiple assets are named "{ref}"; use the asset ID instead')
+    return matches[0]
+
+
+def _vulnerability_ref(value):
+    ref = str(value).strip()
+    vulnerability = Vulnerability.objects.filter(cve_id__iexact=ref).first()
+    if vulnerability is not None:
+        return vulnerability
+    matches = list(Vulnerability.objects.filter(title__iexact=ref)[:2])
+    if not matches:
+        raise ValueError(f'unknown vulnerability "{ref}"')
+    if len(matches) > 1:
+        raise ValueError(f'multiple vulnerabilities match "{ref}"; use the CVE ID')
+    return matches[0]
+
+
 # ---------------------------------------------------------------- entities
 
 class Entity:
-    def __init__(self, key, label, model, columns, note, scope_field='owner_dept'):
+    def __init__(self, key, label, model, columns, note, scope_field='owner_dept',
+                 related_scope=()):
         self.key = key
         self.label = label
         self.model = model
         self.columns = columns
         self.note = note
         self.scope_field = scope_field
+        # Related records that must belong to the importer's department too.
+        self.related_scope = related_scope
 
     @property
     def required_headers(self):
@@ -363,11 +403,63 @@ VULNERABILITIES = Entity(
     scope_field=None,
 )
 
+RISK_TREATMENTS = Entity(
+    'treatments', 'Risk Treatments', RiskTreatment, [
+        Column('Risk', 'risk', _risk_ref, 'risk title'),
+        Column('Strategy', 'strategy', _lower),
+        Column('Action Plan', 'action_plan', _text),
+        Column('Owner', 'owner_user', _user, 'username'),
+        Column('Target Date', 'due_date', _date),
+        Column('Completed Date', 'completed_date', _date),
+        Column('Status', 'status', _lower),
+        Column('Notes', 'notes', _text),
+    ],
+    note='A treatment must name an existing risk. Linked controls are set on the risk page.',
+    scope_field='risk__owner_dept',
+    related_scope=('risk',),
+)
+
+TICKETS = Entity(
+    'tickets', 'Tickets', Ticket, [
+        Column('Title', 'title', _text),
+        Column('Description', 'description', _text),
+        Column('Source', 'source', _lower),
+        Column('Priority (1-4)', 'priority', _int),
+        Column('Status', 'status', _lower),
+        DEPARTMENT,
+        Column('Assigned To', 'assigned_to', _user, 'username'),
+        Column('Due Date', 'due_date', _date),
+        Column('Resolution Notes', 'resolution_notes', _text),
+    ],
+    note='The ticket reference is assigned by the app. Linked records are set on the ticket page.',
+)
+
+VULNERABILITY_FINDINGS = Entity(
+    'vulnerability-findings', 'Vulnerability Findings', VulnerabilityFinding, [
+        Column('CVE ID', 'vulnerability', _vulnerability_ref, 'CVE ID'),
+        Column('Asset', 'asset', _asset_ref, 'asset ID or name'),
+        DEPARTMENT,
+        Column('Port', 'port', _text),
+        Column('Evidence', 'evidence', _text),
+        Column('Status', 'status', _lower),
+        Column('Discovered Date', 'discovered_date', _date),
+        Column('Remediated Date', 'remediated_date', _date),
+        Column('Verified Date', 'verified_date', _date),
+        Column('Assigned To', 'assigned_to', _user, 'username'),
+        Column('Assigned Team', 'assigned_team', _department, 'exact department name'),
+        Column('SLA Due Date', 'sla_due_date', _date),
+        Column('Solution', 'solution', _text),
+        Column('Remediation Notes', 'remediation_notes', _text),
+    ],
+    note='The SLA date and composite score are computed on save when left blank.',
+    related_scope=('asset',),
+)
+
 ENTITIES = {
     entity.key: entity
     for entity in (
-        ASSETS, RISKS, VENDORS, POLICIES, CONTROLS, AUDITS, FINDINGS,
-        INCIDENTS, VULNERABILITIES,
+        ASSETS, RISKS, RISK_TREATMENTS, VENDORS, POLICIES, CONTROLS, AUDITS,
+        FINDINGS, TICKETS, INCIDENTS, VULNERABILITIES, VULNERABILITY_FINDINGS,
     )
 }
 
@@ -383,9 +475,11 @@ def _export_value(instance, attr):
     if isinstance(value, (date, datetime)):
         return value
     if instance._meta.get_field(attr).is_relation:
-        for name in ('code', 'username', 'name'):
+        for name in ('code', 'username', 'asset_id', 'cve_id', 'name'):
             if hasattr(value, name):
-                return csv_safe(getattr(value, name))
+                text = getattr(value, name)
+                if text not in (None, ''):
+                    return csv_safe(text)
         return csv_safe(value)
     return csv_safe(value)
 
@@ -530,12 +624,24 @@ def _resolve(entity, row, id_index, user):
     return instance, False
 
 
-def _apply_ownership(instance, user, is_new):
+def _apply_ownership(instance, user, is_new, entity):
     if hasattr(instance, 'owner_dept_id'):
-        if not instance.owner_dept_id and user.department_id:
-            instance.owner_dept = user.department
+        if not instance.owner_dept_id:
+            asset = getattr(instance, 'asset', None)
+            if asset is not None and asset.owner_dept_id:
+                instance.owner_dept = asset.owner_dept
+            elif user.department_id:
+                instance.owner_dept = user.department
         if not user.is_superuser and instance.owner_dept_id != user.department_id:
             raise ValueError('you can only import records for your own department')
+    if not user.is_superuser:
+        for attr in entity.related_scope:
+            related = getattr(instance, attr, None)
+            if (related is not None
+                    and getattr(related, 'owner_dept_id', None) != user.department_id):
+                raise ValueError(
+                    f'the linked {attr.replace("_", " ")} belongs to another department'
+                )
     if is_new and hasattr(instance, 'created_by_id'):
         instance.created_by = user
     if hasattr(instance, 'updated_by_id'):
@@ -598,7 +704,7 @@ def _import_rows(entity, rows, user):
                     if _blank(value):
                         continue
                     setattr(instance, column.attr, column.parse(value))
-                _apply_ownership(instance, user, is_new)
+                _apply_ownership(instance, user, is_new, entity)
                 instance.full_clean()
                 instance.save()
         except (ValidationError, ValueError) as exc:

@@ -4,6 +4,54 @@ All notable changes to GRC Nexus are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [3.2.0] - 2026-11-26
+
+Feature release. Completes the first four items on the assurance roadmap and
+makes every register importable.
+
+### Added
+
+- **Supplier assurance score** (`vendors/services.py`). Every vendor carries a
+  0–100 score derived from five weighted inputs — certifications (25), contract
+  clauses (30), last assessment (20), data access (15) and jurisdiction (10). An
+  expired contract zeroes the contract component. The score is computed on read,
+  so it cannot go stale, and the breakdown is shown on the vendor page and in
+  admin.
+- **NIS2 Article 23 clock** (`incidents/nis2.py`). Significant incidents show the
+  three statutory deadlines — early warning (24 h), notification (72 h) and final
+  report (30 days) — anchored on `detected_at`, with `pending`, `due_soon` (two
+  hours out), `breached` and `submitted` states. A scheduled sweep raises one
+  alert per phase, deduplicated.
+- **Evidence checksums** (`audits.EvidenceVersion`). Every saved evidence file
+  records its SHA-256 digest and size; any version can be downloaded, and the
+  response carries `X-Checksum-SHA256` so a recipient can verify the bytes.
+- **Service-run log** (`core.ServiceRun`, `core/service_runs.py`). Every scheduled
+  management command records what ran, when, whether it succeeded and the counts
+  it reported. Runs older than 90 days are pruned; dry runs are not recorded.
+- **Import / Export** (`/data-exchange/`, "Import / Export" in the sidebar). One
+  page covers twelve registers — assets, risks, risk treatments, vendors,
+  policies, controls, audits, audit findings, tickets, incidents, vulnerabilities
+  and vulnerability findings. Each offers a blank template plus Excel, CSV and
+  PDF downloads and accepts `.xlsx` or `.csv` uploads. A row with an ID updates
+  in place, a blank ID creates a record, blank cells leave stored values alone,
+  and a bad row is reported by row number without blocking the rest. The page is
+  HOD/superuser-only, and downloads and writes stay department-scoped.
+- **NRB and Nepal digital/electronic act requirements** (`frameworks`). Adds the
+  NRB Artificial Intelligence Guidelines, NRB Cyber Resilience Guidelines, NRB IT
+  & Cyber Security Directives and the Nepal digital/electronic acts as selectable
+  frameworks.
+- **Cross-framework equivalent mappings** (`frameworks`). Mapping a control to
+  one framework proposes its best equivalent in every other framework as an
+  `intersects` mapping marked **Auto**, with a backfill command for existing data.
+
+### Changed
+
+- CSV exports include a UTF-8 BOM and CSV imports accept UTF-8 (with or without
+  BOM) and Windows-1252, so a plain "Save as CSV" from Excel round-trips.
+- Risk treatments and vulnerability findings are imported through the linked risk
+  or asset, and a record can only be linked to a related record in the importer's
+  own department.
+
 ## [3.1.1] - 2026-10-28
 
 Patch release. Fixes a stacking-order defect in the layout.

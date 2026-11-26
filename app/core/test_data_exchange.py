@@ -9,7 +9,9 @@ from openpyxl import Workbook, load_workbook
 from assets.models import Asset, AssetCategory
 from core.models import Department, User
 from incidents.models import Incident
-from risks.models import Risk, RiskCategory
+from risks.models import Risk, RiskCategory, RiskTreatment
+from tickets.models import Ticket
+from vulnerabilities.models import Finding, Vulnerability
 
 HEADERS = ['ID', 'Title', 'Category', 'Department', 'Likelihood (1-5)', 'Impact (1-5)']
 
@@ -243,3 +245,81 @@ class DataExchangeTests(TestCase):
             self.client.get(reverse('core:data_export', args=['risks'])).status_code,
             403,
         )
+
+    def test_risk_treatment_upload_links_the_named_risk(self):
+        headers = ['ID', 'Risk', 'Action Plan', 'Status']
+
+        response = self.post_file('treatments', workbook(headers, [
+            ['', 'Phishing risk', 'Run quarterly awareness training', 'planned'],
+        ]), 'treatments.xlsx')
+
+        self.assertEqual(response.context['result']['created'], 1)
+        treatment = RiskTreatment.objects.get(action_plan='Run quarterly awareness training')
+        self.assertEqual(treatment.risk, self.risk)
+
+    def test_treatment_for_another_departments_risk_is_rejected(self):
+        other = Risk.objects.create(
+            title='Finance risk', category=self.category,
+            owner_dept=self.other_dept, likelihood=2, impact=2,
+        )
+        headers = ['ID', 'Risk', 'Action Plan']
+
+        response = self.post_file('treatments', workbook(headers, [
+            ['', other.title, 'Should not import'],
+        ]), 'treatments.xlsx')
+
+        result = response.context['result']
+        self.assertEqual(result['created'], 0)
+        self.assertTrue(result['errors'])
+        self.assertFalse(RiskTreatment.objects.exists())
+
+    def test_ticket_upload_numbers_its_own_reference(self):
+        headers = ['ID', 'Title', 'Department', 'Priority (1-4)']
+
+        response = self.post_file('tickets', workbook(headers, [
+            ['', 'Patch the VPN appliance', 'IT', 1],
+        ]), 'tickets.xlsx')
+
+        self.assertEqual(response.context['result']['created'], 1)
+        ticket = Ticket.objects.get(title='Patch the VPN appliance')
+        self.assertTrue(ticket.ticket_id.startswith('TKT-'))
+        self.assertEqual(ticket.owner_dept, self.dept)
+
+    def test_vulnerability_finding_upload_links_asset_and_cve(self):
+        asset = Asset.objects.create(
+            name='Payments API', description='Public payments API server',
+            owner_dept=self.dept,
+        )
+        vulnerability = Vulnerability.objects.create(
+            cve_id='CVE-2026-0001', title='Example vulnerability',
+        )
+        headers = ['ID', 'CVE ID', 'Asset', 'Discovered Date']
+
+        response = self.post_file('vulnerability-findings', workbook(headers, [
+            ['', 'CVE-2026-0001', asset.name, '2026-02-03'],
+        ]), 'findings.xlsx')
+
+        self.assertEqual(response.context['result']['created'], 1)
+        finding = Finding.objects.get(vulnerability=vulnerability)
+        self.assertEqual(finding.asset, asset)
+        self.assertEqual(finding.owner_dept, self.dept)
+        self.assertIsNotNone(finding.sla_due_date)
+
+    def test_finding_for_another_departments_asset_is_rejected(self):
+        asset = Asset.objects.create(
+            name='Finance ledger', description='Finance ledger server',
+            owner_dept=self.other_dept,
+        )
+        Vulnerability.objects.create(
+            cve_id='CVE-2026-0002', title='Example vulnerability',
+        )
+        headers = ['ID', 'CVE ID', 'Asset', 'Discovered Date']
+
+        response = self.post_file('vulnerability-findings', workbook(headers, [
+            ['', 'CVE-2026-0002', asset.name, '2026-02-03'],
+        ]), 'findings.xlsx')
+
+        result = response.context['result']
+        self.assertEqual(result['created'], 0)
+        self.assertTrue(result['errors'])
+        self.assertFalse(Finding.objects.exists())
