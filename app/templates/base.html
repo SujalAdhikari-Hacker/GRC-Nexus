@@ -81,6 +81,9 @@
             <a href="{% url 'core:history' %}" class="sidebar-link {% if urlname == 'history' %}active{% endif %} d-flex">
                 <i class="bi bi-clock-history"></i><span>Change Log</span>
             </a>
+            <a href="{% url 'core:data_exchange' %}" class="sidebar-link {% if urlname == 'data_exchange' %}active{% endif %} d-flex">
+                <i class="bi bi-arrow-left-right"></i><span>Import / Export</span>
+            </a>
             {% endif %}
 
             {# ==================== INVENTORY & LIBRARY ==================== #}
@@ -223,9 +226,6 @@
             </a>
             <a href="{% url 'core:roles_permissions' %}" class="sidebar-link toggle-item" data-section="admin" style="display: {% if urlname == 'roles_permissions' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-shield-lock"></i><span>Roles &amp; Permissions</span>
-            </a>
-            <a href="{% url 'core:data_exchange' %}" class="sidebar-link toggle-item" data-section="admin" style="display: {% if urlname == 'data_exchange' %}flex{% else %}none{% endif %};">
-                <i class="bi bi-arrow-left-right"></i><span>Data Exchange</span>
             </a>
             {% if user.is_superuser %}
             <a href="{% url 'core:service_runs' %}" class="sidebar-link toggle-item" data-section="admin" style="display: {% if urlname == 'service_runs' %}flex{% else %}none{% endif %};">

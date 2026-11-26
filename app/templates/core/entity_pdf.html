@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{{ entity.label }}</title>
+    <style>
+        @page { size: A4 landscape; margin: 10mm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 8px; color: #111827; }
+        h1 { font-size: 15px; margin: 0 0 3px; }
+        .meta { color: #6b7280; margin-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #0b1220; color: #ffffff; text-align: left; padding: 3px 4px; }
+        td { border-bottom: 1px solid #e5e7eb; padding: 2px 4px; vertical-align: top; }
+        tr:nth-child(even) td { background: #f6f7f9; }
+    </style>
+</head>
+<body>
+    <h1>{{ entity.label }}</h1>
+    <div class="meta">
+        {{ count }} record{{ count|pluralize }} &middot;
+        generated {{ generated_at|date:"Y-m-d H:i" }}{% if generated_by %} by {{ generated_by }}{% endif %}
+    </div>
+    <table>
+        <thead>
+            <tr>{% for header in headers %}<th>{{ header }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+            {% empty %}
+                <tr><td colspan="{{ headers|length }}">No records.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

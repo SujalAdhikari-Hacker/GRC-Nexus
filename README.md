@@ -197,10 +197,12 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   two-minute Mailpit option.
 - **Dark mode** with persistence; native `type="date"` calendar pickers everywhere.
 - **CSV / Excel / PDF export** on the list views that support it.
-- **Bulk Excel round-trip** (`/data-exchange/`) — download risks, vendors, controls, audits or
-  audit findings as an editable workbook, add or change rows offline, upload it back. A row with
-  an ID updates in place, a blank ID creates a record, blank cells leave stored values alone, and
-  a bad row is reported by row number without blocking the rest.
+- **Bulk spreadsheet round-trip** (`/data-exchange/`, "Import / Export" in the sidebar) — download
+  a blank template or the current rows for assets, risks, vendors, policies, controls, audits,
+  audit findings, incidents and vulnerabilities, as Excel, CSV or PDF. Edit offline, then upload
+  the same file back as `.xlsx` or `.csv`: a row with an ID updates in place, a blank ID creates a
+  record, blank cells leave stored values alone, and a bad row is reported by row number without
+  blocking the rest. Downloads and writes are department-scoped.
 - **Bulk actions** — select rows on a register and apply a server-approved change (e.g. set
   severity, set classification) in one step, scoped to what you can see.
 - **Saved views** — name the filters you use most and recall them from a dropdown on the list.

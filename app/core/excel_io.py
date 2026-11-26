@@ -1,26 +1,33 @@
-"""Excel round-trip for the records people keep in spreadsheets.
+"""Spreadsheet round-trip for the records people keep in Excel.
 
-Download a workbook of the rows you can see, edit it in Excel, upload it back:
-rows with an ID are updated, rows without one are created. Blank cells leave
-the stored value alone, so a partial sheet cannot wipe a record.
+Download a workbook (or the empty template) of the rows you can see, edit it,
+upload it back as .xlsx or .csv: rows with an ID are updated, rows without one
+are created. Blank cells leave the stored value alone, so a partial sheet
+cannot wipe a record.
 
 One definition per entity keeps the export headers, the import parsers and the
 instructions sheet in step. Adding another entity is one ``Entity`` entry.
 """
+import csv
 from collections import namedtuple
 from datetime import date, datetime
-from io import BytesIO
+from io import BytesIO, StringIO
 
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError, transaction
-from django.utils.dateparse import parse_date
+from django.utils import timezone
+from django.utils.dateparse import parse_date, parse_datetime
 
+from assets.models import Asset, AssetCategory
 from audits.models import Audit, AuditFinding
 from controls.models import Control
 from core.mixins import csv_safe, writable_queryset
 from core.models import Department, User
+from incidents.models import Incident
+from policies.models import Policy, PolicyCategory
 from risks.models import Risk, RiskCategory
 from vendors.models import Vendor
+from vulnerabilities.models import Vulnerability
 
 ID_HEADER = 'ID'
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
@@ -70,6 +77,24 @@ def _date(value):
     return parsed
 
 
+def _datetime(value):
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, date):
+        parsed = datetime(value.year, value.month, value.day)
+    else:
+        text = str(value).strip()
+        parsed = parse_datetime(text)
+        if parsed is None:
+            day = parse_date(text)
+            if day is None:
+                raise ValueError(f'"{value}" is not a date/time (use YYYY-MM-DD HH:MM)')
+            parsed = datetime(day.year, day.month, day.day)
+    if timezone.is_naive(parsed):
+        parsed = timezone.make_aware(parsed)
+    return parsed
+
+
 def _lower(value):
     return str(value).strip().lower()
 
@@ -114,15 +139,40 @@ def _audit_ref(value):
     return audit
 
 
+def _vendor_ref(value):
+    name = str(value).strip()
+    vendor = Vendor.objects.filter(name__iexact=name).first()
+    if vendor is None:
+        raise ValueError(f'unknown vendor "{name}"')
+    return vendor
+
+
+def _asset_category(value):
+    name = str(value).strip()
+    category = AssetCategory.objects.filter(name__iexact=name).first()
+    if category is None:
+        raise ValueError(f'unknown asset category "{name}"')
+    return category
+
+
+def _policy_category(value):
+    name = str(value).strip()
+    category = PolicyCategory.objects.filter(name__iexact=name).first()
+    if category is None:
+        raise ValueError(f'unknown policy category "{name}"')
+    return category
+
+
 # ---------------------------------------------------------------- entities
 
 class Entity:
-    def __init__(self, key, label, model, columns, note):
+    def __init__(self, key, label, model, columns, note, scope_field='owner_dept'):
         self.key = key
         self.label = label
         self.model = model
         self.columns = columns
         self.note = note
+        self.scope_field = scope_field
 
     @property
     def required_headers(self):
@@ -226,7 +276,100 @@ FINDINGS = Entity(
     note='Findings cannot be closed until remediation is verified on the finding page.',
 )
 
-ENTITIES = {entity.key: entity for entity in (RISKS, VENDORS, CONTROLS, AUDITS, FINDINGS)}
+ASSETS = Entity(
+    'assets', 'Assets', Asset, [
+        Column('Name', 'name', _text),
+        Column('Hostname', 'hostname', _text),
+        Column('IP Address', 'ip_address', _text),
+        Column('FQDN', 'fqdn', _text),
+        Column('Type', 'asset_type', _lower),
+        Column('Hosting', 'hosting', _lower),
+        Column('Cloud Provider', 'cloud_provider', _lower),
+        Column('Cloud Region', 'cloud_region', _text),
+        Column('Location', 'location', _text),
+        Column('OS Family', 'os_family', _lower),
+        Column('OS Version', 'os_version', _text),
+        Column('Vendor', 'vendor', _vendor_ref, 'vendor name'),
+        Column('Classification', 'classification', _lower),
+        DEPARTMENT,
+        OWNER,
+        Column('Environment', 'environment', _lower),
+        Column('Asset Category', 'category', _asset_category, 'asset category name'),
+        Column('Criticality (1-4)', 'criticality', _int),
+        Column('Confidentiality (1-3)', 'confidentiality', _int),
+        Column('Integrity (1-3)', 'integrity', _int),
+        Column('Availability (1-3)', 'availability', _int),
+        Column('Value', 'value', _text),
+        Column('Is Active', 'is_active', _bool, 'Yes or No'),
+        Column('Description', 'description', _text),
+    ],
+    note='Linked policies and dependencies are maintained on the asset page.',
+)
+
+POLICIES = Entity(
+    'policies', 'Policies', Policy, [
+        Column('Title', 'title', _text),
+        Column('Code', 'code', _text, 'unique policy code'),
+        Column('Category', 'category', _policy_category, 'policy category name'),
+        Column('Version', 'version', _text),
+        Column('Status', 'status', _lower),
+        DEPARTMENT,
+        Column('Approved By', 'approved_by', _user, 'username'),
+        Column('Approval Date', 'approval_date', _date),
+        Column('Next Review Date', 'next_review_date', _date),
+        Column('Description', 'description', _text),
+        Column('Content', 'content', _text),
+    ],
+    note='The policy document file is uploaded on the policy page.',
+)
+
+INCIDENTS = Entity(
+    'incidents', 'Incidents', Incident, [
+        Column('Title', 'title', _text),
+        Column('Description', 'description', _text),
+        Column('Type', 'incident_type', _lower),
+        Column('Source', 'source', _lower),
+        Column('Severity', 'severity', _lower),
+        Column('Status', 'status', _lower),
+        DEPARTMENT,
+        Column('Handler', 'handler', _user, 'username'),
+        Column('Detected At', 'detected_at', _datetime, 'YYYY-MM-DD HH:MM'),
+        Column('Data Subjects Affected', 'data_subjects_affected', _int),
+        Column('Regulatory Notification Required', 'regulatory_notification_required', _bool, 'Yes or No'),
+        Column('NIS2 Significant', 'nis2_significant', _bool, 'Yes or No'),
+        Column('Root Cause', 'root_cause', _text),
+        Column('Lessons Learned', 'lessons_learned', _text),
+    ],
+    note='The reference and lifecycle timestamps are assigned by the app.',
+)
+
+VULNERABILITIES = Entity(
+    'vulnerabilities', 'Vulnerabilities', Vulnerability, [
+        Column('CVE ID', 'cve_id', _text),
+        Column('Title', 'title', _text),
+        Column('Description', 'description', _text),
+        Column('CVSS Score', 'cvss_score', _text),
+        Column('CVSS Vector', 'cvss_vector', _text),
+        Column('CVSS Severity', 'cvss_severity', _lower),
+        Column('EPSS Score', 'epss_score', _text),
+        Column('EPSS Percentile', 'epss_percentile', _text),
+        Column('KEV Listed', 'kev_status', _bool, 'Yes or No'),
+        Column('KEV Due Date', 'kev_due_date', _date),
+        Column('Published Date', 'published_date', _date),
+        Column('References', 'references', _text),
+        Column('Source', 'source', _lower),
+    ],
+    note='EPSS, KEV and NVD enrichment is refreshed by threat intel. These are shared records.',
+    scope_field=None,
+)
+
+ENTITIES = {
+    entity.key: entity
+    for entity in (
+        ASSETS, RISKS, VENDORS, POLICIES, CONTROLS, AUDITS, FINDINGS,
+        INCIDENTS, VULNERABILITIES,
+    )
+}
 
 
 # ---------------------------------------------------------------- export
@@ -247,8 +390,11 @@ def _export_value(instance, attr):
     return csv_safe(value)
 
 
-def export_workbook(entity, queryset):
-    """Return an .xlsx response of ``queryset`` that can be edited and re-uploaded."""
+def export_workbook(entity, queryset, include_rows=True):
+    """Return an .xlsx response of ``queryset`` that can be edited and re-uploaded.
+
+    ``include_rows=False`` produces the blank template (headers + guide only).
+    """
     from django.http import HttpResponse
     from django.utils import timezone
     from openpyxl import Workbook
@@ -266,11 +412,12 @@ def export_workbook(entity, queryset):
         cell.fill = PatternFill('solid', start_color='0B1220', end_color='0B1220')
         cell.alignment = Alignment(vertical='center')
 
-    for instance in queryset:
-        sheet.append(
-            [instance.pk]
-            + [_export_value(instance, column.attr) for column in entity.columns]
-        )
+    if include_rows:
+        for instance in queryset:
+            sheet.append(
+                [instance.pk]
+                + [_export_value(instance, column.attr) for column in entity.columns]
+            )
 
     for index, header in enumerate(headers, start=1):
         width = max(len(str(header)) + 2, 14)
@@ -285,7 +432,7 @@ def export_workbook(entity, queryset):
         '',
         'Rows with an ID update that record. Leave the ID blank to create a new one.',
         'Blank cells leave the existing value unchanged.',
-        'Save as .xlsx and upload the file from the Data Exchange page.',
+        'Save as .xlsx or .csv and upload the file from the Import / Export page.',
         '',
         'Allowed values:',
     ]
@@ -310,10 +457,41 @@ def export_workbook(entity, queryset):
         output.getvalue(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
+    suffix = '' if include_rows else '_template'
     response['Content-Disposition'] = (
-        f'attachment; filename="{entity.key}_{timezone.localdate():%Y%m%d}.xlsx"'
+        f'attachment; filename="{entity.key}{suffix}_{timezone.localdate():%Y%m%d}.xlsx"'
     )
     return response
+
+
+def export_csv(entity, queryset):
+    """Return the same columns as a .csv download that can be re-uploaded."""
+    from django.http import HttpResponse
+    from django.utils import timezone
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = (
+        f'attachment; filename="{entity.key}_{timezone.localdate():%Y%m%d}.csv"'
+    )
+    response.write('\ufeff')  # Excel needs the BOM to read UTF-8 CSV
+    writer = csv.writer(response)
+    writer.writerow([ID_HEADER] + [column.header for column in entity.columns])
+    for instance in queryset:
+        writer.writerow(
+            [instance.pk]
+            + [_export_value(instance, column.attr) for column in entity.columns]
+        )
+    return response
+
+
+def table_rows(entity, queryset):
+    """Header and string rows for the PDF renderer."""
+    headers = [column.header for column in entity.columns]
+    rows = [
+        [str(_export_value(instance, column.attr)) for column in entity.columns]
+        for instance in queryset
+    ]
+    return headers, rows
 
 
 # ---------------------------------------------------------------- import
@@ -337,7 +515,13 @@ def _resolve(entity, row, id_index, user):
     except (TypeError, ValueError):
         raise ValueError(f'ID "{value}" is not a number')
 
-    instance = writable_queryset(entity.model.objects.all(), user).filter(pk=pk).first()
+    if entity.scope_field is None:
+        queryset = entity.model.objects.all()
+    else:
+        queryset = writable_queryset(
+            entity.model.objects.all(), user, field=entity.scope_field,
+        )
+    instance = queryset.filter(pk=pk).first()
     if instance is None:
         raise ValueError(
             f'{entity.label.rstrip("s").lower()} {pk} does not exist '
@@ -347,20 +531,41 @@ def _resolve(entity, row, id_index, user):
 
 
 def _apply_ownership(instance, user, is_new):
-    if not getattr(instance, 'owner_dept_id', None) and user.department_id:
-        instance.owner_dept = user.department
-    if not user.is_superuser and instance.owner_dept_id != user.department_id:
-        raise ValueError('you can only import records for your own department')
+    if hasattr(instance, 'owner_dept_id'):
+        if not instance.owner_dept_id and user.department_id:
+            instance.owner_dept = user.department
+        if not user.is_superuser and instance.owner_dept_id != user.department_id:
+            raise ValueError('you can only import records for your own department')
     if is_new and hasattr(instance, 'created_by_id'):
         instance.created_by = user
     if hasattr(instance, 'updated_by_id'):
         instance.updated_by = user
+    # Incidents number themselves; full_clean would reject the blank reference.
+    if is_new and hasattr(instance, 'next_reference') and not instance.reference:
+        instance.reference = instance.next_reference()
 
 
 def import_rows(entity, workbook, user):
     """Create/update rows from the ``Data`` sheet; one bad row does not stop the rest."""
     sheet = workbook['Data'] if 'Data' in workbook.sheetnames else workbook.active
-    rows = sheet.iter_rows(values_only=True)
+    return _import_rows(entity, sheet.iter_rows(values_only=True), user)
+
+
+def import_csv(entity, stream, user):
+    """Same rules as the workbook, from a UTF-8 (or Windows-1252) CSV file."""
+    raw = stream.read()
+    for encoding in ('utf-8-sig', 'cp1252'):
+        try:
+            text = raw.decode(encoding)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        raise ValueError('the file is not valid UTF-8 or Windows-1252 text')
+    return _import_rows(entity, csv.reader(StringIO(text)), user)
+
+
+def _import_rows(entity, rows, user):
     header = next(rows, None)
     if not header:
         raise ValueError('the first sheet is empty')

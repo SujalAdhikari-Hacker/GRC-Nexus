@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Data Exchange{% endblock %}
-{% block breadcrumb %}<h1 class="h5 mb-0">Data Exchange</h1>{% endblock %}
+{% block title %}Import / Export{% endblock %}
+{% block breadcrumb %}<h1 class="h5 mb-0">Import / Export</h1>{% endblock %}
 
 {% block content %}
 <p class="text-muted small">
-    Download a workbook for any record type, edit it in Excel, then upload it back.
-    Rows with an ID update that record; rows with a blank ID are added. Blank cells
-    leave the stored value unchanged, so a partial sheet never wipes a record.
-    Downloads contain only the rows you are allowed to see.
+    Download a template for a register, fill it in Excel or any spreadsheet app, then upload it
+    back as <strong>.xlsx</strong> or <strong>.csv</strong>. Rows with an ID update that record;
+    rows with a blank ID are added. Blank cells leave the stored value unchanged, so a partial
+    sheet never wipes a record. Downloads contain only the rows you are allowed to see, and an
+    upload can only touch records in your department.
 </p>
 
 {% if result %}
@@ -43,15 +44,29 @@
                         </span>
                     </div>
                     <p class="text-muted small flex-grow-1">{{ card.entity.note }}</p>
-                    <a class="btn btn-sm btn-outline-dark mb-2"
-                       href="{% url 'core:data_export' card.entity.key %}">
-                        <i class="bi bi-download"></i> Download Excel
-                    </a>
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        <a class="btn btn-sm btn-outline-dark"
+                           href="{% url 'core:data_export' card.entity.key %}">
+                            <i class="bi bi-file-earmark-excel"></i> Excel
+                        </a>
+                        <a class="btn btn-sm btn-outline-dark"
+                           href="{% url 'core:data_export' card.entity.key %}?format=csv">
+                            <i class="bi bi-filetype-csv"></i> CSV
+                        </a>
+                        <a class="btn btn-sm btn-outline-dark"
+                           href="{% url 'core:data_export' card.entity.key %}?format=pdf">
+                            <i class="bi bi-file-earmark-pdf"></i> PDF
+                        </a>
+                        <a class="btn btn-sm btn-outline-dark"
+                           href="{% url 'core:data_export' card.entity.key %}?template=1">
+                            <i class="bi bi-file-earmark-plus"></i> Template
+                        </a>
+                    </div>
                     <form method="post" enctype="multipart/form-data" class="d-flex gap-2">
                         {% csrf_token %}
                         <input type="hidden" name="entity" value="{{ card.entity.key }}">
                         <input class="form-control form-control-sm" type="file"
-                               name="file" accept=".xlsx" required>
+                               name="file" accept=".xlsx,.csv" required>
                         <button class="btn btn-sm btn-dark text-nowrap">Upload</button>
                     </form>
                 </div>

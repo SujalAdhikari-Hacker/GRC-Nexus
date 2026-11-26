@@ -6,7 +6,9 @@ from django.test import TestCase
 from django.urls import reverse
 from openpyxl import Workbook, load_workbook
 
+from assets.models import Asset, AssetCategory
 from core.models import Department, User
+from incidents.models import Incident
 from risks.models import Risk, RiskCategory
 
 HEADERS = ['ID', 'Title', 'Category', 'Department', 'Likelihood (1-5)', 'Impact (1-5)']
@@ -51,6 +53,13 @@ class DataExchangeTests(TestCase):
         return self.client.post(reverse('core:data_exchange'), {
             'entity': 'risks',
             'file': uploaded(workbook(headers, rows)),
+        })
+
+    def post_file(self, entity, content, name='data.xlsx'):
+        self.client.force_login(self.user)
+        return self.client.post(reverse('core:data_exchange'), {
+            'entity': entity,
+            'file': uploaded(content, name),
         })
 
     def test_signing_in_is_required(self):
@@ -145,3 +154,92 @@ class DataExchangeTests(TestCase):
         self.assertEqual(response.context['result']['errors'], [])
         formula_risk.refresh_from_db()
         self.assertEqual(formula_risk.title, '=SUM(A1)')
+
+    def test_the_template_has_headers_but_no_rows(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse('core:data_export', args=['risks']) + '?template=1'
+        )
+
+        sheet = load_workbook(BytesIO(response.content))['Data']
+        self.assertEqual(sheet.max_row, 1)
+        self.assertEqual(sheet.cell(row=1, column=1).value, 'ID')
+        self.assertEqual(sheet.cell(row=1, column=2).value, 'Title')
+
+    def test_csv_export_can_be_uploaded_back(self):
+        self.client.force_login(self.user)
+        export = self.client.get(
+            reverse('core:data_export', args=['risks']) + '?format=csv'
+        )
+        self.assertIn('ID,Title', export.content.decode('utf-8-sig'))
+
+        response = self.post_file('risks', export.content, 'risks.csv')
+
+        result = response.context['result']
+        self.assertEqual(result['updated'], 1)
+        self.assertEqual(result['errors'], [])
+
+    def test_csv_upload_creates_a_risk(self):
+        content = (
+            'ID,Title,Category,Department,Likelihood (1-5),Impact (1-5)\n'
+            ',CSV risk,Cyber,IT,4,5\n'
+        ).encode('utf-8')
+
+        response = self.post_file('risks', content, 'risks.csv')
+
+        self.assertEqual(response.context['result']['created'], 1)
+        self.assertTrue(Risk.objects.filter(title='CSV risk').exists())
+
+    def test_asset_upload_creates_an_asset(self):
+        AssetCategory.objects.create(name='Server')
+        headers = [
+            'ID', 'Name', 'Description', 'Type', 'Department',
+            'Asset Category', 'Criticality (1-4)',
+        ]
+
+        response = self.post_file('assets', workbook(headers, [
+            ['', 'Payments API', 'Public payments API server', 'software', 'IT', 'Server', 3],
+        ]), 'assets.xlsx')
+
+        self.assertEqual(response.context['result']['created'], 1)
+        asset = Asset.objects.get(name='Payments API')
+        self.assertEqual(asset.owner_dept, self.dept)
+        self.assertEqual(asset.criticality, 3)
+
+    def test_incident_upload_numbers_its_own_reference(self):
+        headers = ['ID', 'Title', 'Description', 'Department', 'Detected At']
+
+        response = self.post_file('incidents', workbook(headers, [
+            ['', 'Phishing wave', 'Reported by staff', 'IT', '2026-01-02 10:30'],
+        ]), 'incidents.xlsx')
+
+        self.assertEqual(response.context['result']['created'], 1)
+        incident = Incident.objects.get(title='Phishing wave')
+        self.assertTrue(incident.reference.startswith('INC-'))
+        self.assertEqual(incident.detected_at.year, 2026)
+
+    def test_pdf_export_returns_a_pdf(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse('core:data_export', args=['risks']) + '?format=pdf'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertTrue(response.content.startswith(b'%PDF'))
+
+    def test_a_non_hod_user_cannot_use_the_page(self):
+        plain = User.objects.create_user(
+            'plain', 'plain@example.com', 'pw', department=self.dept,
+        )
+        self.client.force_login(plain)
+
+        self.assertEqual(
+            self.client.get(reverse('core:data_exchange')).status_code, 403
+        )
+        self.assertEqual(
+            self.client.get(reverse('core:data_export', args=['risks'])).status_code,
+            403,
+        )
