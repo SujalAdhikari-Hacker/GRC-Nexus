@@ -58,7 +58,7 @@
                     <th scope="col" class="text-center">Status</th>
                     <th scope="col">Assigned to</th>
                     <th scope="col">Dept</th>
-                    <th scope="col" class="text-center">Due</th>
+                    <th scope="col" class="text-center">SLA due</th>
                     <th scope="col"></th>
                 </tr>
             </thead>
@@ -77,7 +77,7 @@
                     <td class="text-center">
                         <small>
                         {% if t.due_date %}
-                            {% if t.is_overdue %}<span class="text-danger fw-bold">{{ t.due_date }} <i class="bi bi-exclamation-triangle"></i></span>
+                            {% if t.sla_breached %}<span class="text-danger fw-bold">{{ t.due_date }} <i class="bi bi-exclamation-triangle-fill"></i> breached</span>
                             {% else %}{{ t.due_date }}{% endif %}
                         {% else %}—{% endif %}
                         </small>

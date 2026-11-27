@@ -23,10 +23,10 @@
     </div>
 </div>
 
-{% if ticket.is_overdue %}
+{% if ticket.sla_breached %}
 <div class="alert alert-danger d-flex align-items-center gap-2">
     <i class="bi bi-exclamation-octagon-fill"></i>
-    <div><strong>OVERDUE</strong> — this ticket was due {{ ticket.due_date }}. Escalate or update status.</div>
+    <div><strong>SLA BREACHED</strong> — this ticket was due {{ ticket.due_date }}. Escalate or update status.</div>
 </div>
 {% endif %}
 
@@ -34,7 +34,7 @@
     <div class="col-md-3"><div class="stat-card"><div class="value" style="color:{{ ticket.status_color }}; font-size:1.1rem;">{{ ticket.get_status_display }}</div><div class="label"><i class="bi bi-flag"></i> Status</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value" style="color:{{ ticket.priority_color }}; font-size:1.1rem;">{{ ticket.get_priority_display }}</div><div class="label"><i class="bi bi-exclamation-circle"></i> Priority</div></div></div>
     <div class="col-md-3"><div class="stat-card"><div class="value fs-1-1">{{ ticket.assigned_to.username|default:"Unassigned" }}</div><div class="label"><i class="bi bi-person"></i> Assigned to</div></div></div>
-    <div class="col-md-3"><div class="stat-card"><div class="value fs-1-1">{{ ticket.due_date|default:"—" }}</div><div class="label"><i class="bi bi-calendar"></i> Due date</div></div></div>
+    <div class="col-md-3"><div class="stat-card"><div class="value fs-1-1">{{ ticket.due_date|default:"—" }}</div><div class="label"><i class="bi bi-calendar"></i> SLA due</div></div></div>
 </div>
 
 <div class="row g-3">

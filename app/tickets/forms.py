@@ -47,7 +47,7 @@ class TicketForm(forms.ModelForm):
             'title':       'Short description of the work to be done.',
             'description': 'Context, expected outcome, any relevant details.',
             'assigned_to': 'Leave blank to post to the department queue (anyone can self-claim).',
-            'due_date':    'Optional target completion date.',
+            'due_date':    'Optional. Defaults to the priority SLA (7/14/30/60 days).',
         }
 
     def __init__(self, *args, user=None, **kwargs):

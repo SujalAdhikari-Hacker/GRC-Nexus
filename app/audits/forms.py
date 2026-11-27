@@ -123,6 +123,9 @@ class AuditFindingForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'rows': 4}),
             'recommendation': forms.Textarea(attrs={'rows': 4}),
         }
+        help_texts = {
+            'due_date': 'Optional. Defaults to the severity SLA (7/14/30/60 days).',
+        }
 
 
 # ============================================================

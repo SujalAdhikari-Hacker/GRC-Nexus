@@ -1,6 +1,7 @@
 from django.db import models
 from simple_history.models import HistoricalRecords
 from core.models import Department
+from core.sla import SLA_DAYS as SLA_LADDER
 
 
 class Vulnerability(models.Model):
@@ -104,14 +105,8 @@ class Finding(models.Model):
     ]
     CLOSED_STATUSES = ('remediated', 'accepted', 'false_positive')
 
-    # SLA days by severity
-    SLA_DAYS = {
-        'critical': 7,
-        'high':     30,
-        'medium':   90,
-        'low':      180,
-        'none':     365,
-    }
+    # Shared with audit findings and tickets: 7/14/30/60/90 by severity.
+    SLA_DAYS = SLA_LADDER
 
     vulnerability = models.ForeignKey(
         Vulnerability, on_delete=models.CASCADE, related_name='findings'
@@ -234,6 +229,11 @@ class Finding(models.Model):
             return None
         from django.utils import timezone
         return (self.sla_due_date - timezone.localdate()).days
+
+    @property
+    def sla_breached(self):
+        """The severity SLA date has passed and the finding is still open."""
+        return self.is_overdue
 
     @property
     def status_color(self):

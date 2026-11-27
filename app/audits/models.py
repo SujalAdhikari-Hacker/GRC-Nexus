@@ -6,6 +6,7 @@ from django.core.files.storage import default_storage
 from django.db import models
 from simple_history.models import HistoricalRecords
 from core.models import Department
+from core.sla import sla_due_date
 from core.validators import (
     is_safe_external_url, validate_evidence_file, validate_external_url,
 )
@@ -491,6 +492,11 @@ class AuditFinding(models.Model):
     def days_overdue(self):
         return abs(self.days_until_due) if self.is_overdue else 0
 
+    @property
+    def sla_breached(self):
+        """The severity SLA date has passed and the finding is still open."""
+        return self.is_overdue
+
     def clean(self):
         super().clean()
         if self.status == 'closed' and self.verification_status != 'verified':
@@ -509,6 +515,10 @@ class AuditFinding(models.Model):
         if self.status == 'closed' and not self.closed_date:
             from django.utils import timezone
             self.closed_date = timezone.localdate()
+        if not self.due_date:
+            from django.utils import timezone
+            start = self.created_at.date() if self.created_at else timezone.localdate()
+            self.due_date = sla_due_date(start, self.severity)
         super().save(*args, **kwargs)
 
 

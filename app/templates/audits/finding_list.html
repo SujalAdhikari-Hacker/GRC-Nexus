@@ -56,7 +56,7 @@
                     <th scope="col">Source</th>
                     <th scope="col">Control</th>
                     <th scope="col">Owner</th>
-                    <th scope="col">Due</th>
+                    <th scope="col">SLA due</th>
                     <th scope="col"></th>
                 </tr>
             </thead>
@@ -85,8 +85,8 @@
                     <td>
                         <small>
                         {% if f.due_date %}
-                            {% if f.due_date < now_date and f.status != 'resolved' and f.status != 'closed' and f.status != 'accepted' %}
-                                <span class="text-danger">{{ f.due_date }} <i class="bi bi-clock-history"></i></span>
+                            {% if f.sla_breached %}
+                                <span class="text-danger fw-bold">{{ f.due_date }} <i class="bi bi-exclamation-triangle-fill"></i> breached</span>
                             {% else %}{{ f.due_date }}{% endif %}
                         {% else %}&mdash;{% endif %}
                         </small>

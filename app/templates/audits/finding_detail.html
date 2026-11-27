@@ -52,7 +52,13 @@
                 </li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ finding.owner_user|default:"—" }}</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Department</span><span>{{ finding.owner_dept.name }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Due date</span><span>{{ finding.due_date|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">SLA due</span>
+                    <span>
+                        {{ finding.due_date|default:"—" }}
+                        {% if finding.sla_breached %}<span class="badge bg-danger ms-1">Breached</span>{% endif %}
+                    </span>
+                </li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Closed date</span><span>{{ finding.closed_date|default:"—" }}</span></li>
             </ul>
         </div>

@@ -135,7 +135,7 @@ def _audit_escalations(grace_cutoff, warn_cutoff):
             dept=finding.owner_dept,
             ref=finding,
             flag='email_on_audit_finding',
-            meta=f'{finding.get_severity_display()} · due {finding.due_date}'
+            meta=f'{finding.get_severity_display()} · SLA due {finding.due_date}'
                  f' · {finding.days_overdue} day(s) overdue',
         ))
 
@@ -175,7 +175,7 @@ def _ticket_escalations(grace_cutoff, warn_cutoff):
             dept=ticket.owner_dept,
             ref=ticket,
             flag='email_on_ticket_assigned',
-            meta=f'{ticket.get_priority_display()} priority · due {ticket.due_date}'
+            meta=f'{ticket.get_priority_display()} priority · SLA due {ticket.due_date}'
                  f' · {overdue_days} day(s) overdue',
         ))
     return out

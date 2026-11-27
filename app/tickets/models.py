@@ -4,6 +4,7 @@ from django.db import models
 from simple_history.models import HistoricalRecords
 
 from core.models import Department
+from core.sla import PRIORITY_TO_SEVERITY, sla_due_date
 
 
 class Ticket(models.Model):
@@ -120,13 +121,17 @@ class Ticket(models.Model):
                 next_num += 1
             self.ticket_id = f'TKT-{next_num:04d}'
 
+        from django.utils import timezone
+
         # Auto-set resolved_at
         if self.status == 'resolved' and not self.resolved_at:
-            from django.utils import timezone
             self.resolved_at = timezone.now()
         if self.status == 'closed' and not self.closed_at:
-            from django.utils import timezone
             self.closed_at = timezone.now()
+        if not self.due_date:
+            start = self.created_at.date() if self.created_at else timezone.localdate()
+            severity = PRIORITY_TO_SEVERITY.get(self.priority, 'medium')
+            self.due_date = sla_due_date(start, severity)
 
         super().save(*args, **kwargs)
 
@@ -159,6 +164,11 @@ class Ticket(models.Model):
     @property
     def is_open(self):
         return self.status not in ('resolved', 'closed', 'cancelled')
+
+    @property
+    def sla_breached(self):
+        """The priority SLA date has passed and the ticket is still open."""
+        return self.is_overdue
 
 
 class TicketComment(models.Model):

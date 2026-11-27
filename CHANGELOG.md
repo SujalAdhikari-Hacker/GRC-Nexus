@@ -4,6 +4,18 @@ All notable changes to GRC Nexus are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **SLA clocks on findings and tickets** (`core/sla.py`). One ladder — 7, 14,
+  30, 60 and 90 days — applies to audit findings and vulnerability findings by
+  severity, and to tickets by priority (critical/high/medium/low). A blank due
+  date is filled from the record's creation date on save; an explicit date is
+  left alone. A finding or ticket is **breached** when its due date is before
+  today and it is still open. Existing rows are backfilled by data migration,
+  and lists and detail pages show the due date with a breached badge.
+
 ## [3.2.0] - 2026-11-26
 
 Feature release. Completes the first four items on the assurance roadmap and
