@@ -101,6 +101,9 @@
             <a href="{% url 'assets:owners' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' and urlname == 'owners' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-people"></i><span>Asset Owners</span>
             </a>
+            <a href="{% url 'assets:continuity_gaps' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' and urlname == 'continuity_gaps' %}flex{% else %}none{% endif %};">
+                <i class="bi bi-shield-exclamation"></i><span>Continuity Gaps</span>
+            </a>
             <a href="{% url 'assets:explorer_picker' %}" class="sidebar-link toggle-item" data-section="inv" style="display: {% if ns == 'assets' and urlname == 'explorer_picker' %}flex{% else %}none{% endif %};">
                 <i class="bi bi-diagram-2"></i><span>Relationship Explorer</span>
             </a>

@@ -61,6 +61,12 @@ class AssetAdmin(SimpleHistoryAdmin):
         ('Business context', {
             'fields': ('vendor', 'classification', 'environment')
         }),
+        ('Business continuity (BIA)', {
+            'fields': (
+                'rto_hours', 'rpo_hours', 'mtpd_hours',
+                'bcp_policy', 'drp_policy', 'last_continuity_test',
+            )
+        }),
         ('Ownership', {
             'fields': ('owner_dept', 'owner_user', 'is_active')
         }),

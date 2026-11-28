@@ -1,7 +1,14 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from simple_history.models import HistoricalRecords
 from core.models import Department
+
+# A continuity test older than this counts as stale.
+CONTINUITY_TEST_VALID_DAYS = 365
+
+# Only business-critical assets are held to the BIA / BCP / DRP checks.
+CONTINUITY_CRITICALITY_MIN = 3
 
 
 class AssetCategory(models.Model):
@@ -164,6 +171,36 @@ class Asset(models.Model):
         ),
     )
 
+    # ---------- Business impact analysis (BIA) ----------
+    # RTO/RPO/MTPD in hours. Blank means the BIA has not been completed, which
+    # is itself a gap the continuity report raises.
+    rto_hours = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text='Recovery Time Objective: how long this asset may be down.',
+    )
+    rpo_hours = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text='Recovery Point Objective: how much data loss is tolerable.',
+    )
+    mtpd_hours = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text='Maximum Tolerable Period of Disruption.',
+    )
+    bcp_policy = models.ForeignKey(
+        'policies.Policy', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='bcp_assets',
+        help_text='Business continuity plan covering this asset.',
+    )
+    drp_policy = models.ForeignKey(
+        'policies.Policy', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='drp_assets',
+        help_text='Disaster recovery plan covering this asset.',
+    )
+    last_continuity_test = models.DateField(
+        null=True, blank=True,
+        help_text='When continuity was last exercised (failover, restore, DR drill).',
+    )
+
     # ---------- Audit trail ----------
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -225,3 +262,41 @@ class Asset(models.Model):
         """Compact identifier for tables and lists."""
         bits = [b for b in [self.hostname, self.ip_address] if b]
         return ' · '.join(bits) if bits else ''
+
+    # ---------- Continuity gaps ----------
+
+    @property
+    def continuity_test_stale(self):
+        """No test on record, or the last one is more than a year old."""
+        if not self.last_continuity_test:
+            return True
+        age = (timezone.localdate() - self.last_continuity_test).days
+        return age > CONTINUITY_TEST_VALID_DAYS
+
+    @property
+    def continuity_gaps(self):
+        """Everything missing or contradictory on this asset's continuity plan."""
+        gaps = []
+        if self.rto_hours is None:
+            gaps.append('RTO not set')
+        if self.rpo_hours is None:
+            gaps.append('RPO not set')
+        if self.mtpd_hours is None:
+            gaps.append('MTPD not set')
+        if (
+            self.rto_hours is not None
+            and self.mtpd_hours is not None
+            and self.rto_hours > self.mtpd_hours
+        ):
+            gaps.append('RTO exceeds MTPD')
+        if not self.bcp_policy_id:
+            gaps.append('No BCP linked')
+        if not self.drp_policy_id:
+            gaps.append('No DRP linked')
+        if self.continuity_test_stale:
+            gaps.append('No continuity test in the last 12 months')
+        return gaps
+
+    @property
+    def continuity_complete(self):
+        return not self.continuity_gaps

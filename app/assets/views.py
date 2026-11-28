@@ -1,8 +1,10 @@
 from collections import defaultdict
+from datetime import timedelta
 
 from django.contrib import messages
 from django.db.models import Q
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
 from core.correlation import get_full_asset_context, get_policies_for_asset
@@ -21,7 +23,12 @@ from core.mixins import (
 from core.reports import ReportMixin
 
 from .forms import AssetForm
-from .models import Asset, AssetCategory
+from .models import (
+    CONTINUITY_CRITICALITY_MIN,
+    CONTINUITY_TEST_VALID_DAYS,
+    Asset,
+    AssetCategory,
+)
 
 
 # ============================================================
@@ -135,12 +142,21 @@ class AssetListView(BulkActionsMixin, SavedViewsMixin, ReportMixin, DepartmentSc
         ('Environment', 'get_environment_display'),
         ('Criticality', 'get_criticality_display'),
         ('CIA Avg', 'cia_score'),
+        ('RTO hours', lambda a: a.rto_hours if a.rto_hours is not None else ''),
+        ('RPO hours', lambda a: a.rpo_hours if a.rpo_hours is not None else ''),
+        ('MTPD hours', lambda a: a.mtpd_hours if a.mtpd_hours is not None else ''),
+        ('BCP', lambda a: a.bcp_policy.code if a.bcp_policy else ''),
+        ('DRP', lambda a: a.drp_policy.code if a.drp_policy else ''),
+        ('Last continuity test', lambda a: a.last_continuity_test or ''),
+        ('Continuity gaps', lambda a: '; '.join(a.continuity_gaps)),
         ('Description', 'description'),
         ('Created', lambda a: a.created_at.strftime('%Y-%m-%d')),
     ]
 
     def get_queryset(self):
-        qs = super().get_queryset().select_related('owner_dept', 'vendor', 'owner_user')
+        qs = super().get_queryset().select_related(
+            'owner_dept', 'vendor', 'owner_user', 'bcp_policy', 'drp_policy',
+        )
         q = search_query(self.request.GET.get('q', ''))
         if q:
             qs = qs.filter(
@@ -289,6 +305,39 @@ class AssetOwnersView(DepartmentScopedMixin, TemplateView):
             for k, v in sorted(groups.items())
         ]
         ctx['total'] = qs.count()
+        return ctx
+
+
+class AssetContinuityGapsView(DepartmentScopedMixin, TemplateView):
+    template_name = 'assets/continuity_gaps.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        qs = scope_queryset(
+            Asset.objects.filter(
+                is_active=True, criticality__gte=CONTINUITY_CRITICALITY_MIN,
+            ).select_related('owner_dept', 'bcp_policy', 'drp_policy'),
+            self.request.user,
+        ).order_by('-criticality', 'asset_id')
+
+        rows = [{'asset': a, 'gaps': a.continuity_gaps} for a in qs]
+        gaps = [row for row in rows if row['gaps']]
+        stale_before = timezone.localdate() - timedelta(days=CONTINUITY_TEST_VALID_DAYS)
+
+        ctx['rows'] = gaps
+        ctx['scoped_total'] = len(rows)
+        ctx['gap_total'] = len(gaps)
+        ctx['bia_missing'] = qs.filter(
+            Q(rto_hours__isnull=True)
+            | Q(rpo_hours__isnull=True)
+            | Q(mtpd_hours__isnull=True)
+        ).count()
+        ctx['bcp_missing'] = qs.filter(bcp_policy__isnull=True).count()
+        ctx['drp_missing'] = qs.filter(drp_policy__isnull=True).count()
+        ctx['test_stale'] = qs.filter(
+            Q(last_continuity_test__isnull=True)
+            | Q(last_continuity_test__lt=stale_before)
+        ).count()
         return ctx
 
 

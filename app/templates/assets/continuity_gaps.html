@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Continuity Gaps{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'assets:list' %}">Assets</a></li>
+    <li class="breadcrumb-item active">Continuity Gaps</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Business Continuity Gaps</h5>
+        <small class="text-muted">
+            {{ scoped_total }} business-critical asset{{ scoped_total|pluralize }} checked
+            (criticality High or Critical) &middot; {{ gap_total }} with at least one gap
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'assets:list' %}" class="btn btn-sm btn-outline-dark">All assets</a>
+        <a href="{% url 'assets:owners' %}" class="btn btn-sm btn-outline-dark">By Owner</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="value">{{ bia_missing }}</div><div class="label"><i class="bi bi-clipboard-x"></i> BIA incomplete</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="value">{{ bcp_missing }}</div><div class="label"><i class="bi bi-file-earmark-x"></i> No BCP</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="value">{{ drp_missing }}</div><div class="label"><i class="bi bi-file-earmark-x"></i> No DRP</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="value">{{ test_stale }}</div><div class="label"><i class="bi bi-hourglass-split"></i> Stale test</div></div></div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">Asset</th>
+                    <th scope="col">Criticality</th>
+                    <th scope="col">Owner</th>
+                    <th scope="col" class="text-center">RTO</th>
+                    <th scope="col" class="text-center">RPO</th>
+                    <th scope="col" class="text-center">MTPD</th>
+                    <th scope="col">BCP</th>
+                    <th scope="col">DRP</th>
+                    <th scope="col">Last test</th>
+                    <th scope="col">Gaps</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>
+                        <a href="{% url 'assets:detail' row.asset.pk %}"><code>{{ row.asset.asset_id }}</code></a>
+                        <span class="fw-bold">{{ row.asset.name|truncatechars:40 }}</span>
+                    </td>
+                    <td>
+                        {% if row.asset.criticality >= 4 %}<span class="badge bg-danger">Critical</span>
+                        {% elif row.asset.criticality == 3 %}<span class="badge bg-warning text-dark">High</span>
+                        {% else %}<span class="badge bg-secondary">{{ row.asset.get_criticality_display }}</span>{% endif %}
+                    </td>
+                    <td><small>{{ row.asset.owner_dept.name }}</small></td>
+                    <td class="text-center"><small>{% if row.asset.rto_hours is None %}&mdash;{% else %}{{ row.asset.rto_hours }}h{% endif %}</small></td>
+                    <td class="text-center"><small>{% if row.asset.rpo_hours is None %}&mdash;{% else %}{{ row.asset.rpo_hours }}h{% endif %}</small></td>
+                    <td class="text-center"><small>{% if row.asset.mtpd_hours is None %}&mdash;{% else %}{{ row.asset.mtpd_hours }}h{% endif %}</small></td>
+                    <td><small>{% if row.asset.bcp_policy %}<a href="{% url 'policies:detail' row.asset.bcp_policy.pk %}">{{ row.asset.bcp_policy.code }}</a>{% else %}<span class="text-danger">Missing</span>{% endif %}</small></td>
+                    <td><small>{% if row.asset.drp_policy %}<a href="{% url 'policies:detail' row.asset.drp_policy.pk %}">{{ row.asset.drp_policy.code }}</a>{% else %}<span class="text-danger">Missing</span>{% endif %}</small></td>
+                    <td>
+                        <small>
+                        {% if row.asset.last_continuity_test %}
+                            {{ row.asset.last_continuity_test }}
+                            {% if row.asset.continuity_test_stale %}<span class="badge bg-danger ms-1">stale</span>{% endif %}
+                        {% else %}<span class="text-danger">Never</span>{% endif %}
+                        </small>
+                    </td>
+                    <td>
+                        {% for gap in row.gaps %}
+                            <span class="badge bg-warning text-dark">{{ gap }}</span>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="10" class="text-center text-muted small py-4">No continuity gaps on business-critical assets.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body small text-muted">
+        <strong>Checks:</strong> RTO, RPO and MTPD recorded &middot; RTO not longer than MTPD &middot;
+        BCP and DRP linked &middot; continuity tested within the last 12 months.
+        Only active assets rated High or Critical are checked.
+    </div>
+</div>
+{% endblock %}

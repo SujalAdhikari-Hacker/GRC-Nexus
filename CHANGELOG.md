@@ -15,6 +15,11 @@ All notable changes to GRC Nexus are recorded here. The format follows
   left alone. A finding or ticket is **breached** when its due date is before
   today and it is still open. Existing rows are backfilled by data migration,
   and lists and detail pages show the due date with a breached badge.
+- **BIA and continuity gaps** (`assets`). Assets now carry RTO, RPO and MTPD in
+  hours, links to the BCP and DRP policies, and the date continuity was last
+  tested. A gap report checks every active High/Critical asset for a missing BIA
+  value, an unlinked BCP or DRP, RTO longer than MTPD, or no test in the last 12
+  months, and shows the gaps on the asset page.
 
 ## [3.2.0] - 2026-11-26
 

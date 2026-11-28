@@ -97,6 +97,41 @@
         </div>
 
         <div class="card mt-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-arrow-repeat"></i> Business continuity (BIA)</strong>
+                {% if asset.continuity_complete %}<span class="badge bg-success">No gaps</span>
+                {% elif asset.continuity_gaps %}<span class="badge bg-warning text-dark">{{ asset.continuity_gaps|length }} gap{{ asset.continuity_gaps|length|pluralize }}</span>{% endif %}
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">RTO</span><span>{% if asset.rto_hours is None %}&mdash;{% else %}{{ asset.rto_hours }} hours{% endif %}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">RPO</span><span>{% if asset.rpo_hours is None %}&mdash;{% else %}{{ asset.rpo_hours }} hours{% endif %}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">MTPD</span><span>{% if asset.mtpd_hours is None %}&mdash;{% else %}{{ asset.mtpd_hours }} hours{% endif %}</span></li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">BCP</span>
+                    <span>{% if asset.bcp_policy %}<a href="{% url 'policies:detail' asset.bcp_policy.pk %}">{{ asset.bcp_policy.code }}</a> &mdash; {{ asset.bcp_policy.title|truncatechars:40 }}{% else %}<span class="text-danger">Not linked</span>{% endif %}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">DRP</span>
+                    <span>{% if asset.drp_policy %}<a href="{% url 'policies:detail' asset.drp_policy.pk %}">{{ asset.drp_policy.code }}</a> &mdash; {{ asset.drp_policy.title|truncatechars:40 }}{% else %}<span class="text-danger">Not linked</span>{% endif %}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Last continuity test</span>
+                    <span>
+                        {% if asset.last_continuity_test %}
+                            {{ asset.last_continuity_test }}
+                            {% if asset.continuity_test_stale %}<span class="badge bg-danger ms-1">Stale</span>{% endif %}
+                        {% else %}<span class="text-danger">Never tested</span>{% endif %}
+                    </span>
+                </li>
+                {% if asset.continuity_gaps %}
+                <li class="list-group-item">
+                    {% for gap in asset.continuity_gaps %}<span class="badge bg-warning text-dark me-1">{{ gap }}</span>{% endfor %}
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="card mt-3">
             <div class="card-header bg-white"><strong>Risks ({{ risks|length }})</strong></div>
             <ul class="list-group list-group-flush">
                 {% for r in risks %}

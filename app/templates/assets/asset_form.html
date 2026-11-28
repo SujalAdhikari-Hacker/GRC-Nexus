@@ -129,6 +129,34 @@
                 </div>
             </div>
 
+            {# Business continuity (BIA) #}
+            <div class="card mb-3">
+                <div class="card-header bg-white"><strong><i class="bi bi-arrow-repeat"></i> Business continuity (BIA)</strong></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">RTO (hours)</label>
+                            {{ form.rto_hours }}
+                            <div class="form-text small">How long the business can tolerate this being down.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">RPO (hours)</label>
+                            {{ form.rpo_hours }}
+                            <div class="form-text small">How much data loss is tolerable.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">MTPD (hours)</label>
+                            {{ form.mtpd_hours }}
+                            <div class="form-text small">Longest outage before impact is unacceptable.</div>
+                        </div>
+                        <div class="col-md-4"><label class="form-label">Business continuity plan</label>{{ form.bcp_policy }}</div>
+                        <div class="col-md-4"><label class="form-label">Disaster recovery plan</label>{{ form.drp_policy }}</div>
+                        <div class="col-md-4"><label class="form-label">Last continuity test</label>{{ form.last_continuity_test }}</div>
+                    </div>
+                    <div class="form-text small mt-2">A gap is raised for a missing BIA value, an unlinked BCP or DRP, RTO longer than MTPD, or no test in the last 12 months.</div>
+                </div>
+            </div>
+
             {# Ownership #}
             <div class="card mb-3">
                 <div class="card-header bg-white"><strong><i class="bi bi-person"></i> Ownership</strong></div>

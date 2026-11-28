@@ -18,6 +18,9 @@ class AssetForm(forms.ModelForm):
             'owner_dept', 'owner_user', 'is_active',
             # Operational context
             'depends_on',
+            # Business continuity (BIA)
+            'rto_hours', 'rpo_hours', 'mtpd_hours',
+            'bcp_policy', 'drp_policy', 'last_continuity_test',
             # Risk ratings
             'criticality', 'confidentiality', 'integrity', 'availability', 'value',
             # Governance
@@ -28,6 +31,7 @@ class AssetForm(forms.ModelForm):
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Describe what this asset is, what it does, and where it lives.'}),
             'value': forms.NumberInput(attrs={'step': '0.01'}),
+            'last_continuity_test': forms.DateInput(attrs={'type': 'date'}),
         }
         help_texts = {
             'name':          'Short, recognizable name (e.g. "Web Application Server").',
@@ -54,6 +58,12 @@ class AssetForm(forms.ModelForm):
             'policies':      'Policies that govern this asset. Hold Ctrl (Cmd on Mac) to select multiple.',
             'category':      'Legacy category — prefer asset_type above.',
             'description':   'Required — at least 20 characters.',
+            'rto_hours':     'Hours the business can tolerate this asset being down.',
+            'rpo_hours':     'Hours of data loss the business can tolerate.',
+            'mtpd_hours':    'Longest outage before the impact becomes unacceptable.',
+            'bcp_policy':    'Business continuity plan that covers this asset.',
+            'drp_policy':    'Disaster recovery plan that covers this asset.',
+            'last_continuity_test': 'Last failover, restore or DR drill. Older than 12 months counts as stale.',
         }
 
     def clean_description(self):
