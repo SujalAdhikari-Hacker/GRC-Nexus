@@ -2793,3 +2793,62 @@ class GroupHygieneAndIncidentLayoutTests(TestCase):
         self.assertContains(resp, 'incidents-table')
         self.assertContains(resp, 'text-nowrap')
         self.assertContains(resp, 'min-width: 240px')
+
+
+class RoleDrivenDashboardTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Dashboard Role Dept')
+        cls.staff = User.objects.create_user(
+            'dash_staff', password='StrongPassword!123', department=cls.dept, is_hod=False,
+        )
+        cls.hod = User.objects.create_user(
+            'dash_hod', password='StrongPassword!123', department=cls.dept, is_hod=True,
+        )
+
+    def test_staff_and_hod_see_tailored_workspace_hubs(self):
+        from datetime import date
+
+        from policies.models import Policy
+        from risks.models import Risk, RiskCategory, RiskException
+        from tickets.models import Ticket
+
+        Policy.objects.create(
+            code='POL-DASH-1', title='Approved Staff Policy', status='approved',
+            version='1.0', owner_dept=self.dept,
+        )
+        Policy.objects.create(
+            code='POL-DASH-2', title='Pending HOD Approval Policy', status='review',
+            version='1.0', owner_dept=self.dept,
+        )
+        Ticket.objects.create(
+            title='Assigned Analyst Task', owner_dept=self.dept, assigned_to=self.staff, priority=3,
+        )
+        cat = RiskCategory.objects.create(name='Dash Risk Cat')
+        risk = Risk.objects.create(
+            title='Dash Exception Risk', category=cat, owner_dept=self.dept, likelihood=3, impact=3,
+        )
+        RiskException.objects.create(
+            risk=risk,
+            title='Legacy platform exception',
+            justification='Compensating network segmentation is active until migration finishes.',
+            status='pending',
+            expiry_date=date(2027, 1, 1),
+        )
+
+        # Staff sees My Tasks Today, NOT Approvals Queue
+        self.client.force_login(self.staff)
+        r_staff = self.client.get(reverse('core:dashboard'))
+        self.assertEqual(r_staff.status_code, 200)
+        self.assertContains(r_staff, 'My Tasks Today')
+        self.assertContains(r_staff, 'POL-DASH-1')
+        self.assertContains(r_staff, 'Assigned Analyst Task')
+        self.assertNotContains(r_staff, 'Approvals &amp; Attention Queue')
+
+        # HOD sees Approvals & Attention Queue + review policy + pending exception
+        self.client.force_login(self.hod)
+        r_hod = self.client.get(reverse('core:dashboard'))
+        self.assertEqual(r_hod.status_code, 200)
+        self.assertContains(r_hod, 'Approvals &amp; Attention Queue')
+        self.assertContains(r_hod, 'POL-DASH-2')
+        self.assertContains(r_hod, 'Dash Exception Risk')

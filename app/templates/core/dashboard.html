@@ -133,6 +133,97 @@
     {# ==================== TAB 1: OVERVIEW ==================== #}
     <div class="tab-pane fade show active" id="dash-overview" role="tabpanel" aria-labelledby="dash-overview-tab">
 
+        {# Role-Driven Hub (My Tasks / Approvals Queue) #}
+        <div class="row g-3 mb-3">
+            {% if user.is_hod or user.is_superuser %}
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <strong><i class="bi bi-check2-circle me-1"></i> Approvals &amp; Attention Queue</strong>
+                        <span class="badge {% if approvals_total_count %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ approvals_total_count }}</span>
+                    </div>
+                    <div class="card-body py-2">
+                        {% if approvals_total_count == 0 %}
+                            <div class="text-muted small py-3 text-center">No pending approvals or overdue escalations.</div>
+                        {% else %}
+                            {% for p in approval_policies %}
+                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                    <div class="small">
+                                        <span class="badge bg-info text-dark me-1">Policy review</span>
+                                        <a href="{% url 'policies:detail' p.pk %}" class="fw-semibold">{{ p.code }} — {{ p.title|truncatechars:40 }}</a>
+                                    </div>
+                                    <a href="{% url 'policies:detail' p.pk %}" class="btn btn-sm btn-outline-primary">Review</a>
+                                </div>
+                            {% endfor %}
+                            {% for ex in approval_exceptions %}
+                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                    <div class="small">
+                                        <span class="badge bg-warning text-dark me-1">Exception</span>
+                                        <a href="{% url 'risks:exception_detail' ex.pk %}" class="fw-semibold">{{ ex.risk.title|truncatechars:40 }}</a>
+                                    </div>
+                                    <a href="{% url 'risks:exception_detail' ex.pk %}" class="btn btn-sm btn-outline-primary">Review</a>
+                                </div>
+                            {% endfor %}
+                            {% for r in approval_breached_risks %}
+                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                    <div class="small">
+                                        <span class="badge bg-danger me-1">Appetite breach</span>
+                                        <a href="{% url 'risks:detail' r.pk %}" class="fw-semibold">{{ r.title|truncatechars:40 }}</a>
+                                    </div>
+                                    <span class="badge bg-dark">Residual {{ r.residual_score }}</span>
+                                </div>
+                            {% endfor %}
+                            {% for t in approval_overdue_tickets %}
+                                <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                                    <div class="small">
+                                        <span class="badge bg-danger me-1">Overdue ticket</span>
+                                        <a href="{% url 'tickets:detail' t.pk %}" class="fw-semibold">{{ t.title|truncatechars:40 }}</a>
+                                    </div>
+                                    <small class="text-danger">Due {{ t.due_date }}</small>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="{% if user.is_hod or user.is_superuser %}col-lg-6{% else %}col-12{% endif %}">
+                <div class="card h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <strong><i class="bi bi-list-check me-1"></i> My Tasks Today</strong>
+                        <span class="badge bg-dark">{{ my_pending_attestations_count|add:my_assigned_tickets_count }}</span>
+                    </div>
+                    <div class="card-body py-2">
+                        {% if my_pending_attestations_count == 0 and my_assigned_tickets_count == 0 %}
+                            <div class="text-muted small py-3 text-center">
+                                You have no pending policy attestations or assigned tickets right now.
+                            </div>
+                        {% else %}
+                            {% for p in my_pending_attestations %}
+                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                    <div class="small">
+                                        <span class="badge bg-warning text-dark me-1">Attest policy</span>
+                                        <a href="{% url 'policies:detail' p.pk %}" class="fw-semibold">{{ p.code }} v{{ p.version }} — {{ p.title|truncatechars:45 }}</a>
+                                    </div>
+                                    <a href="{% url 'policies:detail' p.pk %}" class="btn btn-sm btn-outline-primary">Read &amp; attest</a>
+                                </div>
+                            {% endfor %}
+                            {% for t in my_assigned_tickets %}
+                                <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                                    <div class="small">
+                                        <span class="badge bg-info text-dark me-1">Ticket</span>
+                                        <a href="{% url 'tickets:detail' t.pk %}" class="fw-semibold">{{ t.title|truncatechars:45 }}</a>
+                                    </div>
+                                    <small class="text-muted">{% if t.due_date %}Due {{ t.due_date }}{% else %}{{ t.get_status_display }}{% endif %}</small>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {# Tickets Row #}
         <div class="row g-3 mb-3">
             <div class="col-lg-5">

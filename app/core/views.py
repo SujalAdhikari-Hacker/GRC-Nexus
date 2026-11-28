@@ -4,7 +4,7 @@ from collections import Counter
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
-from django.db.models import Count, Q
+from django.db.models import Count, Exists, OuterRef, Q
 from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -17,8 +17,8 @@ from core.correlation import get_framework_coverage
 from core.dashboard_data import compute_trends
 from core.mixins import HODOrSuperuserMixin, SuperuserOnlyMixin, scope_queryset
 from frameworks.models import Framework
-from policies.models import Policy
-from risks.models import Risk
+from policies.models import Policy, PolicyAttestation
+from risks.models import Risk, RiskException
 from vendors.models import Vendor
 from vulnerabilities.models import Finding
 
@@ -227,6 +227,87 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         # Trend charts
         ctx.update(trends)
+
+        # ---------- Role-driven workspace hub (My Tasks / HOD Approvals Queue) ----------
+        approved_policies = Policy.objects.filter(status='approved')
+        if not user.is_superuser:
+            audience_q = Q(applies_to_departments__isnull=True)
+            if user.department_id:
+                audience_q |= Q(applies_to_departments=user.department) | Q(owner_dept=user.department)
+            approved_policies = approved_policies.filter(audience_q).distinct()
+        attested_sub = PolicyAttestation.objects.filter(
+            policy=OuterRef('pk'), user=user, version=OuterRef('version'),
+        )
+        pending_att_qs = approved_policies.annotate(
+            already_attested=Exists(attested_sub)
+        ).filter(already_attested=False).order_by('code')
+        ctx['my_pending_attestations_count'] = pending_att_qs.count()
+        ctx['my_pending_attestations'] = list(pending_att_qs[:5])
+
+        try:
+            from tickets.models import Ticket
+
+            my_ticket_qs = scope_queryset(Ticket.objects.all(), user).filter(
+                assigned_to=user, status__in=['open', 'assigned', 'in_progress', 'blocked'],
+            ).order_by('due_date', '-priority', '-created_at')
+            ctx['my_assigned_tickets_count'] = my_ticket_qs.count()
+            ctx['my_assigned_tickets'] = list(my_ticket_qs[:5])
+        except Exception:
+            ctx['my_assigned_tickets_count'] = 0
+            ctx['my_assigned_tickets'] = []
+
+        try:
+            from incidents.models import Incident
+
+            inc_base = scope_queryset(Incident.objects.all(), user).exclude(status='closed')
+            my_inc_qs = inc_base.filter(handler=user).order_by('detected_at')
+            if not my_inc_qs.exists():
+                my_inc_qs = inc_base.order_by('detected_at')
+            ctx['my_open_incidents_count'] = my_inc_qs.count()
+            ctx['my_open_incidents'] = list(my_inc_qs[:5])
+        except Exception:
+            ctx['my_open_incidents_count'] = 0
+            ctx['my_open_incidents'] = []
+
+        if user.is_hod or user.is_superuser:
+            app_pol_qs = scope_queryset(Policy.objects.filter(status='review'), user).order_by('code')
+            app_exc_qs = scope_queryset(
+                RiskException.objects.filter(status='pending').select_related('risk'),
+                user,
+                field='risk__owner_dept',
+            ).order_by('expiry_date')
+            app_breach_qs = active_risks.filter(appetite_breached=True).order_by('-residual_score')
+            try:
+                from tickets.models import Ticket
+
+                overdue_tkt_qs = scope_queryset(Ticket.objects.all(), user).filter(
+                    status__in=['open', 'assigned', 'in_progress', 'blocked'],
+                    due_date__isnull=False,
+                    due_date__lt=today,
+                ).order_by('due_date', '-priority')
+                overdue_tkt_count = overdue_tkt_qs.count()
+                overdue_tkt_list = list(overdue_tkt_qs[:5])
+            except Exception:
+                overdue_tkt_count = 0
+                overdue_tkt_list = []
+
+            ctx['approval_policies_count'] = app_pol_qs.count()
+            ctx['approval_policies'] = list(app_pol_qs[:5])
+            ctx['approval_exceptions_count'] = app_exc_qs.count()
+            ctx['approval_exceptions'] = list(app_exc_qs[:5])
+            ctx['approval_breached_count'] = app_breach_qs.count()
+            ctx['approval_breached_risks'] = list(app_breach_qs[:5])
+            ctx['approval_overdue_tickets_count'] = overdue_tkt_count
+            ctx['approval_overdue_tickets'] = overdue_tkt_list
+            ctx['approvals_total_count'] = (
+                ctx['approval_policies_count']
+                + ctx['approval_exceptions_count']
+                + ctx['approval_breached_count']
+                + overdue_tkt_count
+            )
+        else:
+            ctx['approvals_total_count'] = 0
+
         return ctx
 
 
