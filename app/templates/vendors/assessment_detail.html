@@ -63,21 +63,21 @@
 <div class="row g-3">
     <div class="col-md-7">
         <div class="card">
-            <div class="card-header bg-white"><strong>Risk dimensions</strong> <small class="text-muted">(each 0–25, higher = more risk)</small></div>
+            <div class="card-header bg-white"><strong>Risk dimensions</strong> <small class="text-muted">(each 0–20, higher = more risk)</small></div>
             <div class="card-body">
                 {% for dim in dimensions %}
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span>{{ dim.label }}</span>
                             <strong>
-                                {% if dim.value <= 5 %}<span class="badge bg-success">{{ dim.value }}/25</span>
-                                {% elif dim.value <= 12 %}<span class="badge bg-warning text-dark">{{ dim.value }}/25</span>
-                                {% elif dim.value <= 19 %}<span class="badge badge-orange">{{ dim.value }}/25</span>
-                                {% else %}<span class="badge bg-danger">{{ dim.value }}/25</span>{% endif %}
+                                {% if dim.value <= 4 %}<span class="badge bg-success">{{ dim.value }}/20</span>
+                                {% elif dim.value <= 10 %}<span class="badge bg-warning text-dark">{{ dim.value }}/20</span>
+                                {% elif dim.value <= 15 %}<span class="badge badge-orange">{{ dim.value }}/20</span>
+                                {% else %}<span class="badge bg-danger">{{ dim.value }}/20</span>{% endif %}
                             </strong>
                         </div>
                         <div class="progress h-8px">
-                            <div class="progress-bar" style="width: {% widthratio dim.value 25 100 %}%; background: {% if dim.value >= 20 %}#DC2626{% elif dim.value >= 13 %}#EA580C{% elif dim.value >= 6 %}#D97706{% else %}#059669{% endif %};"></div>
+                            <div class="progress-bar" style="width: {% widthratio dim.value 20 100 %}%; background: {% if dim.value >= 16 %}#DC2626{% elif dim.value >= 11 %}#EA580C{% elif dim.value >= 5 %}#D97706{% else %}#059669{% endif %};"></div>
                         </div>
                     </div>
                 {% endfor %}

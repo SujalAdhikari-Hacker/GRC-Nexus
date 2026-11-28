@@ -188,6 +188,11 @@ class Vendor(models.Model):
         return d is not None and d < 0
 
     @property
+    def days_overdue(self):
+        d = self.days_to_renewal
+        return abs(d) if d is not None and d < 0 else 0
+
+    @property
     def is_renewal_due_soon(self):
         d = self.days_to_renewal
         return d is not None and 0 <= d <= 30
@@ -262,21 +267,21 @@ class VendorAssessment(models.Model):
         help_text='Auto-filled from vendor. Snapshot at assessment time.'
     )
 
-    # 5 risk dimensions, each 0-25
+    # 5 risk dimensions, each 0-20 (sum 0-100)
     security_score = models.PositiveSmallIntegerField(
-        default=0, help_text='0-25. Security posture risk.'
+        default=0, help_text='0-20. Security posture risk.'
     )
     compliance_score = models.PositiveSmallIntegerField(
-        default=0, help_text='0-25. Regulatory / standard adherence risk.'
+        default=0, help_text='0-20. Regulatory / standard adherence risk.'
     )
     financial_score = models.PositiveSmallIntegerField(
-        default=0, help_text='0-25. Financial stability risk.'
+        default=0, help_text='0-20. Financial stability risk.'
     )
     reputation_score = models.PositiveSmallIntegerField(
-        default=0, help_text='0-25. Reputation and brand impact risk.'
+        default=0, help_text='0-20. Reputation and brand impact risk.'
     )
     operational_score = models.PositiveSmallIntegerField(
-        default=0, help_text='0-25. Service delivery / operational risk.'
+        default=0, help_text='0-20. Service delivery / operational risk.'
     )
 
     # Auto-computed
@@ -330,13 +335,13 @@ class VendorAssessment(models.Model):
         if self.vendor_id and not self.pk:
             self.vendor_tier = self.vendor.tier
 
-        # Clamp each dimension to 0-25
+        # Clamp each dimension to 0-20 (5 x 20 = 100 max)
         for f in ['security_score', 'compliance_score', 'financial_score', 'reputation_score', 'operational_score']:
             val = getattr(self, f) or 0
             if val < 0:
                 val = 0
-            if val > 25:
-                val = 25
+            if val > 20:
+                val = 20
             setattr(self, f, val)
 
         # Total = sum of 5 dimensions (0-100)
@@ -366,8 +371,8 @@ class VendorAssessment(models.Model):
             errors['key_findings'] = 'Key findings must be at least 20 characters.'
         for f in ['security_score', 'compliance_score', 'financial_score', 'reputation_score', 'operational_score']:
             val = getattr(self, f) or 0
-            if val < 0 or val > 25:
-                errors[f] = 'Each dimension must be between 0 and 25.'
+            if val < 0 or val > 20:
+                errors[f] = 'Each dimension must be between 0 and 20.'
         if errors:
             raise ValidationError(errors)
 

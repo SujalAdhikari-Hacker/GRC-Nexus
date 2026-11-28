@@ -53,11 +53,11 @@ class VendorAssessmentForm(forms.ModelForm):
             'key_findings', 'recommended_mitigation',
         ]
         widgets = {
-            'security_score':     forms.NumberInput(attrs={'min': 0, 'max': 25}),
-            'compliance_score':   forms.NumberInput(attrs={'min': 0, 'max': 25}),
-            'financial_score':    forms.NumberInput(attrs={'min': 0, 'max': 25}),
-            'reputation_score':   forms.NumberInput(attrs={'min': 0, 'max': 25}),
-            'operational_score':  forms.NumberInput(attrs={'min': 0, 'max': 25}),
+            'security_score':     forms.NumberInput(attrs={'min': 0, 'max': 20}),
+            'compliance_score':   forms.NumberInput(attrs={'min': 0, 'max': 20}),
+            'financial_score':    forms.NumberInput(attrs={'min': 0, 'max': 20}),
+            'reputation_score':   forms.NumberInput(attrs={'min': 0, 'max': 20}),
+            'operational_score':  forms.NumberInput(attrs={'min': 0, 'max': 20}),
             'assessment_date': forms.DateInput(attrs={'type': 'date'}),
             'next_assessment_date': forms.DateInput(attrs={'type': 'date'}),
             'key_findings': forms.Textarea(attrs={'rows': 5}),

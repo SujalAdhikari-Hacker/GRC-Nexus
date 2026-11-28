@@ -71,27 +71,27 @@
                     </div>
 
                     <hr class="my-4">
-                    <h6 class="mb-3"><i class="bi bi-shield-exclamation"></i> Risk dimensions <small class="text-muted">(each 0–25, higher = more risk)</small></h6>
+                    <h6 class="mb-3"><i class="bi bi-shield-exclamation"></i> Risk dimensions <small class="text-muted">(each 0–20, higher = more risk)</small></h6>
 
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Security risk (0–25)</label>
+                            <label class="form-label">Security risk (0–20)</label>
                             {{ form.security_score }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Compliance risk (0–25)</label>
+                            <label class="form-label">Compliance risk (0–20)</label>
                             {{ form.compliance_score }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Financial risk (0–25)</label>
+                            <label class="form-label">Financial risk (0–20)</label>
                             {{ form.financial_score }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Reputation risk (0–25)</label>
+                            <label class="form-label">Reputation risk (0–20)</label>
                             {{ form.reputation_score }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Operational risk (0–25)</label>
+                            <label class="form-label">Operational risk (0–20)</label>
                             {{ form.operational_score }}
                         </div>
                     </div>
@@ -166,11 +166,11 @@
         <div class="card sticky-top top-1rem">
             <div class="card-header bg-white"><strong>Scoring guide</strong></div>
             <div class="card-body small">
-                <p class="mb-2"><strong>Each dimension scored 0–25:</strong></p>
-                <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-success">0-5</span> Low</span><span>Minimal risk</span></div>
-                <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-warning text-dark">6-12</span> Medium</span><span>Manageable</span></div>
-                <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-orange">13-19</span> High</span><span>Needs action</span></div>
-                <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-danger">20-25</span> Critical</span><span>Urgent</span></div>
+                <p class="mb-2"><strong>Each dimension scored 0–20:</strong></p>
+                <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-success">0-4</span> Low</span><span>Minimal risk</span></div>
+                <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-warning text-dark">5-10</span> Medium</span><span>Manageable</span></div>
+                <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-orange">11-15</span> High</span><span>Needs action</span></div>
+                <div class="d-flex justify-content-between mb-1"><span><span class="badge bg-danger">16-20</span> Critical</span><span>Urgent</span></div>
 
                 <hr>
                 <p class="mb-2"><strong>Overall rating (auto):</strong></p>
@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var el = document.querySelector('[name="' + name + '"]');
             var v = parseInt(el && el.value) || 0;
             if (v < 0) v = 0;
-            if (v > 25) v = 25;
+            if (v > 20) v = 20;
             total += v;
         });
 

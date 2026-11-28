@@ -77,7 +77,7 @@
                     </td>
                     <td>
                         <small>{{ v.contract_renewal_date|default:"—" }}</small>
-                        {% if v.is_contract_expired %}<br><small class="text-danger">{{ v.days_to_renewal }} days overdue</small>
+                        {% if v.is_contract_expired %}<br><small class="text-danger">{{ v.days_overdue }} days overdue</small>
                         {% elif v.is_renewal_due_soon %}<br><small class="text-warning-emphasis">in {{ v.days_to_renewal }} days</small>{% endif %}
                     </td>
                     <td class="text-center">
