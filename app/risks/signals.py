@@ -87,6 +87,8 @@ def risk_assets_changed(sender, instance, action, pk_set, **kwargs):
     auto-generated 'Unassessed risk' rows.
     """
     if action == 'post_add' and pk_set:
+        if getattr(instance, 'source_finding_id', None):
+            return
         from assets.models import Asset
         from .services import resolve_baseline_risk_for_asset
         for asset in Asset.objects.filter(pk__in=pk_set):

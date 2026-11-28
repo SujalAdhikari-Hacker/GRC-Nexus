@@ -2338,3 +2338,117 @@ class ExternalUrlSafetyTests(TestCase):
         self.assertEqual(['unsafe_url_scheme'], [
             each.code for each in form.errors['url_location'].data
         ])
+
+
+class DeletionCascadeTests(TestCase):
+    """Deleting risks/findings cleans up cascaded risks & alert tickets without closing baselines."""
+
+    def test_finding_cascade_keeps_asset_baseline_risk_open(self):
+        import datetime as _dt
+        from assets.models import Asset
+        from risks.models import Risk
+        from vulnerabilities.models import Finding, Vulnerability
+
+        dept = Department.objects.create(name='Baseline Cascade Dept')
+        asset = Asset.objects.create(
+            asset_id='QA-BC-1', name='Baseline Host', owner_dept=dept,
+        )
+        baseline = Risk.objects.filter(
+            assets=asset, title__startswith='Unassessed risk:'
+        ).first()
+        self.assertIsNotNone(baseline)
+        self.assertEqual(baseline.status, 'identified')
+
+        vuln = Vulnerability.objects.create(
+            cve_id='CVE-2099-0101', title='Critical Cascade',
+            cvss_score='9.8', cvss_severity='critical', kev_status=True,
+        )
+        finding = Finding.objects.create(
+            vulnerability=vuln, asset=asset, owner_dept=dept,
+            discovered_date=_dt.date.today(),
+        )
+        cascaded = Risk.objects.get(source_finding=finding)
+        self.assertIn(asset, cascaded.assets.all())
+
+        baseline.refresh_from_db()
+        self.assertEqual(baseline.status, 'identified')
+
+    def test_deleting_finding_deletes_unassessed_cascaded_risk_and_cancels_alerts(self):
+        import datetime as _dt
+        from django.contrib.contenttypes.models import ContentType
+        from assets.models import Asset
+        from risks.models import Risk
+        from tickets.models import Ticket
+        from vulnerabilities.models import Finding, Vulnerability
+
+        dept = Department.objects.create(name='Delete Cascade Dept')
+        asset = Asset.objects.create(
+            asset_id='QA-DC-1', name='Delete Cascade Host', criticality=4, owner_dept=dept,
+        )
+        vuln = Vulnerability.objects.create(
+            cve_id='CVE-2099-0202', title='KEV Cascade',
+            cvss_score='9.8', cvss_severity='critical', kev_status=True,
+        )
+        finding = Finding.objects.create(
+            vulnerability=vuln, asset=asset, owner_dept=dept,
+            discovered_date=_dt.date.today(),
+        )
+        cascaded = Risk.objects.get(source_finding=finding)
+        finding_ticket = Ticket.objects.create(
+            title='KEV alert', source='alert',
+            content_type=ContentType.objects.get_for_model(Finding),
+            object_id=finding.pk, status='open', owner_dept=dept,
+        )
+        risk_ticket = Ticket.objects.create(
+            title='Risk alert', source='alert',
+            content_type=ContentType.objects.get_for_model(Risk),
+            object_id=cascaded.pk, status='open', owner_dept=dept,
+        )
+
+        finding.delete()
+
+        self.assertFalse(Risk.objects.filter(pk=cascaded.pk).exists())
+        finding_ticket.refresh_from_db()
+        risk_ticket.refresh_from_db()
+        self.assertEqual(finding_ticket.status, 'cancelled')
+        self.assertEqual(risk_ticket.status, 'cancelled')
+
+    def test_deleting_finding_keeps_assessed_risk_and_cancels_risk_ticket_on_risk_delete(self):
+        import datetime as _dt
+        from django.contrib.contenttypes.models import ContentType
+        from assets.models import Asset
+        from risks.models import Risk
+        from tickets.models import Ticket
+        from vulnerabilities.models import Finding, Vulnerability
+
+        dept = Department.objects.create(name='Assessed Cascade Dept')
+        asset = Asset.objects.create(
+            asset_id='QA-AC-1', name='Assessed Host', owner_dept=dept,
+        )
+        vuln = Vulnerability.objects.create(
+            cve_id='CVE-2099-0303', title='Assessed KEV',
+            cvss_score='9.1', cvss_severity='critical', kev_status=True,
+        )
+        finding = Finding.objects.create(
+            vulnerability=vuln, asset=asset, owner_dept=dept,
+            discovered_date=_dt.date.today(),
+        )
+        cascaded = Risk.objects.get(source_finding=finding)
+        cascaded.status = 'monitoring'
+        cascaded.save()
+
+        finding.delete()
+        cascaded.refresh_from_db()
+        self.assertIsNone(cascaded.source_finding)
+        self.assertEqual(cascaded.status, 'monitoring')
+
+        ticket = Ticket.objects.create(
+            title='Risk breach alert', source='alert',
+            content_type=ContentType.objects.get_for_model(Risk),
+            object_id=cascaded.pk, status='open', owner_dept=dept,
+        )
+        cascaded_pk = cascaded.pk
+        cascaded.delete()
+        self.assertFalse(Risk.objects.filter(pk=cascaded_pk).exists())
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.status, 'cancelled')
