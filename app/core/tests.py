@@ -2634,3 +2634,77 @@ class SearchDeleteAndSettingsFixTests(TestCase):
         self.assertFalse(Vendor.objects.filter(pk=vendor.pk).exists())
         self.assertFalse(KRI.objects.filter(pk=kri.pk).exists())
         self.assertFalse(Finding.objects.filter(pk=finding.pk).exists())
+
+
+class UIPermissionAndDropdownScopingTests(TestCase):
+    """Detail action buttons reflect server RBAC and non-superuser user pickers are dept-scoped."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from assets.models import Asset
+        from policies.models import Policy, PolicyCategory
+
+        cls.dept_a = Department.objects.create(name='UI Scope Dept A')
+        cls.dept_b = Department.objects.create(
+            name='UI Audit Dept B', has_org_read_oversight=True,
+        )
+        cls.staff_a = User.objects.create_user(
+            'uiscope_staff_a', 'sa@example.com', 'pw',
+            department=cls.dept_a, is_hod=False,
+        )
+        cls.peer_a = User.objects.create_user(
+            'uiscope_peer_a', 'pa@example.com', 'pw',
+            department=cls.dept_a, is_hod=False,
+        )
+        cls.staff_b = User.objects.create_user(
+            'uiscope_auditor_b', 'ab@example.com', 'pw',
+            department=cls.dept_b, is_hod=True,
+        )
+        cls.super_u = User.objects.create_superuser(
+            'uiscope_super', 'su@example.com', 'pw',
+        )
+        cls.asset_a = Asset.objects.create(
+            asset_id='QA-UIS-1', name='Dept A Server', owner_dept=cls.dept_a,
+        )
+        pcat = PolicyCategory.objects.create(name='UI Scope Cat')
+        cls.org_policy = Policy.objects.create(
+            code='POL-UIS-1', title='Org Wide Approved Policy',
+            category=pcat, owner_dept=cls.dept_a, status='approved',
+            approved_by=cls.staff_a,
+        )
+
+    def test_staff_sees_edit_but_not_delete_on_own_records(self):
+        self.client.force_login(self.staff_a)
+
+        asset_resp = self.client.get(reverse('assets:detail', kwargs={'pk': self.asset_a.pk}))
+        self.assertEqual(asset_resp.status_code, 200)
+        self.assertContains(asset_resp, reverse('assets:update', kwargs={'pk': self.asset_a.pk}))
+        self.assertNotContains(asset_resp, reverse('assets:delete', kwargs={'pk': self.asset_a.pk}))
+
+        pol_resp = self.client.get(reverse('policies:detail', kwargs={'pk': self.org_policy.pk}))
+        self.assertEqual(pol_resp.status_code, 200)
+        self.assertContains(pol_resp, reverse('policies:update', kwargs={'pk': self.org_policy.pk}))
+        self.assertNotContains(pol_resp, reverse('policies:delete', kwargs={'pk': self.org_policy.pk}))
+
+    def test_cross_dept_and_oversight_readers_do_not_see_edit_or_delete_buttons(self):
+        self.client.force_login(self.staff_b)
+
+        asset_resp = self.client.get(reverse('assets:detail', kwargs={'pk': self.asset_a.pk}))
+        self.assertEqual(asset_resp.status_code, 200)
+        self.assertNotContains(asset_resp, reverse('assets:update', kwargs={'pk': self.asset_a.pk}))
+        self.assertNotContains(asset_resp, reverse('assets:delete', kwargs={'pk': self.asset_a.pk}))
+
+        pol_resp = self.client.get(reverse('policies:detail', kwargs={'pk': self.org_policy.pk}))
+        self.assertEqual(pol_resp.status_code, 200)
+        self.assertNotContains(pol_resp, reverse('policies:update', kwargs={'pk': self.org_policy.pk}))
+        self.assertNotContains(pol_resp, reverse('policies:delete', kwargs={'pk': self.org_policy.pk}))
+
+    def test_non_superuser_form_user_dropdowns_stay_inside_department(self):
+        self.client.force_login(self.staff_a)
+        for url in (reverse('incidents:create'), reverse('risks:create')):
+            with self.subTest(url=url):
+                resp = self.client.get(url)
+                self.assertEqual(resp.status_code, 200)
+                self.assertContains(resp, 'uiscope_peer_a')
+                self.assertNotContains(resp, 'uiscope_auditor_b')
+                self.assertNotContains(resp, 'uiscope_super')

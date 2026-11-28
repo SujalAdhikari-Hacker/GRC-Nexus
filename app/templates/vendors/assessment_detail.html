@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load permissions_tags %}
 {% block title %}Assessment {{ assessment.assessment_id }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -21,8 +22,10 @@
         </small>
     </div>
     <div class="d-flex gap-2">
+        {% if assessment|can_change:user %}
         <a href="{% url 'vendors:assessment_update' assessment.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
-        {% if user.is_superuser or user.is_hod %}
+        {% endif %}
+        {% if assessment|can_delete:user %}
         <a href="{% url 'vendors:assessment_delete' assessment.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Delete</a>
         {% endif %}
         {% if user.is_superuser %}

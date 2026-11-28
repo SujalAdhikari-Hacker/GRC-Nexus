@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load permissions_tags %}
 {% block title %}Finding: {{ finding.title }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -27,11 +28,11 @@
         </div>
     </div>
     <div class="d-flex gap-2">
+        {% if finding|can_change:user %}
         <a href="{% url 'audits:finding_update' finding.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
-        {% if user.is_superuser %}
+        {% endif %}
         {% if user.is_superuser %}
         <a href="{% url 'admin:audits_auditfinding_change' finding.pk %}" class="btn btn-sm btn-outline-dark" title="Open in Django admin">Admin</a>
-        {% endif %}
         {% endif %}
     </div>
 </div>

@@ -17,9 +17,11 @@
         <small class="text-muted">{{ vendor.get_service_display }} · {{ vendor.get_status_display }}</small>
     </div>
     <div class="d-flex gap-2">
+        {% if vendor|can_change:user %}
         <a href="{% url 'vendors:update' vendor.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
         <a href="{% url 'vendors:assessment_create_for_vendor' vendor.pk %}" class="btn btn-sm btn-primary">+ New Assessment</a>
-        {% if user.is_superuser or user.is_hod %}
+        {% endif %}
+        {% if vendor|can_delete:user %}
         <a href="{% url 'vendors:delete' vendor.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Delete</a>
         {% endif %}
         {% if user.is_superuser %}

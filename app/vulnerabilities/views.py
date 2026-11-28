@@ -17,6 +17,7 @@ from core.mixins import (
     CsvExportMixin,
     DepartmentScopedMixin,
     HODOrSuperuserMixin,
+    exclude_anonymous_user_from_form,
     scope_queryset,
     user_can_change,
 )
@@ -344,6 +345,10 @@ class ManualVulnerabilityCreateView(LoginRequiredMixin, FormView):
 
         messages.success(self.request, f'Vulnerability logged: {vuln} on {finding.asset.asset_id}')
         return redirect('vulnerabilities:finding_detail', pk=finding.pk)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        return exclude_anonymous_user_from_form(form, user=self.request.user)
 
     def get_initial(self):
         return {

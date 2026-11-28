@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load permissions_tags %}
 {% block title %}Action {{ action.action_id }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -21,6 +22,7 @@
         </small>
     </div>
     <div class="d-flex gap-2">
+        {% if action|can_change:user %}
         {% if action.status != 'completed' %}
             <form class="m-0" method="post" action="{% url 'audits:action_complete' action.pk %}">
                 {% csrf_token %}
@@ -28,10 +30,9 @@
             </form>
         {% endif %}
         <a href="{% url 'audits:action_update' action.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
-        {% if user.is_superuser %}
+        {% endif %}
         {% if user.is_superuser %}
         <a href="{% url 'admin:audits_actionitem_change' action.pk %}" class="btn btn-sm btn-outline-dark" title="Open in Django admin">Admin</a>
-        {% endif %}
         {% endif %}
     </div>
 </div>

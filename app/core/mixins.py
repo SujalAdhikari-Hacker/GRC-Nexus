@@ -190,14 +190,34 @@ def user_can_change(user, obj, field='owner_dept'):
     return user_has_object_perm(user, obj, perms=('change',))
 
 
-def exclude_anonymous_user_from_form(form):
-    """Strip django-guardian's AnonymousUser from every User choice field on ``form``."""
+def exclude_anonymous_user_from_form(form, user=None):
+    """Strip AnonymousUser and (for non-superusers) scope User pickers to their dept."""
     from .models import User, real_users
 
-    for field in form.fields.values():
+    for name, field in form.fields.items():
         if isinstance(field, forms.ModelChoiceField) and field.queryset is not None:
             if field.queryset.model is User:
-                field.queryset = real_users(field.queryset)
+                qs = real_users(field.queryset)
+                if (
+                    user is not None
+                    and getattr(user, 'is_authenticated', False)
+                    and not user.is_superuser
+                ):
+                    dept_q = (
+                        Q(department_id=user.department_id)
+                        if getattr(user, 'department_id', None)
+                        else Q(pk__in=[])
+                    )
+                    instance = getattr(form, 'instance', None)
+                    current_pk = (
+                        getattr(instance, f'{name}_id', None)
+                        if getattr(instance, 'pk', None)
+                        else None
+                    )
+                    if current_pk:
+                        dept_q |= Q(pk=current_pk)
+                    qs = qs.filter(dept_q)
+                field.queryset = qs
     return form
 
 
@@ -290,7 +310,8 @@ class DepartmentPinnedMixin:
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        return exclude_anonymous_user_from_form(form)
+        user = getattr(getattr(self, 'request', None), 'user', None)
+        return exclude_anonymous_user_from_form(form, user=user)
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset=queryset)

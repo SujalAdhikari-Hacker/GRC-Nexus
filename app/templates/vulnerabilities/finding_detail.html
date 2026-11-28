@@ -1,4 +1,5 @@
 ﻿{% extends "base.html" %}
+{% load permissions_tags %}
 {% block title %}{{ finding.vulnerability.cve_id|default:finding.vulnerability.title|truncatechars:40 }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -24,11 +25,13 @@
         <small class="text-muted">{{ finding.vulnerability.title }}</small>
     </div>
     <div class="d-flex gap-2">
+        {% if finding|can_change:user %}
         <form class="m-0" method="post" action="{% url 'vulnerabilities:finding_cascade' finding.pk %}">
             {% csrf_token %}
             <button type="submit" class="btn btn-sm btn-outline-dark"><i class="bi bi-exclamation-triangle"></i> Create linked Risk</button>
         </form>
-        {% if user.is_superuser or user.is_hod %}
+        {% endif %}
+        {% if finding|can_delete:user %}
         <a href="{% url 'vulnerabilities:finding_delete' finding.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Delete</a>
         {% endif %}
         {% if user.is_superuser %}

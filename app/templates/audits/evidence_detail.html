@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load permissions_tags %}
 {% block title %}Evidence: {{ item.title }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -17,11 +18,13 @@
         <small class="text-muted">{{ item.get_evidence_type_display }} · added {{ item.created_at|date:"Y-m-d" }}</small>
     </div>
     <div class="d-flex gap-2">
+        {% if item|can_change:user %}
         <a href="{% url 'audits:evidence_update' item.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
         {% if score %}
             <a href="{% url 'audits:evidence_score_update' score.pk %}" class="btn btn-sm btn-primary">Edit score</a>
         {% else %}
             <a href="{% url 'audits:evidence_score_create' item.pk %}" class="btn btn-sm btn-primary">Score this evidence</a>
+        {% endif %}
         {% endif %}
     </div>
 </div>
@@ -62,7 +65,7 @@
         <div class="card">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <strong>Evidence scoring</strong>
-                {% if not score %}
+                {% if not score and item|can_change:user %}
                     <a href="{% url 'audits:evidence_score_create' item.pk %}" class="btn btn-sm btn-primary">Score</a>
                 {% endif %}
             </div>

@@ -20,11 +20,17 @@
         <small class="text-muted">{{ risk.category.name }} · {{ risk.owner_dept.name }}</small>
     </div>
     <div class="d-flex gap-2">
+        {% if risk|can_change:user %}
         <a href="{% url 'risks:update' risk.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        {% endif %}
+        {% if risk|can_delete:user %}
         <a href="{% url 'risks:delete' risk.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+        {% endif %}
+        {% if risk|can_change:user %}
         <a href="{% url 'risks:exception_create' %}?risk={{ risk.pk }}" class="btn btn-sm btn-outline-dark">
             <i class="bi bi-shield-check"></i> Request exception
         </a>
+        {% endif %}
         {% if user.is_superuser %}
         <a href="{% url 'admin:risks_risk_change' risk.pk %}" class="btn btn-sm btn-outline-dark">Admin</a>
         {% endif %}

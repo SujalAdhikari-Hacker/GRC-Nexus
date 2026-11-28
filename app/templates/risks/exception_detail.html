@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load permissions_tags %}
 {% block title %}Exception {{ exception.exception_id }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -19,7 +20,9 @@
         </small>
     </div>
     <div class="d-flex gap-2">
+        {% if exception|can_change:user %}
         <a href="{% url 'risks:exception_update' exception.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        {% endif %}
         {% if exception.status == 'pending' %}
             <form class="m-0" method="post" action="{% url 'risks:exception_approve' exception.pk %}">
                 {% csrf_token %}

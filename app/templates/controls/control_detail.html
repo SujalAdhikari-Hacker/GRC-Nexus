@@ -17,10 +17,16 @@
         <small class="text-muted">{{ control.get_category_display }} · {{ control.get_frequency_display }}</small>
     </div>
     <div class="d-flex flex-wrap gap-2">
+        {% if control|can_change:user %}
         <a href="{% url 'controls:update' control.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        {% endif %}
+        {% if control|can_delete:user %}
         <a href="{% url 'controls:delete' control.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+        {% endif %}
+        {% if control|can_change:user %}
         <a href="{% url 'controls:evidence_create' control.pk %}" class="btn btn-sm btn-outline-dark"><i class="bi bi-paperclip"></i> Add evidence</a>
         <a href="{% url 'controls:mapping_create' control.pk %}" class="btn btn-sm btn-primary"><i class="bi bi-diagram-3"></i> Map to framework</a>
+        {% endif %}
     </div>
 </div>
 

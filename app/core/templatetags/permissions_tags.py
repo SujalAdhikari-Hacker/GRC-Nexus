@@ -71,6 +71,16 @@ def can_change(obj, user):
     return _resolve_access(obj, user, user_can_change)
 
 
+@register.filter
+def can_delete(obj, user):
+    """True when ``user`` is a HOD/superuser who may delete ``obj``."""
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    if not (user.is_superuser or user.is_hod):
+        return False
+    return can_change(obj, user)
+
+
 def _resolve_access(obj, user, check):
     if obj is None:
         return False

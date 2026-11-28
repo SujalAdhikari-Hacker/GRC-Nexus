@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load permissions_tags %}
 {% block title %}Audit: {{ audit.name }}{% endblock %}
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -25,11 +26,11 @@
         <a href="{% url 'audits:audit_report' audit.pk %}" class="btn btn-sm btn-dark" target="_blank">
             <i class="bi bi-file-pdf"></i> PDF Report
         </a>
+        {% if audit|can_change:user %}
         <a href="{% url 'audits:update' audit.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
-        {% if user.is_superuser %}
+        {% endif %}
         {% if user.is_superuser %}
         <a href="{% url 'admin:audits_audit_change' audit.pk %}" class="btn btn-sm btn-outline-dark" title="Open in Django admin">Admin</a>
-        {% endif %}
         {% endif %}
     </div>
 </div>

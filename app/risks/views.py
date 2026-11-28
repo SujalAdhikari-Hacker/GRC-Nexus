@@ -40,6 +40,7 @@ from core.mixins import (
     DepartmentScopedMixin,
     HODOrSuperuserMixin,
     SavedViewsMixin,
+    exclude_anonymous_user_from_form,
     scope_queryset,
     user_can_access,
     user_can_change,
@@ -440,6 +441,10 @@ class RiskTreatmentCreateView(LoginRequiredMixin, CreateView):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        return exclude_anonymous_user_from_form(form, user=self.request.user)
+
     def form_valid(self, form):
         form.instance.risk = self.risk
         form.instance.created_by = self.request.user
@@ -521,7 +526,7 @@ class RiskAppetiteCreateView(HODOrSuperuserMixin, CreateView):
             form.fields['department'].queryset = Department.objects.filter(
                 pk=user.department_id
             )
-        return form
+        return exclude_anonymous_user_from_form(form, user=user)
 
     def form_valid(self, form):
         form.instance.created_by = self.request.user
@@ -615,6 +620,10 @@ class RiskExceptionCreateView(LoginRequiredMixin, CreateView):
     model = RiskException
     form_class = RiskExceptionForm
     template_name = 'risks/exception_form.html'
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        return exclude_anonymous_user_from_form(form, user=self.request.user)
 
     def get_initial(self):
         initial = super().get_initial()

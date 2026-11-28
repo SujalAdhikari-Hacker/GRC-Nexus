@@ -22,8 +22,12 @@
                 <i class="bi bi-file-pdf"></i> Download PDF
             </a>
         {% endif %}
+        {% if policy|can_change:user %}
         <a href="{% url 'policies:update' policy.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+        {% endif %}
+        {% if policy|can_delete:user %}
         <a href="{% url 'policies:delete' policy.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+        {% endif %}
     </div>
 </div>
 {% if policy.status == 'approved' %}
