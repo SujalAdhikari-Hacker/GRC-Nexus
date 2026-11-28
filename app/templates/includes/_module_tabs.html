@@ -1,0 +1,192 @@
+{% comment %}
+Contextual horizontal sub-navigation for multi-view modules.
+Rendered inside base.html with `ns` (namespace) and `urlname` in scope.
+{% endcomment %}
+{% if ns == 'assets' %}
+<nav class="module-tabs" aria-label="Assets navigation">
+    <a href="{% url 'assets:list' %}" class="module-tab {% if urlname == 'list' or urlname == 'detail' or urlname == 'create' or urlname == 'update' or urlname == 'delete' %}active{% endif %}">
+        <i class="bi bi-hdd-stack"></i><span>Inventory</span>
+    </a>
+    <a href="{% url 'assets:classification' %}" class="module-tab {% if urlname == 'classification' %}active{% endif %}">
+        <i class="bi bi-tags"></i><span>Classification</span>
+    </a>
+    <a href="{% url 'assets:owners' %}" class="module-tab {% if urlname == 'owners' %}active{% endif %}">
+        <i class="bi bi-people"></i><span>Owners</span>
+    </a>
+    <a href="{% url 'assets:continuity_gaps' %}" class="module-tab {% if urlname == 'continuity_gaps' %}active{% endif %}">
+        <i class="bi bi-shield-exclamation"></i><span>Continuity Gaps</span>
+    </a>
+    <a href="{% url 'assets:explorer_picker' %}" class="module-tab {% if urlname == 'explorer_picker' or urlname == 'explorer' %}active{% endif %}">
+        <i class="bi bi-diagram-2"></i><span>Explorer</span>
+    </a>
+</nav>
+
+{% elif ns == 'vendors' %}
+<nav class="module-tabs" aria-label="Vendors navigation">
+    <a href="{% url 'vendors:list' %}" class="module-tab {% if urlname == 'list' or urlname == 'detail' or urlname == 'create' or urlname == 'update' %}active{% endif %}">
+        <i class="bi bi-truck"></i><span>Vendor Register</span>
+    </a>
+    <a href="{% url 'vendors:assessment_list' %}" class="module-tab {% if 'assessment' in urlname %}active{% endif %}">
+        <i class="bi bi-clipboard-check"></i><span>Risk Assessments</span>
+    </a>
+</nav>
+
+{% elif ns == 'risks' %}
+<nav class="module-tabs" aria-label="Risks navigation">
+    <a href="{% url 'risks:list' %}" class="module-tab {% if urlname == 'list' or urlname == 'detail' or urlname == 'create' or urlname == 'update' or urlname == 'delete' %}active{% endif %}">
+        <i class="bi bi-exclamation-triangle"></i><span>Register</span>
+    </a>
+    <a href="{% url 'risks:matrix' %}" class="module-tab {% if urlname == 'matrix' %}active{% endif %}">
+        <i class="bi bi-grid-3x3"></i><span>Risk Matrix</span>
+    </a>
+    <a href="{% url 'risks:treatment_list' %}" class="module-tab {% if 'treatment' in urlname %}active{% endif %}">
+        <i class="bi bi-list-check"></i><span>Treatments</span>
+    </a>
+    <a href="{% url 'risks:exception_list' %}" class="module-tab {% if 'exception' in urlname %}active{% endif %}">
+        <i class="bi bi-shield-check"></i><span>Exceptions</span>
+    </a>
+    {% if user.is_hod or user.is_superuser %}
+    <a href="{% url 'risks:appetite_list' %}" class="module-tab {% if 'appetite' in urlname %}active{% endif %}">
+        <i class="bi bi-sliders"></i><span>Appetite</span>
+    </a>
+    {% endif %}
+</nav>
+
+{% elif ns == 'controls' %}
+<nav class="module-tabs" aria-label="Controls navigation">
+    <a href="{% url 'controls:list' %}" class="module-tab {% if urlname == 'list' or urlname == 'detail' or urlname == 'create' or urlname == 'update' or urlname == 'delete' or urlname == 'evidence_create' or urlname == 'mapping_create' %}active{% endif %}">
+        <i class="bi bi-shield-check"></i><span>Library</span>
+    </a>
+    <a href="{% url 'controls:effectiveness' %}" class="module-tab {% if urlname == 'effectiveness' %}active{% endif %}">
+        <i class="bi bi-bar-chart"></i><span>Effectiveness</span>
+    </a>
+    <a href="{% url 'controls:framework_matrix' %}" class="module-tab {% if urlname == 'framework_matrix' %}active{% endif %}">
+        <i class="bi bi-grid-1x2"></i><span>Framework Matrix</span>
+    </a>
+    <a href="{% url 'controls:lifecycle' %}" class="module-tab {% if urlname == 'lifecycle' %}active{% endif %}">
+        <i class="bi bi-diagram-2"></i><span>Lifecycle Board</span>
+    </a>
+</nav>
+
+{% elif ns == 'vulnerabilities' %}
+<nav class="module-tabs" aria-label="Vulnerabilities navigation">
+    <a href="{% url 'vulnerabilities:finding_list' %}" class="module-tab {% if urlname == 'finding_list' or urlname == 'finding_detail' or urlname == 'vulnerability_list' or urlname == 'vulnerability_detail' %}active{% endif %}">
+        <i class="bi bi-bug"></i><span>Findings</span>
+    </a>
+    <a href="{% url 'vulnerabilities:live_feed' %}" class="module-tab {% if urlname == 'live_feed' %}active{% endif %}">
+        <i class="bi bi-rss"></i><span>Live CVE Feed</span>
+    </a>
+    <a href="{% url 'vulnerabilities:manual_create' %}" class="module-tab {% if urlname == 'manual_create' %}active{% endif %}">
+        <i class="bi bi-plus-square"></i><span>Log Vulnerability</span>
+    </a>
+</nav>
+
+{% elif ns == 'frameworks' %}
+<nav class="module-tabs" aria-label="Frameworks navigation">
+    <a href="{% url 'frameworks:list' %}" class="module-tab {% if urlname == 'list' or urlname == 'detail' or urlname == 'create' or urlname == 'update' or urlname == 'control_create' or urlname == 'control_update' %}active{% endif %}">
+        <i class="bi bi-diagram-3"></i><span>Frameworks</span>
+    </a>
+    <a href="{% url 'frameworks:compliance_status' %}" class="module-tab {% if urlname == 'compliance_status' %}active{% endif %}">
+        <i class="bi bi-clipboard-data"></i><span>Compliance Status</span>
+    </a>
+    <a href="{% url 'frameworks:assessment_list' %}" class="module-tab {% if 'assessment' in urlname %}active{% endif %}">
+        <i class="bi bi-clipboard-check"></i><span>Assessments</span>
+    </a>
+    <a href="{% url 'frameworks:soa' %}" class="module-tab {% if urlname == 'soa' %}active{% endif %}">
+        <i class="bi bi-journal-check"></i><span>Statement of Applicability</span>
+    </a>
+</nav>
+
+{% elif ns == 'audits' %}
+<nav class="module-tabs" aria-label="Audits navigation">
+    <a href="{% url 'audits:list' %}" class="module-tab {% if urlname == 'list' or urlname == 'detail' or urlname == 'create' or urlname == 'update' %}active{% endif %}">
+        <i class="bi bi-clipboard-check"></i><span>Schedule</span>
+    </a>
+    <a href="{% url 'audits:timeline' %}" class="module-tab {% if urlname == 'timeline' %}active{% endif %}">
+        <i class="bi bi-kanban"></i><span>Timeline</span>
+    </a>
+    <a href="{% url 'audits:evidence_list' %}" class="module-tab {% if urlname == 'evidence_list' or urlname == 'evidence_detail' or urlname == 'evidence_create' or urlname == 'evidence_update' %}active{% endif %}">
+        <i class="bi bi-folder2-open"></i><span>Evidence</span>
+    </a>
+    <a href="{% url 'audits:score_list' %}" class="module-tab {% if 'score' in urlname %}active{% endif %}">
+        <i class="bi bi-award"></i><span>Evidence Scoring</span>
+    </a>
+    <a href="{% url 'audits:test_list' %}" class="module-tab {% if 'test' in urlname %}active{% endif %}">
+        <i class="bi bi-clipboard-data"></i><span>Control Testing</span>
+    </a>
+    <a href="{% url 'audits:finding_list' %}" class="module-tab {% if 'finding' in urlname %}active{% endif %}">
+        <i class="bi bi-exclamation-triangle"></i><span>Findings</span>
+    </a>
+    <a href="{% url 'audits:action_list' %}" class="module-tab {% if 'action' in urlname %}active{% endif %}">
+        <i class="bi bi-list-task"></i><span>Action Plans</span>
+    </a>
+</nav>
+
+{% elif ns == 'tickets' %}
+<nav class="module-tabs" aria-label="Tickets navigation">
+    <a href="{% url 'tickets:list' %}" class="module-tab {% if urlname == 'list' or urlname == 'detail' or urlname == 'update' %}active{% endif %}">
+        <i class="bi bi-ticket-detailed"></i><span>All Tickets</span>
+        {% if open_tickets_count %}<span class="module-tab-badge">{{ open_tickets_count }}</span>{% endif %}
+    </a>
+    <a href="{% url 'tickets:my_tickets' %}" class="module-tab {% if urlname == 'my_tickets' %}active{% endif %}">
+        <i class="bi bi-person-check"></i><span>My Tickets</span>
+        {% if my_tickets_count %}<span class="module-tab-badge module-tab-badge-info">{{ my_tickets_count }}</span>{% endif %}
+    </a>
+    <a href="{% url 'tickets:available' %}" class="module-tab {% if urlname == 'available' %}active{% endif %}">
+        <i class="bi bi-inbox"></i><span>Available Queue</span>
+        {% if available_tickets_count %}<span class="module-tab-badge module-tab-badge-info">{{ available_tickets_count }}</span>{% endif %}
+    </a>
+    {% if user.is_hod or user.is_superuser %}
+    <a href="{% url 'tickets:create' %}" class="module-tab {% if urlname == 'create' %}active{% endif %}">
+        <i class="bi bi-plus-square"></i><span>New Ticket</span>
+    </a>
+    {% endif %}
+</nav>
+
+{% elif ns == 'incidents' %}
+<nav class="module-tabs" aria-label="Incidents navigation">
+    <a href="{% url 'incidents:list' %}" class="module-tab {% if urlname != 'create' %}active{% endif %}">
+        <i class="bi bi-fire"></i><span>Incident Register</span>
+        {% if open_incidents_count %}<span class="module-tab-badge {% if open_incidents_critical %}module-tab-badge-danger{% endif %}">{{ open_incidents_count }}</span>{% endif %}
+    </a>
+    <a href="{% url 'incidents:create' %}" class="module-tab {% if urlname == 'create' %}active{% endif %}">
+        <i class="bi bi-plus-square"></i><span>Report Incident</span>
+    </a>
+</nav>
+
+{% elif ns == 'threatintel' %}
+<nav class="module-tabs" aria-label="Threat Intel navigation">
+    <a href="{% url 'threatintel:overview' %}" class="module-tab {% if urlname == 'overview' %}active{% endif %}">
+        <i class="bi bi-radar"></i><span>Overview</span>
+    </a>
+    <a href="{% url 'threatintel:ioc_feed' %}" class="module-tab {% if urlname == 'ioc_feed' or urlname == 'ioc_detail' %}active{% endif %}">
+        <i class="bi bi-rss"></i><span>IOC Feed</span>
+    </a>
+    <a href="{% url 'threatintel:attack_matrix' %}" class="module-tab {% if urlname == 'attack_matrix' %}active{% endif %}">
+        <i class="bi bi-grid-3x3-gap"></i><span>ATT&amp;CK Matrix</span>
+    </a>
+    <a href="{% url 'threatintel:actor_list' %}" class="module-tab {% if urlname == 'actor_list' or urlname == 'actor_detail' %}active{% endif %}">
+        <i class="bi bi-people"></i><span>Threat Actors</span>
+    </a>
+</nav>
+
+{% elif ns == 'core' and user.is_hod or ns == 'core' and user.is_superuser %}
+    {% if urlname == 'users_list' or urlname == 'user_create' or urlname == 'user_update' or urlname == 'departments_list' or urlname == 'department_create' or urlname == 'department_update' or urlname == 'roles_permissions' or urlname == 'service_runs' %}
+    <nav class="module-tabs" aria-label="Administration navigation">
+        <a href="{% url 'core:users_list' %}" class="module-tab {% if urlname == 'users_list' or urlname == 'user_create' or urlname == 'user_update' %}active{% endif %}">
+            <i class="bi bi-people"></i><span>Users</span>
+        </a>
+        <a href="{% url 'core:departments_list' %}" class="module-tab {% if 'department' in urlname %}active{% endif %}">
+            <i class="bi bi-building"></i><span>Departments</span>
+        </a>
+        <a href="{% url 'core:roles_permissions' %}" class="module-tab {% if urlname == 'roles_permissions' %}active{% endif %}">
+            <i class="bi bi-shield-lock"></i><span>Roles &amp; Permissions</span>
+        </a>
+        {% if user.is_superuser %}
+        <a href="{% url 'core:service_runs' %}" class="module-tab {% if urlname == 'service_runs' %}active{% endif %}">
+            <i class="bi bi-activity"></i><span>Service Runs</span>
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
+{% endif %}

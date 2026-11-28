@@ -59,7 +59,7 @@
                 <tr>
                     <td><a href="{% url 'audits:action_detail' a.pk %}"><code>{{ a.action_id }}</code></a></td>
                     <td><a href="{% url 'audits:action_detail' a.pk %}"><strong>{{ a.title|truncatechars:50 }}</strong></a></td>
-                    {% if a.finding|can_access:user %}<a href="{% url 'audits:finding_detail' a.finding.pk %}">{{ a.finding.title|truncatechars:30 }}</a>{% else %}{{ a.finding.title|truncatechars:30 }}{% endif %}
+                    <td>{% if a.finding|can_access:user %}<a href="{% url 'audits:finding_detail' a.finding.pk %}">{{ a.finding.title|truncatechars:30 }}</a>{% else %}{{ a.finding.title|truncatechars:30 }}{% endif %}</td>
                     <td class="text-center"><span class="badge" style="background:{{ a.priority_color }}; color:#fff;">{{ a.get_priority_display }}</span></td>
                     <td class="text-center"><span class="badge" style="background:{{ a.status_color }}; color:#fff;">{{ a.get_status_display }}</span></td>
                     <td><small>{{ a.owner_user|default:a.owner_dept.name }}</small></td>

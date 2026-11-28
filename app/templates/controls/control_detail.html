@@ -11,12 +11,12 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <h4 class="mb-0">{{ control.code }} — {{ control.name }}</h4>
         <small class="text-muted">{{ control.get_category_display }} · {{ control.get_frequency_display }}</small>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <a href="{% url 'controls:update' control.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
         <a href="{% url 'controls:delete' control.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
         <a href="{% url 'controls:evidence_create' control.pk %}" class="btn btn-sm btn-outline-dark"><i class="bi bi-paperclip"></i> Add evidence</a>
@@ -125,7 +125,9 @@
             <div class="card-header bg-white"><strong>Protects assets ({{ assets|length }})</strong></div>
             <ul class="list-group list-group-flush">
                 {% for a in assets %}
-                    {% if a|can_access:user %}<a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>{% else %}{{ a.name }}{% endif %}
+                    <li class="list-group-item">
+                        {% if a|can_access:user %}<a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>{% else %}{{ a.name }}{% endif %}
+                    </li>
                 {% empty %}
                     <li class="list-group-item text-muted text-center">No protected assets.</li>
                 {% endfor %}
@@ -164,8 +166,8 @@
                             </td>
                             <td><small>{{ t.tester|default:"—" }}</small></td>
                             <td><small class="text-muted">{{ t.procedure_notes|truncatechars:120|default:"—" }}</small></td>
-                            {% if t.audit|can_access:user %}<a href="{% url 'audits:detail' t.audit.pk %}">{{ t.audit.name|truncatechars:30 }}</a>{% else %}{{ t.audit.name|truncatechars:30 }}{% endif %}
-                            {% if t|can_change:user %}<a href="{% url 'audits:test_update' t.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>{% endif %}
+                            <td>{% if t.audit|can_access:user %}<a href="{% url 'audits:detail' t.audit.pk %}">{{ t.audit.name|truncatechars:30 }}</a>{% else %}{{ t.audit.name|truncatechars:30 }}{% endif %}</td>
+                            <td class="text-end">{% if t|can_change:user %}<a href="{% url 'audits:test_update' t.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>{% endif %}</td>
                         </tr>
                     {% empty %}
                         <tr><td colspan="6" class="text-center text-muted py-3">
@@ -200,7 +202,7 @@
                     <tbody>
                     {% for f in audit_findings %}
                         <tr>
-                            {% if f|can_access:user %}<a href="{% url 'audits:finding_detail' f.pk %}"><strong>{{ f.title|truncatechars:60 }}</strong></a>{% else %}<strong>{{ f.title|truncatechars:60 }}</strong>{% endif %}
+                            <td>{% if f|can_access:user %}<a href="{% url 'audits:finding_detail' f.pk %}"><strong>{{ f.title|truncatechars:60 }}</strong></a>{% else %}<strong>{{ f.title|truncatechars:60 }}</strong>{% endif %}</td>
                             <td class="text-center">
                                 {% if f.severity == 'critical' %}<span class="badge bg-danger">Critical</span>
                                 {% elif f.severity == 'high' %}<span class="badge bg-warning text-dark">High</span>
@@ -217,7 +219,7 @@
                             <td><small>{{ f.get_source_display }}</small></td>
                             <td><small>{{ f.owner_user|default:"—" }}</small></td>
                             <td><small>{{ f.due_date|default:"—" }}</small></td>
-                            {% if f|can_access:user %}<a href="{% url 'audits:finding_detail' f.pk %}" class="btn btn-sm btn-outline-dark">View</a>{% endif %}
+                            <td class="text-end">{% if f|can_access:user %}<a href="{% url 'audits:finding_detail' f.pk %}" class="btn btn-sm btn-outline-dark">View</a>{% endif %}</td>
                         </tr>
                     {% empty %}
                         <tr><td colspan="7" class="text-center text-muted py-3">

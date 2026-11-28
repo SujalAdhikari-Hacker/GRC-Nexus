@@ -1,24 +1,21 @@
 <div class="row text-center g-2">
-    <div class="col-4">
-        <div class="border rounded p-2">
+    <div class="col-6">
+        <div class="border border-soft rounded p-2">
             <div class="text-muted small">Inherent</div>
-            <div style="font-size:1.5rem; font-weight:600;">{{ inherent }}</div>
-            <div class="small" style="color:{{ color }};">{{ band }}</div>
+            <div style="font-size:1.5rem; font-weight:700;">{{ inherent }}</div>
+            <div class="small fw-medium" style="color:{{ color }};">{{ band }}</div>
         </div>
     </div>
-    <div class="col-4">
-        <div class="border rounded p-2">
+    <div class="col-6">
+        <div class="border border-soft rounded p-2">
             <div class="text-muted small">Residual (est.)</div>
-            <div style="font-size:1.5rem; font-weight:600;">{{ residual }}</div>
+            <div style="font-size:1.5rem; font-weight:700;">{{ residual }}</div>
             <div class="small text-muted">L{{ likelihood }} × I{{ impact }}</div>
         </div>
     </div>
-    <div class="col-4">
-        <div class="border rounded p-2">
-            <div class="text-muted small">Formula</div>
-            <div class="small pt-2">
-                Residual = Inherent × (1 − avg effectiveness)
-            </div>
+    <div class="col-12">
+        <div class="border border-soft rounded px-3 py-2 text-muted small">
+            <strong>Formula:</strong> Residual = Inherent × (1 − avg control effectiveness)
         </div>
     </div>
 </div>

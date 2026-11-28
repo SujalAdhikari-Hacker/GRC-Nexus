@@ -31,11 +31,11 @@
         <div class="card">
             <div class="card-header bg-white"><strong>Evidence details</strong></div>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Type</span><span>{{ item.get_evidence_type_display }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Related control</span><span>{% if item.related_control %}<a href="{% url 'controls:detail' item.related_control.pk %}"><code>{{ item.related_control.code }}</code></a>{% else %}—{% endif %}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Audit</span><span>{% if item.audit %}<a href="{% url 'audits:detail' item.audit.pk %}">{{ item.audit.name|truncatechars:40 }}</a>{% else %}—{% endif %}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Owner</span><span>{{ item.owner_user|default:"—" }}</span></li>
-                <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Department</span><span>{{ item.owner_dept.name }}</span></li>
+                <li class="list-group-item d-flex justify-content-between gap-3"><span class="text-muted flex-shrink-0">Type</span><span class="text-end">{{ item.get_evidence_type_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between gap-3"><span class="text-muted flex-shrink-0">Related control</span><span class="text-end">{% if item.related_control %}<a href="{% url 'controls:detail' item.related_control.pk %}"><code>{{ item.related_control.code }}</code></a>{% else %}—{% endif %}</span></li>
+                <li class="list-group-item d-flex justify-content-between gap-3"><span class="text-muted flex-shrink-0">Audit</span><span class="text-end">{% if item.audit %}<a href="{% url 'audits:detail' item.audit.pk %}">{{ item.audit.name|truncatechars:40 }}</a>{% else %}—{% endif %}</span></li>
+                <li class="list-group-item d-flex justify-content-between gap-3"><span class="text-muted flex-shrink-0">Owner</span><span class="text-end">{{ item.owner_user|default:"—" }}</span></li>
+                <li class="list-group-item d-flex justify-content-between gap-3"><span class="text-muted flex-shrink-0">Department</span><span class="text-end">{{ item.owner_dept.name }}</span></li>
             </ul>
         </div>
 

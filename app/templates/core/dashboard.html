@@ -6,331 +6,509 @@
 
 {% block content %}
 
-{# ─────────────── STAT CARDS (clickable) ─────────────── #}
+{# ─────────────── WELCOME & QUICK ACTIONS ─────────────── #}
+<div class="welcome-banner mb-4">
+    <div class="welcome-copy">
+        <div class="welcome-eyebrow">
+            {% if user.is_superuser %}
+                <span class="badge bg-info text-dark">Superadmin</span>
+                <span>Organization-wide posture</span>
+            {% elif user.is_hod %}
+                <span class="badge bg-info text-dark">HOD · {{ user.department.name|default:"Department" }}</span>
+                <span>Department posture &amp; approvals</span>
+            {% else %}
+                <span class="badge bg-secondary">{{ user.department.name|default:"Workspace" }}</span>
+                <span>Your governance workspace</span>
+            {% endif %}
+        </div>
+        <h2 class="welcome-title">Welcome back, {{ user.get_full_name|default:user.username }}</h2>
+        <p class="welcome-subtitle mb-0">
+            Track open actions, review risk posture, and jump straight into what needs attention today.
+        </p>
+    </div>
+    <div class="welcome-actions">
+        <a href="{% url 'tickets:my_tickets' %}" class="btn btn-sm btn-outline-dark">
+            <i class="bi bi-person-check me-1"></i>My Tickets
+            {% if ticket_my_count %}<span class="badge bg-info ms-1">{{ ticket_my_count }}</span>{% endif %}
+        </a>
+        <a href="{% url 'incidents:create' %}" class="btn btn-sm btn-outline-dark">
+            <i class="bi bi-fire me-1"></i>Report Incident
+        </a>
+        <a href="{% url 'core:executive_report' %}" target="_blank" rel="noopener" class="btn btn-sm btn-primary">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Executive Report
+        </a>
+    </div>
+</div>
+
+{# ─────────────── HERO STAT CARDS ─────────────── #}
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
+    <div class="col-6 col-lg-3">
         <a href="{% url 'assets:list' %}" class="stat-card-link">
             <div class="stat-card">
-                <div class="value">{{ asset_count }}</div>
-                <div class="label"><i class="bi bi-hdd-stack"></i> Assets</div>
-                <div class="stat-card-cta">View all →</div>
+                <div class="stat-card-top">
+                    <div>
+                        <div class="value" data-count-up="{{ asset_count }}">{{ asset_count }}</div>
+                        <div class="label">Assets</div>
+                    </div>
+                    <span class="stat-icon stat-icon-info"><i class="bi bi-hdd-stack"></i></span>
+                </div>
+                <div class="stat-card-cta">View inventory →</div>
             </div>
         </a>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-lg-3">
         <a href="{% url 'risks:list' %}" class="stat-card-link">
             <div class="stat-card">
-                <div class="value">{{ risk_count }}</div>
-                <div class="label">
-                    <i class="bi bi-exclamation-triangle"></i> Risks
-                    <span class="text-muted">· {{ open_risk_count }} open</span>
+                <div class="stat-card-top">
+                    <div>
+                        <div class="value" data-count-up="{{ risk_count }}">{{ risk_count }}</div>
+                        <div class="label">Risks <span class="text-muted">· {{ open_risk_count }} open</span></div>
+                    </div>
+                    <span class="stat-icon stat-icon-warning"><i class="bi bi-exclamation-triangle"></i></span>
                 </div>
                 <div class="stat-card-cta">View register →</div>
             </div>
         </a>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-lg-3">
         <a href="{% url 'risks:list' %}?breach=1" class="stat-card-link">
-            <div class="stat-card" {% if breached_count %}style="border-color:#dc3545"{% endif %}>
-                <div class="value {% if breached_count %}text-danger{% endif %}">{{ breached_count }}</div>
-                <div class="label"><i class="bi bi-shield-exclamation"></i> Appetite breaches</div>
+            <div class="stat-card {% if breached_count %}stat-alert-danger{% endif %}">
+                <div class="stat-card-top">
+                    <div>
+                        <div class="value {% if breached_count %}text-danger{% endif %}" data-count-up="{{ breached_count }}">{{ breached_count }}</div>
+                        <div class="label">Appetite breaches</div>
+                    </div>
+                    <span class="stat-icon {% if breached_count %}stat-icon-danger{% else %}stat-icon-success{% endif %}">
+                        <i class="bi bi-shield-exclamation"></i>
+                    </span>
+                </div>
                 <div class="stat-card-cta">Show breached →</div>
             </div>
         </a>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-lg-3">
         <a href="{% url 'controls:list' %}?status=implemented" class="stat-card-link">
             <div class="stat-card">
-                <div class="value">{{ implemented_control_count }}/{{ control_count }}</div>
-                <div class="label"><i class="bi bi-shield-check"></i> Controls implemented</div>
+                <div class="stat-card-top">
+                    <div>
+                        <div class="value">{{ implemented_control_count }}/{{ control_count }}</div>
+                        <div class="label">Controls implemented</div>
+                    </div>
+                    <span class="stat-icon stat-icon-success"><i class="bi bi-shield-check"></i></span>
+                </div>
                 <div class="stat-card-cta">View controls →</div>
             </div>
         </a>
     </div>
 </div>
 
-{# ─────────────── TICKETS WIDGET ─────────────── #}
-<div class="row g-3 mb-3">
-    <div class="col-md-5">
-        <a href="{% url 'tickets:list' %}" class="stat-card-link">
-            <div class="card h-100">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <strong><i class="bi bi-ticket-detailed"></i> Open Tickets</strong>
-                    <span class="badge bg-dark">{{ ticket_open_count }}</span>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3 text-center">
-                        <div class="col-4">
-                            <div style="font-size:1.6rem; font-weight:700; color:#DC2626;">{{ ticket_critical_count }}</div>
-                            <div class="text-muted small">Critical</div>
-                        </div>
-                        <div class="col-4">
-                            <div style="font-size:1.6rem; font-weight:700; color:#D97706;">{{ ticket_high_count }}</div>
-                            <div class="text-muted small">High</div>
-                        </div>
-                        <div class="col-4">
-                            <div style="font-size:1.6rem; font-weight:700; color:#6B7280;">{{ ticket_unassigned_count }}</div>
-                            <div class="text-muted small">Unassigned</div>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="d-flex justify-content-between small">
-                        <span><i class="bi bi-person-check text-token-info"></i> {{ ticket_my_count }} assigned to me</span>
-                        {% if ticket_overdue_count %}
-                            <span class="text-danger"><i class="bi bi-exclamation-triangle"></i> {{ ticket_overdue_count }} overdue</span>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
+{# ─────────────── CALM WORKSPACE TABS ─────────────── #}
+<ul class="nav module-tabs dash-tabs mb-3" id="dashTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="module-tab active" id="dash-overview-tab" data-bs-toggle="tab"
+                data-bs-target="#dash-overview" type="button" role="tab"
+                aria-controls="dash-overview" aria-selected="true">
+            <i class="bi bi-speedometer2"></i><span>Overview</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="module-tab" id="dash-analytics-tab" data-bs-toggle="tab"
+                data-bs-target="#dash-analytics" type="button" role="tab"
+                aria-controls="dash-analytics" aria-selected="false">
+            <i class="bi bi-graph-up-arrow"></i><span>Analytics &amp; Trends</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="module-tab" id="dash-compliance-tab" data-bs-toggle="tab"
+                data-bs-target="#dash-compliance" type="button" role="tab"
+                aria-controls="dash-compliance" aria-selected="false">
+            <i class="bi bi-diagram-3"></i><span>Compliance &amp; Frameworks</span>
+            {% if framework_rows %}<span class="module-tab-badge module-tab-badge-info">{{ framework_rows|length }}</span>{% endif %}
+        </button>
+    </li>
+</ul>
 
-    <div class="col-md-7">
-        <div class="card h-100">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <strong>Top open tickets</strong>
-                <div class="d-flex gap-2">
-                    <a href="{% url 'tickets:my_tickets' %}" class="btn btn-sm btn-outline-dark">My Tickets</a>
-                    <a href="{% url 'tickets:available' %}" class="btn btn-sm btn-outline-dark">Available</a>
-                </div>
-            </div>
-            <ul class="list-group list-group-flush">
-                {% for t in recent_tickets %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <a href="{% url 'tickets:detail' t.pk %}">
-                                <code>{{ t.ticket_id }}</code>
-                                {{ t.title|truncatechars:60 }}
-                            </a>
-                            <div class="small text-muted">
-                                {{ t.owner_dept.name }}
-                                {% if t.assigned_to %} · {{ t.assigned_to.username }}{% else %} · <em>Unassigned</em>{% endif %}
+<div class="tab-content" id="dashTabContent">
+
+    {# ==================== TAB 1: OVERVIEW ==================== #}
+    <div class="tab-pane fade show active" id="dash-overview" role="tabpanel" aria-labelledby="dash-overview-tab">
+
+        {# Tickets Row #}
+        <div class="row g-3 mb-3">
+            <div class="col-lg-5">
+                <a href="{% url 'tickets:list' %}" class="stat-card-link h-100">
+                    <div class="card h-100">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <strong><i class="bi bi-ticket-detailed me-1"></i> Open Tickets</strong>
+                            <span class="badge bg-dark">{{ ticket_open_count }}</span>
+                        </div>
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <div class="row g-3 text-center my-auto py-2">
+                                <div class="col-4">
+                                    <div class="kpi-mini-value text-token-danger">{{ ticket_critical_count }}</div>
+                                    <div class="text-muted small">Critical</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="kpi-mini-value text-token-warning">{{ ticket_high_count }}</div>
+                                    <div class="text-muted small">High</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="kpi-mini-value text-token-muted">{{ ticket_unassigned_count }}</div>
+                                    <div class="text-muted small">Unassigned</div>
+                                </div>
+                            </div>
+                            <div class="pt-3 mt-2 border-top border-soft d-flex justify-content-between small">
+                                <span><i class="bi bi-person-check text-token-info me-1"></i>{{ ticket_my_count }} assigned to me</span>
+                                {% if ticket_overdue_count %}
+                                    <span class="text-danger fw-medium"><i class="bi bi-exclamation-triangle me-1"></i>{{ ticket_overdue_count }} overdue</span>
+                                {% endif %}
                             </div>
                         </div>
-                        <div class="text-end">
-                            <span class="badge" style="background:{{ t.priority_color }}; color:#fff;">{{ t.get_priority_display }}</span>
-                            {% if t.is_overdue %}<div class="small text-danger fw-bold">Overdue</div>{% endif %}
-                        </div>
-                    </li>
-                {% empty %}
-                    <li class="list-group-item text-muted text-center small py-4">
-                        <i class="bi bi-check-circle" style="font-size:1.5rem; opacity:.4;"></i>
-                        <div class="mt-2">No open tickets. All clear.</div>
-                    </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-</div>
+                    </div>
+                </a>
+            </div>
 
-{# ─────────────── INCIDENTS WIDGET ─────────────── #}
-<div class="row g-3 mb-3">
-    <div class="col-md-5">
-        <a href="{% url 'incidents:list' %}" class="stat-card-link">
-            <div class="card h-100">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <strong><i class="bi bi-fire"></i> Open Incidents</strong>
-                    <span class="badge bg-dark">{{ incident_open_count }}</span>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3 text-center">
-                        <div class="col-4">
-                            <div style="font-size:1.6rem; font-weight:700; color:#DC2626;">{{ incident_critical_count }}</div>
-                            <div class="text-muted small">Critical / high</div>
-                        </div>
-                        <div class="col-4">
-                            <div style="font-size:1.6rem; font-weight:700; color:#D97706;">{{ incident_sla_count }}</div>
-                            <div class="text-muted small">Past triage SLA</div>
-                        </div>
-                        <div class="col-4">
-                            <div style="font-size:1.6rem; font-weight:700; color:#6B7280;">{{ incident_breach_count }}</div>
-                            <div class="text-muted small">Data breaches</div>
+            <div class="col-lg-7">
+                <div class="card h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <strong>Top open tickets</strong>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'tickets:my_tickets' %}" class="btn btn-sm btn-outline-dark">My Tickets</a>
+                            <a href="{% url 'tickets:available' %}" class="btn btn-sm btn-outline-dark">Available</a>
                         </div>
                     </div>
+                    <ul class="list-group list-group-flush">
+                        {% for t in recent_tickets %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                                <div class="min-w-0">
+                                    <a href="{% url 'tickets:detail' t.pk %}" class="d-block text-truncate">
+                                        <code class="me-1">{{ t.ticket_id }}</code>{{ t.title|truncatechars:60 }}
+                                    </a>
+                                    <div class="small text-muted">
+                                        {{ t.owner_dept.name }}
+                                        {% if t.assigned_to %} · {{ t.assigned_to.username }}{% else %} · <em>Unassigned</em>{% endif %}
+                                    </div>
+                                </div>
+                                <div class="text-end flex-shrink-0">
+                                    <span class="badge" style="background:{{ t.priority_color }}; color:#fff;">{{ t.get_priority_display }}</span>
+                                    {% if t.is_overdue %}<div class="small text-danger fw-bold mt-1">Overdue</div>{% endif %}
+                                </div>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item empty-state-compact">
+                                <i class="bi bi-check-circle text-token-success"></i>
+                                <div>No open tickets. All clear.</div>
+                            </li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
-        </a>
-    </div>
+        </div>
 
-    <div class="col-md-7">
-        <div class="card h-100">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <strong>Unresolved incidents</strong>
-                <a href="{% url 'incidents:create' %}" class="btn btn-sm btn-outline-dark">Report incident</a>
-            </div>
-            <ul class="list-group list-group-flush">
-                {% for i in recent_incidents %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <a href="{% url 'incidents:detail' i.pk %}">
-                                <code>{{ i.reference }}</code>
-                                {{ i.title|truncatechars:60 }}
-                            </a>
-                            <div class="small text-muted">
-                                {{ i.owner_dept.name }} · detected {{ i.detected_at|date:"M d, H:i" }}
-                                {% if i.handler %} · {{ i.handler.username }}{% else %} · <em>Unassigned</em>{% endif %}
+        {# Incidents Row #}
+        <div class="row g-3 mb-3">
+            <div class="col-lg-5">
+                <a href="{% url 'incidents:list' %}" class="stat-card-link h-100">
+                    <div class="card h-100">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <strong><i class="bi bi-fire me-1"></i> Open Incidents</strong>
+                            <span class="badge bg-dark">{{ incident_open_count }}</span>
+                        </div>
+                        <div class="card-body d-flex align-items-center">
+                            <div class="row g-3 text-center w-100">
+                                <div class="col-4">
+                                    <div class="kpi-mini-value text-token-danger">{{ incident_critical_count }}</div>
+                                    <div class="text-muted small">Critical / high</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="kpi-mini-value text-token-warning">{{ incident_sla_count }}</div>
+                                    <div class="text-muted small">Past triage SLA</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="kpi-mini-value text-token-muted">{{ incident_breach_count }}</div>
+                                    <div class="text-muted small">Data breaches</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="text-end">
-                            <span class="badge {{ i.severity_badge }}">{{ i.get_severity_display }}</span>
-                            {% if i.sla_breached %}<div class="small text-danger fw-bold">SLA missed</div>{% endif %}
-                        </div>
-                    </li>
-                {% empty %}
-                    <li class="list-group-item text-muted text-center small py-4">
-                        <i class="bi bi-check-circle" style="font-size:1.5rem; opacity:.4;"></i>
-                        <div class="mt-2">No unresolved incidents. All clear.</div>
-                    </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-</div>
+                    </div>
+                </a>
+            </div>
 
-{# ─────────────── RISK HEATMAP + SEVERITY SUMMARY ─────────────── #}
-<div class="row g-3 mb-3">
-    <div class="col-md-7">
-        <div class="card h-100">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <strong>Risk heatmap <small class="text-muted">(inherent score)</small></strong>
-                <div class="small">
-                    <span class="badge" style="background:#198754;">Low</span>
-                    <span class="badge" style="background:#ffc107; color:#000;">Medium</span>
-                    <span class="badge" style="background:#fd7e14;">High</span>
-                    <span class="badge" style="background:#dc3545;">Critical</span>
+            <div class="col-lg-7">
+                <div class="card h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <strong>Unresolved incidents</strong>
+                        <a href="{% url 'incidents:create' %}" class="btn btn-sm btn-outline-dark">Report incident</a>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        {% for i in recent_incidents %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                                <div class="min-w-0">
+                                    <a href="{% url 'incidents:detail' i.pk %}" class="d-block text-truncate">
+                                        <code class="me-1">{{ i.reference }}</code>{{ i.title|truncatechars:60 }}
+                                    </a>
+                                    <div class="small text-muted">
+                                        {{ i.owner_dept.name }} · detected {{ i.detected_at|date:"M d, H:i" }}
+                                        {% if i.handler %} · {{ i.handler.username }}{% else %} · <em>Unassigned</em>{% endif %}
+                                    </div>
+                                </div>
+                                <div class="text-end flex-shrink-0">
+                                    <span class="badge {{ i.severity_badge }}">{{ i.get_severity_display }}</span>
+                                    {% if i.sla_breached %}<div class="small text-danger fw-bold mt-1">SLA missed</div>{% endif %}
+                                </div>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item empty-state-compact">
+                                <i class="bi bi-check-circle text-token-success"></i>
+                                <div>No unresolved incidents. All clear.</div>
+                            </li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                <table class="table table-bordered mb-0 table-fixed">
-                    <tbody>
-                    {% for row in heatmap %}
-                        <tr>
-                            <td class="text-center align-middle bg-light fw-bold w-60">
-                                I{{ row.0.impact }}
-                            </td>
-                            {% for cell in row %}
-                                <td class="text-center align-middle
-                                    {% if cell.band == 'critical' %}hm-critical
-                                    {% elif cell.band == 'high' %}hm-high
-                                    {% elif cell.band == 'medium' %}hm-medium
-                                    {% else %}hm-low{% endif %}"
-                                    style="height:60px;">
-                                    {% if cell.count %}
-                                        <div class="stat-value-lg">{{ cell.count }}</div>
-                                        <div style="font-size:.7rem; opacity:.8;">score {{ cell.score }}</div>
-                                    {% else %}
-                                        <div class="text-muted" style="font-size:.75rem;">{{ cell.score }}</div>
-                                    {% endif %}
-                                </td>
+        </div>
+
+        {# Heatmap + Severity Breakdown #}
+        <div class="row g-3 mb-3">
+            <div class="col-lg-7">
+                <div class="card h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <strong>Risk heatmap <small class="text-muted fw-normal">(inherent score)</small></strong>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <span class="badge bg-success">Low</span>
+                            <span class="badge bg-warning">Medium</span>
+                            <span class="badge badge-orange">High</span>
+                            <span class="badge bg-danger">Critical</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                        <table class="table table-bordered mb-0 table-fixed heatmap-table">
+                            <tbody>
+                            {% for row in heatmap %}
+                                <tr>
+                                    <td class="text-center align-middle bg-light fw-bold w-60">I{{ row.0.impact }}</td>
+                                    {% for cell in row %}
+                                        <td class="text-center align-middle hm-cell
+                                            {% if cell.band == 'critical' %}hm-critical
+                                            {% elif cell.band == 'high' %}hm-high
+                                            {% elif cell.band == 'medium' %}hm-medium
+                                            {% else %}hm-low{% endif %}">
+                                            {% if cell.count %}
+                                                <div class="stat-value-lg">{{ cell.count }}</div>
+                                                <div class="fs-10 opacity-75">score {{ cell.score }}</div>
+                                            {% else %}
+                                                <div class="text-muted fs-11">{{ cell.score }}</div>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
                             {% endfor %}
-                        </tr>
-                    {% endfor %}
-                    <tr>
-                        <td class="bg-light"></td>
-                        <td class="text-center bg-light fw-bold">L1</td>
-                        <td class="text-center bg-light fw-bold">L2</td>
-                        <td class="text-center bg-light fw-bold">L3</td>
-                        <td class="text-center bg-light fw-bold">L4</td>
-                        <td class="text-center bg-light fw-bold">L5</td>
-                    </tr>
-                    </tbody>
-                </table>
+                            <tr>
+                                <td class="bg-light"></td>
+                                <td class="text-center bg-light fw-bold">L1</td>
+                                <td class="text-center bg-light fw-bold">L2</td>
+                                <td class="text-center bg-light fw-bold">L3</td>
+                                <td class="text-center bg-light fw-bold">L4</td>
+                                <td class="text-center bg-light fw-bold">L5</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        </div>
+                        <div class="text-center text-muted small mt-2">
+                            Likelihood (1 = rare, 5 = almost certain) →
+                        </div>
+                    </div>
                 </div>
-                <div class="text-center text-muted small mt-2">
-                    Likelihood (1 = rare, 5 = almost certain) →
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card h-100">
+                    <div class="card-header bg-white"><strong>Severity breakdown</strong></div>
+                    <div class="card-body d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1 small">
+                                    <span><i class="bi bi-circle-fill text-token-danger me-1"></i> Critical (20–25)</span>
+                                    <strong>{{ severity_summary.critical }}</strong>
+                                </div>
+                                <div class="progress h-8px">
+                                    <div class="progress-bar bg-danger" style="width: {% widthratio severity_summary.critical risk_count 100 %}%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1 small">
+                                    <span><i class="bi bi-circle-fill me-1" style="color:#EA580C;"></i> High (12–19)</span>
+                                    <strong>{{ severity_summary.high }}</strong>
+                                </div>
+                                <div class="progress h-8px">
+                                    <div class="progress-bar" style="background:#EA580C; width: {% widthratio severity_summary.high risk_count 100 %}%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1 small">
+                                    <span><i class="bi bi-circle-fill text-token-warning me-1"></i> Medium (6–11)</span>
+                                    <strong>{{ severity_summary.medium }}</strong>
+                                </div>
+                                <div class="progress h-8px">
+                                    <div class="progress-bar bg-warning" style="width: {% widthratio severity_summary.medium risk_count 100 %}%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1 small">
+                                    <span><i class="bi bi-circle-fill text-token-success me-1"></i> Low (1–5)</span>
+                                    <strong>{{ severity_summary.low }}</strong>
+                                </div>
+                                <div class="progress h-8px">
+                                    <div class="progress-bar bg-success" style="width: {% widthratio severity_summary.low risk_count 100 %}%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-top border-soft text-center">
+                            <div class="text-muted small">Total risks</div>
+                            <div class="fs-2 fw-bold lh-sm my-1">{{ risk_count }}</div>
+                            <div class="text-muted small">{{ breached_count }} breaching appetite</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Top Risks + Recently Added Assets #}
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <div class="card h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <strong>Top 5 risks by residual score</strong>
+                        <a href="{% url 'risks:list' %}" class="btn btn-sm btn-outline-dark">View register</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col">Risk</th>
+                                    <th scope="col" class="text-center">Inherent</th>
+                                    <th scope="col" class="text-center">Residual</th>
+                                    <th scope="col" class="text-center">Breach</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for r in top_risks %}
+                                <tr>
+                                    <td>{% if r|can_access:user %}<a href="{% url 'risks:detail' r.pk %}">{{ r.title }}</a>{% else %}{{ r.title }}{% endif %}</td>
+                                    <td class="text-center">{{ r.inherent_score }}</td>
+                                    <td class="text-center"><strong>{{ r.residual_score }}</strong></td>
+                                    <td class="text-center">
+                                        {% if r.appetite_breached %}
+                                            <span class="badge bg-danger">Yes</span>
+                                        {% else %}
+                                            <span class="badge bg-success">No</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">No risks yet.</td></tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <strong>Recently added assets</strong>
+                        <a href="{% url 'assets:list' %}" class="btn btn-sm btn-outline-dark">View all</a>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        {% for a in recent_assets %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                                <a href="{% url 'assets:detail' a.pk %}" class="text-truncate">{{ a.name }}</a>
+                                <small class="text-muted flex-shrink-0">{{ a.category.name|default:"—" }}</small>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item empty-state-compact">
+                                <i class="bi bi-hdd-stack"></i>
+                                <div>No assets yet.</div>
+                            </li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-5">
-        <div class="card h-100">
-            <div class="card-header bg-white"><strong>Severity breakdown</strong></div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span><i class="bi bi-circle-fill" style="color:#dc3545;"></i> Critical (20–25)</span>
-                        <strong>{{ severity_summary.critical }}</strong>
-                    </div>
-                    <div class="progress h-8px">
-                        <div class="progress-bar bg-danger" style="width: {% widthratio severity_summary.critical risk_count 100 %}%"></div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span><i class="bi bi-circle-fill" style="color:#fd7e14;"></i> High (12–19)</span>
-                        <strong>{{ severity_summary.high }}</strong>
-                    </div>
-                    <div class="progress h-8px">
-                        <div class="progress-bar" style="background:#fd7e14; width: {% widthratio severity_summary.high risk_count 100 %}%"></div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span><i class="bi bi-circle-fill" style="color:#ffc107;"></i> Medium (6–11)</span>
-                        <strong>{{ severity_summary.medium }}</strong>
-                    </div>
-                    <div class="progress h-8px">
-                        <div class="progress-bar bg-warning" style="width: {% widthratio severity_summary.medium risk_count 100 %}%"></div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span><i class="bi bi-circle-fill" style="color:#198754;"></i> Low (1–5)</span>
-                        <strong>{{ severity_summary.low }}</strong>
-                    </div>
-                    <div class="progress h-8px">
-                        <div class="progress-bar bg-success" style="width: {% widthratio severity_summary.low risk_count 100 %}%"></div>
-                    </div>
-                </div>
+    {# ==================== TAB 2: ANALYTICS & TRENDS ==================== #}
+    <div class="tab-pane fade" id="dash-analytics" role="tabpanel" aria-labelledby="dash-analytics-tab">
 
-                <hr>
-                <div class="text-center">
-                    <div class="text-muted small">Total risks</div>
-                    <div style="font-size:2rem; font-weight:700;">{{ risk_count }}</div>
-                    <div class="text-muted small">{{ breached_count }} breaching appetite</div>
+        <div class="row g-3 mb-3">
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white"><strong>Risks by category</strong></div>
+                    <div class="card-body h-280px">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white"><strong>Control implementation status</strong></div>
+                    <div class="card-body h-280px">
+                        <canvas id="controlChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-{# ─────────────── CHARTS ROW 1 ─────────────── #}
-<div class="row g-3 mb-3">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-white"><strong>Risks by category</strong></div>
-            <div class="card-body h-280px">
-                <canvas id="categoryChart"></canvas>
+        <div class="row g-3 mb-3">
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <strong>Risk posture trend</strong>
+                        <small class="text-muted d-block">Average inherent vs residual score over the last 6 months</small>
+                    </div>
+                    <div class="card-body h-280px">
+                        <canvas id="riskPostureChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <strong>Remediation velocity</strong>
+                        <small class="text-muted d-block">Findings remediated and action items completed per month</small>
+                    </div>
+                    <div class="card-body h-280px">
+                        <canvas id="remediationChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-white"><strong>Control implementation status</strong></div>
-            <div class="card-body h-280px">
-                <canvas id="controlChart"></canvas>
+
+        <div class="row g-3 mb-3">
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white"><strong>Risks added (last 6 months)</strong></div>
+                    <div class="card-body h-260px">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <strong>Risk register movement</strong>
+                        <small class="text-muted d-block">Risks created vs closed per month</small>
+                    </div>
+                    <div class="card-body h-260px">
+                        <canvas id="registerMovementChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
-{# ─────────────── TREND ─────────────── #}
-<div class="row g-3 mb-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-white"><strong>Risks added (last 6 months)</strong></div>
-            <div class="card-body" style="height:260px;">
-                <canvas id="trendChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-{# ─────────────── TOP RISKY ASSETS ─────────────── #}
-<div class="row g-3 mb-3">
-    <div class="col-12">
         <div class="card">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <div>
@@ -377,13 +555,13 @@
                                     {{ row.exposure }}
                                 </span>
                             </td>
-                            {% if row.top_risk|can_access:user %}<a href="{% url 'risks:detail' row.top_risk.pk %}">{{ row.top_risk.title|truncatechars:45 }}</a>{% else %}{{ row.top_risk.title|truncatechars:45 }}{% endif %}
+                            <td>{% if row.top_risk|can_access:user %}<a href="{% url 'risks:detail' row.top_risk.pk %}">{{ row.top_risk.title|truncatechars:45 }}</a>{% else %}{{ row.top_risk.title|truncatechars:45 }}{% endif %}</td>
                             <td class="text-end">
                                 <a href="{% url 'assets:detail' row.asset.pk %}" class="btn btn-sm btn-outline-dark">View</a>
                             </td>
                         </tr>
                     {% empty %}
-                        <tr><td colspan="9" class="text-center text-muted py-3">
+                        <tr><td colspan="9" class="text-center text-muted py-4">
                             No asset-risk associations yet. Link risks to assets to see this ranking.
                         </td></tr>
                     {% endfor %}
@@ -392,141 +570,53 @@
             </div>
         </div>
     </div>
-</div>
 
-{# ─────────────── TOP RISKS + RECENT ASSETS ─────────────── #}
-<div class="row g-3">
-    <div class="col-md-7">
+    {# ==================== TAB 3: COMPLIANCE & FRAMEWORKS ==================== #}
+    <div class="tab-pane fade" id="dash-compliance" role="tabpanel" aria-labelledby="dash-compliance-tab">
         <div class="card">
-            <div class="card-header bg-white"><strong>Top 5 risks by residual score</strong></div>
-            <div class="table-responsive">
-                <table class="table mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col">Risk</th>
-                            <th scope="col" class="text-center">Inherent</th>
-                            <th scope="col" class="text-center">Residual</th>
-                            <th scope="col" class="text-center">Breach</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% for r in top_risks %}
-                        <tr>
-                            {% if r|can_access:user %}<a href="{% url 'risks:detail' r.pk %}">{{ r.title }}</a>{% else %}{{ r.title }}{% endif %}
-                            <td class="text-center">{{ r.inherent_score }}</td>
-                            <td class="text-center"><strong>{{ r.residual_score }}</strong></td>
-                            <td class="text-center">
-                                {% if r.appetite_breached %}
-                                    <span class="badge bg-danger">Yes</span>
-                                {% else %}
-                                    <span class="badge bg-success">No</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% empty %}
-                        <tr><td colspan="4" class="text-center text-muted py-3">No risks yet.</td></tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-5">
-        <div class="card">
-            <div class="card-header bg-white"><strong>Recently added assets</strong></div>
-            <ul class="list-group list-group-flush">
-                {% for a in recent_assets %}
-                    <li class="list-group-item d-flex justify-content-between">
-                        <a href="{% url 'assets:detail' a.pk %}">{{ a.name }}</a>
-                        <small class="text-muted">{{ a.category.name|default:"—" }}</small>
-                    </li>
-                {% empty %}
-                    <li class="list-group-item text-muted text-center">No assets yet.</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-</div>
-
-{# ─────────────── TREND CHARTS ─────────────── #}
-<div class="row g-3 mb-3">
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header bg-white">
-                <strong>Risk posture trend</strong>
-                <small class="text-muted d-block">Average inherent vs residual score over the last 6 months</small>
-            </div>
-            <div class="card-body h-280px">
-                <canvas id="riskPostureChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header bg-white">
-                <strong>Remediation velocity</strong>
-                <small class="text-muted d-block">Findings remediated and action items completed per month</small>
-            </div>
-            <div class="card-body h-280px">
-                <canvas id="remediationChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-3 mb-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-white">
-                <strong>Risk register movement</strong>
-                <small class="text-muted">Risks created vs closed per month — tracks net change in the register</small>
-            </div>
-            <div class="card-body" style="height:240px;">
-                <canvas id="registerMovementChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-{# ─────────────── FRAMEWORK COVERAGE ─────────────── #}
-<div class="row g-3 mt-1">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <strong>Framework coverage</strong>
-                <a href="{% url 'frameworks:list' %}" class="btn btn-sm btn-outline-dark">View all</a>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <strong>Framework coverage</strong>
+                    <small class="text-muted d-block">Weighted control mapping coverage across active standards</small>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{% url 'frameworks:compliance_status' %}" class="btn btn-sm btn-outline-dark">Compliance Status</a>
+                    <a href="{% url 'frameworks:soa' %}" class="btn btn-sm btn-outline-dark">SoA Report</a>
+                    <a href="{% url 'frameworks:list' %}" class="btn btn-sm btn-primary">Manage Frameworks</a>
+                </div>
             </div>
             <div class="card-body">
                 {% if framework_rows %}
-                    {% for fw, cov in framework_rows %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between small mb-1">
-                            <a href="{% url 'frameworks:detail' fw.pk %}">{{ fw.name }} {{ fw.version }}</a>
-                            <span>{{ cov.covered }}/{{ cov.total }} · <strong>{{ cov.percent }}%</strong></span>
+                    <div class="row g-3">
+                        {% for fw, cov in framework_rows %}
+                        <div class="col-md-6">
+                            <a href="{% url 'frameworks:detail' fw.pk %}" class="fw-coverage-tile">
+                                <div class="d-flex justify-content-between align-items-baseline gap-2 mb-2">
+                                    <span class="fw-semibold text-truncate">{{ fw.name }} <span class="text-muted fw-normal">{{ fw.version }}</span></span>
+                                    <span class="small flex-shrink-0">
+                                        <span class="text-muted">{{ cov.covered }}/{{ cov.total }}</span>
+                                        <strong class="ms-1">{{ cov.percent }}%</strong>
+                                    </span>
+                                </div>
+                                <div class="progress h-8px">
+                                    <div class="progress-bar {% if cov.percent >= 75 %}bg-success{% elif cov.percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                                         role="progressbar" style="width: {{ cov.percent }}%;"></div>
+                                </div>
+                            </a>
                         </div>
-                        <div class="progress h-8px">
-                            <div class="progress-bar {% if cov.percent >= 75 %}bg-success{% elif cov.percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
-                                 role="progressbar" style="width: {{ cov.percent }}%;"></div>
-                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 {% else %}
-                    <div class="text-muted text-center py-3">No frameworks configured.</div>
+                    <div class="empty-state-compact py-4">
+                        <i class="bi bi-diagram-3"></i>
+                        <div>No frameworks configured yet.</div>
+                    </div>
                 {% endif %}
             </div>
         </div>
     </div>
-</div>
 
-{# ─────────────── HEATMAP CELL STYLES ─────────────── #}
-<style>
-    .hm-low      { background: #ECFDF5; color: #065F46; }
-    .hm-medium   { background: #FFFBEB; color: #78350F; }
-    .hm-high     { background: #FFF7ED; color: #7C2D12; }
-    .hm-critical { background: #FEF2F2; color: #7F1D1D; }
-</style>
+</div>
 
 {% endblock %}
 
@@ -552,188 +642,232 @@
         return;
     }
 
-    // Read server data from json_script blocks (XSS-safe).
     function dj(id, fallback) {
         var el = document.getElementById(id);
         if (!el) { return fallback; }
         try { return JSON.parse(el.textContent); } catch (e) { return fallback; }
     }
 
-    // ---------- Risks by category ----------
-    var categoryLabels = dj('dash-category-labels', []);
-    var categoryValues = dj('dash-category-values', []);
-
-    var categoryCanvas = document.getElementById('categoryChart');
-    if (categoryCanvas && categoryLabels.length) {
-        new Chart(categoryCanvas, {
-            type: 'doughnut',
-            data: {
-                labels: categoryLabels,
-                datasets: [{
-                    data: categoryValues,
-                    backgroundColor: [
-                        '#0d6efd', '#dc3545', '#ffc107', '#198754', '#6f42c1',
-                        '#fd7e14', '#20c997', '#6c757d'
-                    ],
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { boxWidth: 12, padding: 10 } } }
-            }
-        });
-    } else if (categoryCanvas) {
-        categoryCanvas.parentElement.innerHTML = '<div class="text-muted text-center pt-5">No risk data yet.</div>';
+    function themeColors() {
+        var cs = getComputedStyle(document.documentElement);
+        return {
+            text: (cs.getPropertyValue('--text-muted') || '#6B7280').trim(),
+            grid: (cs.getPropertyValue('--border-soft') || '#E5E7EB').trim()
+        };
     }
 
-    // ---------- Control implementation status ----------
-    var controlData = dj('dash-control-status', {});
-    var controlCanvas = document.getElementById('controlChart');
-    if (controlCanvas) {
-        new Chart(controlCanvas, {
-            type: 'bar',
-            data: {
-                labels: ['Planned', 'Implemented', 'Not implemented', 'N/A'],
-                datasets: [{
-                    label: 'Controls',
-                    data: [
-                        controlData.planned || 0,
-                        controlData.implemented || 0,
-                        controlData.not_implemented || 0,
-                        controlData.not_applicable || 0
-                    ],
-                    backgroundColor: ['#ffc107', '#198754', '#dc3545', '#6c757d'],
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-            }
-        });
-    }
+    var charts = [];
+    var initialized = false;
 
-    // ---------- Risks added (last 6 months) ----------
-    var monthLabels = dj('dash-month-labels', []);
-    var monthValues = dj('dash-month-values', []);
-    var trendCanvas = document.getElementById('trendChart');
-    if (trendCanvas) {
-        new Chart(trendCanvas, {
-            type: 'line',
-            data: {
-                labels: monthLabels,
-                datasets: [{
-                    label: 'Risks added',
-                    data: monthValues,
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 5,
-                    pointBackgroundColor: '#0d6efd',
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-            }
-        });
-    }
+    function initAnalyticsCharts() {
+        if (initialized) {
+            charts.forEach(function (c) { c.resize(); });
+            return;
+        }
+        initialized = true;
 
-    // ---------- Shared trend arrays ----------
-    var trendLabels = dj('dash-trend-labels', []);
-    var inherentTrend = dj('dash-inherent-trend', []);
-    var residualTrend = dj('dash-residual-trend', []);
-    var findingsRemediated = dj('dash-findings-remediated', []);
-    var actionsCompleted = dj('dash-actions-completed', []);
-    var risksCreated = dj('dash-risks-created', []);
-    var risksClosed = dj('dash-risks-closed', []);
+        var c = themeColors();
+        Chart.defaults.color = c.text;
+        Chart.defaults.borderColor = c.grid;
 
-    // ---------- Risk posture trend ----------
-    var postureCanvas = document.getElementById('riskPostureChart');
-    if (postureCanvas) {
-        new Chart(postureCanvas, {
-            type: 'line',
-            data: {
-                labels: trendLabels,
-                datasets: [
-                    {
-                        label: 'Avg inherent score',
-                        data: inherentTrend,
-                        borderColor: '#DC2626',
-                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+        // ---------- Risks by category ----------
+        var categoryLabels = dj('dash-category-labels', []);
+        var categoryValues = dj('dash-category-values', []);
+        var categoryCanvas = document.getElementById('categoryChart');
+        if (categoryCanvas && categoryLabels.length) {
+            charts.push(new Chart(categoryCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        data: categoryValues,
+                        borderWidth: 0,
+                        backgroundColor: [
+                            '#0284C7', '#DC2626', '#D97706', '#059669', '#6366F1',
+                            '#EA580C', '#14B8A6', '#64748B'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '64%',
+                    plugins: { legend: { position: 'right', labels: { boxWidth: 12, padding: 12 } } }
+                }
+            }));
+        } else if (categoryCanvas) {
+            categoryCanvas.parentElement.innerHTML = '<div class="empty-state-compact h-100"><i class="bi bi-pie-chart"></i><div>No risk data yet.</div></div>';
+        }
+
+        // ---------- Control implementation status ----------
+        var controlData = dj('dash-control-status', {});
+        var controlCanvas = document.getElementById('controlChart');
+        if (controlCanvas) {
+            charts.push(new Chart(controlCanvas, {
+                type: 'bar',
+                data: {
+                    labels: ['Planned', 'Implemented', 'Not implemented', 'N/A'],
+                    datasets: [{
+                        label: 'Controls',
+                        borderRadius: 6,
+                        data: [
+                            controlData.planned || 0,
+                            controlData.implemented || 0,
+                            controlData.not_implemented || 0,
+                            controlData.not_applicable || 0
+                        ],
+                        backgroundColor: ['#D97706', '#059669', '#DC2626', '#64748B']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: c.grid } }, x: { grid: { display: false } } }
+                }
+            }));
+        }
+
+        // ---------- Risks added (last 6 months) ----------
+        var monthLabels = dj('dash-month-labels', []);
+        var monthValues = dj('dash-month-values', []);
+        var trendCanvas = document.getElementById('trendChart');
+        if (trendCanvas) {
+            charts.push(new Chart(trendCanvas, {
+                type: 'line',
+                data: {
+                    labels: monthLabels,
+                    datasets: [{
+                        label: 'Risks added',
+                        data: monthValues,
+                        borderColor: '#00A8E8',
+                        backgroundColor: 'rgba(0, 168, 232, 0.12)',
                         fill: true,
-                        tension: 0.3,
+                        tension: 0.35,
                         pointRadius: 4,
-                        pointBackgroundColor: '#DC2626',
-                    },
-                    {
-                        label: 'Avg residual score',
-                        data: residualTrend,
-                        borderColor: '#059669',
-                        backgroundColor: 'rgba(5, 150, 105, 0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#059669',
-                    },
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
-                scales: { y: { beginAtZero: true, suggestedMax: 25, ticks: { precision: 0 } } }
-            }
+                        pointBackgroundColor: '#00A8E8'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: c.grid } }, x: { grid: { display: false } } }
+                }
+            }));
+        }
+
+        // ---------- Shared trend arrays ----------
+        var trendLabels = dj('dash-trend-labels', []);
+        var inherentTrend = dj('dash-inherent-trend', []);
+        var residualTrend = dj('dash-residual-trend', []);
+        var findingsRemediated = dj('dash-findings-remediated', []);
+        var actionsCompleted = dj('dash-actions-completed', []);
+        var risksCreated = dj('dash-risks-created', []);
+        var risksClosed = dj('dash-risks-closed', []);
+
+        // ---------- Risk posture trend ----------
+        var postureCanvas = document.getElementById('riskPostureChart');
+        if (postureCanvas) {
+            charts.push(new Chart(postureCanvas, {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [
+                        {
+                            label: 'Avg inherent score',
+                            data: inherentTrend,
+                            borderColor: '#DC2626',
+                            backgroundColor: 'rgba(220, 38, 38, 0.10)',
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#DC2626'
+                        },
+                        {
+                            label: 'Avg residual score',
+                            data: residualTrend,
+                            borderColor: '#059669',
+                            backgroundColor: 'rgba(5, 150, 105, 0.10)',
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#059669'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+                    scales: { y: { beginAtZero: true, suggestedMax: 25, ticks: { precision: 0 }, grid: { color: c.grid } }, x: { grid: { display: false } } }
+                }
+            }));
+        }
+
+        // ---------- Remediation velocity ----------
+        var remediationCanvas = document.getElementById('remediationChart');
+        if (remediationCanvas) {
+            charts.push(new Chart(remediationCanvas, {
+                type: 'bar',
+                data: {
+                    labels: trendLabels,
+                    datasets: [
+                        { label: 'Findings remediated', data: findingsRemediated, backgroundColor: '#0284C7', borderRadius: 4 },
+                        { label: 'Actions completed', data: actionsCompleted, backgroundColor: '#059669', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: c.grid } }, x: { grid: { display: false } } }
+                }
+            }));
+        }
+
+        // ---------- Risk register movement ----------
+        var movementCanvas = document.getElementById('registerMovementChart');
+        if (movementCanvas) {
+            charts.push(new Chart(movementCanvas, {
+                type: 'bar',
+                data: {
+                    labels: trendLabels,
+                    datasets: [
+                        { label: 'Risks opened', data: risksCreated, backgroundColor: '#D97706', borderRadius: 4 },
+                        { label: 'Risks closed', data: risksClosed, backgroundColor: '#059669', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: c.grid } }, x: { grid: { display: false } } }
+                }
+            }));
+        }
+    }
+
+    var analyticsTabBtn = document.getElementById('dash-analytics-tab');
+    if (analyticsTabBtn) {
+        analyticsTabBtn.addEventListener('shown.bs.tab', function () {
+            initAnalyticsCharts();
         });
     }
 
-    // ---------- Remediation velocity ----------
-    var remediationCanvas = document.getElementById('remediationChart');
-    if (remediationCanvas) {
-        new Chart(remediationCanvas, {
-            type: 'bar',
-            data: {
-                labels: trendLabels,
-                datasets: [
-                    { label: 'Findings remediated', data: findingsRemediated, backgroundColor: '#0284C7' },
-                    { label: 'Actions completed', data: actionsCompleted, backgroundColor: '#059669' },
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
-                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    var observer = new MutationObserver(function () {
+        if (!charts.length) return;
+        var c = themeColors();
+        Chart.defaults.color = c.text;
+        Chart.defaults.borderColor = c.grid;
+        charts.forEach(function (chart) {
+            if (chart.options && chart.options.scales && chart.options.scales.y && chart.options.scales.y.grid) {
+                chart.options.scales.y.grid.color = c.grid;
             }
+            chart.update('none');
         });
-    }
-
-    // ---------- Risk register movement ----------
-    var movementCanvas = document.getElementById('registerMovementChart');
-    if (movementCanvas) {
-        new Chart(movementCanvas, {
-            type: 'bar',
-            data: {
-                labels: trendLabels,
-                datasets: [
-                    { label: 'Risks opened', data: risksCreated, backgroundColor: '#D97706' },
-                    { label: 'Risks closed', data: risksClosed, backgroundColor: '#059669' },
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
-                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-            }
-        });
-    }
-
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme'] });
 })();
 </script>
 {% endblock %}
