@@ -275,6 +275,10 @@ DIGEST_LOOKBACK_HOURS = config('DIGEST_LOOKBACK_HOURS', default=24, cast=int)
 ESCALATION_GRACE_DAYS = config('ESCALATION_GRACE_DAYS', default=1, cast=int)
 # Risk exceptions / vendor contracts are warned about this many days ahead.
 ESCALATION_WARN_DAYS = config('ESCALATION_WARN_DAYS', default=14, cast=int)
+# Comma-separated addresses for monthly executive PDF board-report packs.
+BOARD_REPORT_RECIPIENTS = config(
+    'BOARD_REPORT_RECIPIENTS', default='', cast=Csv()
+)
 
 # --------------------------------------------------------------------------
 # Security defaults (kept permissive here; prod.py tightens them).

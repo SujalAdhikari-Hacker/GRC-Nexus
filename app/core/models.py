@@ -88,6 +88,18 @@ class OrganisationProfile(models.Model):
         null=True, blank=True,
         help_text='Date of the most recent board security briefing'
     )
+    board_report_enabled = models.BooleanField(
+        default=True,
+        help_text='Enable scheduled monthly executive PDF board-report delivery.',
+    )
+    board_report_recipients = models.TextField(
+        blank=True,
+        help_text='Additional recipient emails (comma or newline separated) for the monthly board pack.',
+    )
+    last_board_report_sent_at = models.DateTimeField(
+        null=True, blank=True, editable=False,
+        help_text='Timestamp when the automated board-report pack was last emailed.',
+    )
 
     annual_revenue = models.DecimalField(
         max_digits=16, decimal_places=2, default=0,

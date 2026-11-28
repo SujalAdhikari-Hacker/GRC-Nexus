@@ -94,23 +94,36 @@ def local_asset_url_fetcher():
     return _LocalAssetURLFetcher()
 
 
-def render_pdf(request, template_name, context, filename):
-    """Render a Django template to PDF."""
-    from weasyprint import HTML
+def render_pdf_bytes(template_name, context, *, base_url=None, generated_by=None, request=None):
+    """Render a Django template to raw PDF bytes (usable with or without HTTP request)."""
+    from django.conf import settings
     from django.utils import timezone
+    from weasyprint import HTML
 
-    context['request'] = request
-    context['generated_at'] = timezone.now()
-    context['generated_by'] = getattr(request, 'user', None)
+    ctx = dict(context)
+    if request is not None:
+        ctx['request'] = request
+    ctx['generated_at'] = timezone.now()
+    ctx['generated_by'] = generated_by or (getattr(request, 'user', None) if request else None)
 
-    html_string = render_to_string(template_name, context, request=request)
+    if base_url is None:
+        if request is not None:
+            base_url = request.build_absolute_uri('/')
+        else:
+            base_url = f"{getattr(settings, 'SITE_BASE_URL', 'http://localhost:8000').rstrip('/')}/"
+
+    html_string = render_to_string(template_name, ctx, request=request)
     html = HTML(
         string=html_string,
-        base_url=request.build_absolute_uri('/'),
+        base_url=base_url,
         url_fetcher=local_asset_url_fetcher(),
     )
-    pdf_bytes = html.write_pdf()
+    return html.write_pdf()
 
+
+def render_pdf(request, template_name, context, filename):
+    """Render a Django template to PDF."""
+    pdf_bytes = render_pdf_bytes(template_name, context, request=request)
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response

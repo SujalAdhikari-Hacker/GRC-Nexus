@@ -97,7 +97,7 @@ def _unique_addresses(users):
 # Sending
 # ---------------------------------------------------------------------------
 
-def send_email(subject, text_body, recipients, *, html_body=None):
+def send_email(subject, text_body, recipients, *, html_body=None, attachments=None):
     """Send one message to many recipients. Returns the number delivered.
 
     Never raises: any transport error is logged and reported as ``0``.
@@ -116,6 +116,8 @@ def send_email(subject, text_body, recipients, *, html_body=None):
         )
         if html_body:
             message.attach_alternative(html_body, 'text/html')
+        for att_name, att_content, att_mime in (attachments or ()):
+            message.attach(att_name, att_content, att_mime)
         return message.send(fail_silently=False)
     except Exception:  # pragma: no cover - depends on the SMTP transport
         logger.exception('Failed to send %r to %s', subject, recipients)
@@ -278,4 +280,57 @@ def send_escalation_email(recipients, items, *, dept_name=None):
         addresses,
         html_body=render_html(heading, intro, items, cta_url='/notifications/',
                               cta_label='Open GRC Nexus'),
+    )
+
+
+def send_board_report_email(recipients, pdf_bytes, *, report_data, period_label, filename):
+    """Email the monthly executive board report pack with the PDF attached."""
+    addresses = list(dict.fromkeys([r.strip() for r in (recipients or []) if r and r.strip()]))
+    if not addresses or not pdf_bytes:
+        return 0
+
+    active_risks = report_data.get('total_risks', 0)
+    breached = report_data.get('breached_risks', 0)
+    coverage = report_data.get('overall_coverage', 0)
+    effective = report_data.get('effective_controls', 0)
+    total_controls = report_data.get('total_controls', 0)
+    open_findings = report_data.get('open_findings', 0)
+    overdue_findings = report_data.get('overdue_findings', 0)
+
+    items = [
+        {
+            'title': f'Active risks: {active_risks} ({breached} appetite breach(es))',
+            'meta': 'Enterprise Risk Posture',
+            'url': '/risks/',
+            'severity': 'danger' if breached else 'info',
+        },
+        {
+            'title': f'Framework compliance coverage: {coverage}%',
+            'meta': f'{effective}/{total_controls} controls verified effective',
+            'url': '/frameworks/',
+            'severity': 'info' if coverage >= 70 else 'warning',
+        },
+        {
+            'title': f'Open vulnerability findings: {open_findings} ({overdue_findings} overdue)',
+            'meta': 'Vulnerability Remediation SLA',
+            'url': '/vulnerabilities/',
+            'severity': 'danger' if overdue_findings else 'info',
+        },
+    ]
+
+    heading = f'Board Security Briefing — {period_label}'
+    intro = (
+        'Attached is this month\'s GRC Nexus executive PDF pack summarising '
+        'enterprise risk, control effectiveness, compliance coverage, and SLA posture.'
+    )
+    subject = f'[GRC Nexus] Monthly Board Security Report — {period_label}'
+
+    return send_email(
+        subject,
+        render_text(heading, intro, items, cta_url='/reports/executive/',
+                    cta_label='Download Executive PDF'),
+        addresses,
+        html_body=render_html(heading, intro, items, cta_url='/reports/executive/',
+                              cta_label='Open Executive Report'),
+        attachments=[(filename, pdf_bytes, 'application/pdf')],
     )

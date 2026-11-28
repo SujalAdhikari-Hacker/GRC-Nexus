@@ -67,7 +67,10 @@ class OrganisationProfileAdmin(SimpleHistoryAdmin):
 
     fieldsets = (
         ('Governance', {
-            'fields': ('executive_sponsor', 'security_committee_chair', 'last_board_report_date')
+            'fields': (
+                'executive_sponsor', 'security_committee_chair', 'last_board_report_date',
+                'board_report_enabled', 'board_report_recipients', 'last_board_report_sent_at',
+            )
         }),
         ('Financial', {
             'fields': ('annual_revenue', 'annual_security_budget')
@@ -83,6 +86,7 @@ class OrganisationProfileAdmin(SimpleHistoryAdmin):
             'classes': ('collapse',)
         }),
     )
+    readonly_fields = ('last_board_report_sent_at', 'updated_at', 'updated_by')
 
     def save_model(self, request, obj, form, change):
         obj.updated_by = request.user

@@ -1,10 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.core.management import call_command
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from .models import OrganisationProfile
 from .settings_model import UserPreference
 from .settings_forms import UserPreferenceForm
 from .email_config import describe
@@ -42,8 +45,35 @@ def settings_view(request):
         'user_timezone': timezone.get_current_timezone(),
         'server_timezone': timezone.get_default_timezone(),
         'email_status': describe(),
+        'org_profile': OrganisationProfile.get() if request.user.is_superuser else None,
     }
     return render(request, 'core/settings.html', ctx)
+
+
+@login_required
+@require_POST
+def send_board_report_now(request):
+    """Trigger immediate generation & email delivery of the executive board PDF pack."""
+    if not request.user.is_superuser:
+        raise PermissionDenied('Only superadmins can trigger board report delivery.')
+
+    from core.management.commands.send_board_report import resolve_board_recipients
+
+    org = OrganisationProfile.get()
+    recipients = resolve_board_recipients(org)
+    if not recipients:
+        messages.error(
+            request,
+            'No board report recipients configured. Add an executive sponsor, board recipient, or superadmin email first.',
+        )
+        return redirect(reverse('core:settings'))
+
+    call_command('send_board_report', force=True)
+    messages.success(
+        request,
+        f'Board report PDF pack sent to {len(recipients)} recipient(s).',
+    )
+    return redirect(reverse('core:settings'))
 
 
 @login_required

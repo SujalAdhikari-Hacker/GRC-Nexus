@@ -267,6 +267,22 @@
                     </div>
                     <a href="{% url 'core:email_settings' %}" class="btn btn-sm btn-outline-dark">Configure</a>
                 </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Board report pack</strong>
+                        <div class="small text-muted">
+                            {% if org_profile.last_board_report_sent_at %}
+                                Last sent {{ org_profile.last_board_report_sent_at|date:"Y-m-d H:i" }}
+                            {% else %}
+                                Not yet emailed
+                            {% endif %}
+                        </div>
+                    </div>
+                    <form method="post" action="{% url 'core:send_board_report_now' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-dark text-nowrap">Send now</button>
+                    </form>
+                </li>
                 {% endif %}
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">App</span><span>GRC Nexus</span></li>
                 <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Version</span><code>v3.2.0</code></li>
