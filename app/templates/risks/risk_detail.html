@@ -20,6 +20,13 @@
         <small class="text-muted">{{ risk.category.name }} · {{ risk.owner_dept.name }}</small>
     </div>
     <div class="d-flex gap-2">
+        {% if risk|can_change:user and risk.status != 'closed' %}
+            {% if user.is_hod or user.is_superuser %}
+            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approveCloseRiskModal">
+                <i class="bi bi-check2-circle"></i> Approve &amp; Close
+            </button>
+            {% endif %}
+        {% endif %}
         {% if risk|can_change:user %}
         <a href="{% url 'risks:update' risk.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
         {% endif %}
@@ -114,7 +121,28 @@
 
     <div class="col-md-6">
         <div class="card">
-            <div class="card-header bg-white"><strong>Mitigating controls ({{ controls|length }})</strong></div>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Mitigating controls ({{ controls|length }})</strong>
+                {% if risk|can_change:user and available_controls %}
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#linkControlBox">
+                    <i class="bi bi-link-45deg"></i> Link control
+                </button>
+                {% endif %}
+            </div>
+            {% if risk|can_change:user and available_controls %}
+            <div class="collapse border-bottom bg-light p-2" id="linkControlBox">
+                <form method="post" action="{% url 'risks:link_control' risk.pk %}" class="d-flex gap-2 align-items-center">
+                    {% csrf_token %}
+                    <select name="control_id" class="form-select form-select-sm" required>
+                        <option value="">Choose a control...</option>
+                        {% for c in available_controls %}
+                            <option value="{{ c.pk }}">{{ c.code }} — {{ c.name|truncatechars:45 }} ({{ c.get_effectiveness_rating_display }})</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary text-nowrap">Link</button>
+                </form>
+            </div>
+            {% endif %}
             <ul class="list-group list-group-flush">
                 {% for c in controls %}
                     <li class="list-group-item">
@@ -210,4 +238,35 @@
         {% include 'includes/_share_panel.html' with obj=risk %}
     </div>
 </div>
+
+{% if risk|can_change:user and risk.status != 'closed' %}
+    {% if user.is_hod or user.is_superuser %}
+    <div class="modal fade" id="approveCloseRiskModal" tabindex="-1" aria-labelledby="approveCloseRiskModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{% url 'risks:approve_close' risk.pk %}">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="approveCloseRiskModalLabel">Approve &amp; Close RSK-{{ risk.pk|stringformat:"04d" }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small text-muted">
+                            Records your formal closure approval and stamps today's date as closed.
+                        </p>
+                        <div>
+                            <label class="form-label fw-semibold" for="id_risk_closure_notes">Closure rationale (optional)</label>
+                            <textarea name="closure_notes" id="id_risk_closure_notes" rows="3" class="form-control" placeholder="Why this risk is acceptable to close">{{ risk.closure_notes }}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check2-circle"></i> Approve &amp; Close</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endif %}
 {% endblock %}

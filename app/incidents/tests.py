@@ -305,3 +305,18 @@ class IncidentSuperadminAndClosureTests(IncidentBase):
         )
         incident.refresh_from_db()
         self.assertNotEqual(incident.status, 'closed')
+
+    def test_one_click_advance_progresses_incident_and_stamps_timestamps(self):
+        incident = self.make_incident(status='detected')
+        self.client.force_login(self.user)
+
+        for expected_status in ('triaged', 'contained', 'mitigated'):
+            resp = self.client.post(reverse('incidents:advance', args=[incident.pk]))
+            self.assertRedirects(resp, reverse('incidents:detail', args=[incident.pk]))
+            incident.refresh_from_db()
+            self.assertEqual(incident.status, expected_status)
+
+        self.assertIsNotNone(incident.triaged_at)
+        self.assertIsNotNone(incident.contained_at)
+        self.assertIsNotNone(incident.resolved_at)
+        self.assertEqual(incident.handler, self.user)

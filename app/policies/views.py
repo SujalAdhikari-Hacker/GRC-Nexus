@@ -1,8 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView, View
+from django.views.generic.detail import SingleObjectMixin
 
 from core.correlation import get_full_policy_context
 from core.input_validation import choice, positive_int, search_query
@@ -213,3 +217,47 @@ class PolicyDeleteView(HODOrSuperuserMixin, ChangeScopedMixin, DeleteView):
         response = super().form_valid(form)
         messages.success(self.request, f'Policy {label} deleted.')
         return response
+
+
+class PolicyTransitionView(ChangeScopedMixin, SingleObjectMixin, View):
+    """POST-only 1-click policy lifecycle transitions."""
+
+    model = Policy
+    http_method_names = ['post']
+
+    _ACTIONS = {
+        'submit_review': ('review', False, 'submitted for review'),
+        'approve': ('approved', True, 'approved'),
+        'request_changes': ('draft', True, 'returned to Draft for changes'),
+        'retire': ('retired', True, 'retired'),
+        'reopen': ('draft', False, 'reopened as Draft'),
+    }
+
+    def post(self, request, *args, **kwargs):
+        policy = self.get_object()
+        action = (request.POST.get('action') or '').strip()
+        if action not in self._ACTIONS:
+            messages.error(request, 'Unsupported policy workflow action.')
+            return redirect('policies:detail', pk=policy.pk)
+
+        target_status, hod_only, verb = self._ACTIONS[action]
+        if hod_only and not (request.user.is_superuser or request.user.is_hod):
+            raise PermissionDenied('Only a department HOD or superadmin can perform this policy action.')
+
+        if not policy.can_transition_to(target_status) or policy.status == target_status:
+            messages.error(
+                request,
+                f'Cannot move policy {policy.code} from {policy.get_status_display()} to {dict(Policy.STATUS_CHOICES).get(target_status, target_status)}.',
+            )
+            return redirect('policies:detail', pk=policy.pk)
+
+        policy.status = target_status
+        policy.updated_by = request.user
+        update_fields = ['status', 'updated_by', 'updated_at']
+        if target_status == 'approved':
+            policy.approved_by = request.user
+            policy.approval_date = timezone.localdate()
+            update_fields.extend(['approved_by', 'approval_date'])
+        policy.save(update_fields=update_fields)
+        messages.success(request, f'Policy {policy.code} {verb}.')
+        return redirect('policies:detail', pk=policy.pk)

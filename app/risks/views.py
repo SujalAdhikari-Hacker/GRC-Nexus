@@ -16,7 +16,9 @@ from django.views.generic import (
     ListView,
     TemplateView,
     UpdateView,
+    View,
 )
+from django.views.generic.detail import SingleObjectMixin
 
 _RISK_CODE_RE = re.compile(r'^(?:rsk[-_\s]*)?0*(\d+)$', re.IGNORECASE)
 
@@ -186,9 +188,69 @@ class RiskDetailView(DepartmentScopedMixin, DetailView):
     context_object_name = 'risk'
 
     def get_context_data(self, **kwargs):
+        from controls.models import Control
+
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_risk_context(self.object))
+        if user_can_change(self.object, self.request.user):
+            linked_ids = self.object.controls.values_list('pk', flat=True)
+            ctx['available_controls'] = (
+                scope_queryset(Control.objects.all(), self.request.user)
+                .exclude(pk__in=linked_ids)
+                .order_by('code')
+            )
+        else:
+            ctx['available_controls'] = []
         return ctx
+
+
+class RiskLinkControlView(ChangeScopedMixin, SingleObjectMixin, View):
+    """POST-only quick action to link a mitigating control directly on Risk detail."""
+
+    model = Risk
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        from controls.models import Control
+
+        risk = self.get_object()
+        control_id = request.POST.get('control_id')
+        if not control_id:
+            messages.error(request, 'Select a control to link.')
+            return redirect('risks:detail', pk=risk.pk)
+
+        scoped_controls = scope_queryset(Control.objects.all(), request.user)
+        control = get_object_or_404(scoped_controls, pk=positive_int(control_id, 'control_id'))
+        risk.controls.add(control)
+        recalculate_risk(risk)
+        messages.success(request, f'Linked control {control.code} and updated residual score.')
+        return redirect('risks:detail', pk=risk.pk)
+
+
+class RiskApproveCloseView(HODOrSuperuserMixin, ChangeScopedMixin, SingleObjectMixin, View):
+    """POST-only 1-click HOD/Superadmin closure approval for a risk."""
+
+    model = Risk
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        risk = self.get_object()
+        if risk.status == 'closed':
+            messages.info(request, f'Risk RSK-{risk.pk:04d} is already closed.')
+            return redirect('risks:detail', pk=risk.pk)
+
+        notes = (request.POST.get('closure_notes') or '').strip()
+        risk.status = 'closed'
+        risk.approved_by = request.user
+        risk.approved_at = timezone.now()
+        risk.closed_date = timezone.localdate()
+        if notes:
+            risk.closure_notes = notes
+        risk.updated_by = request.user
+        risk.save()
+        recalculate_risk(risk)
+        messages.success(request, f'Risk RSK-{risk.pk:04d} approved and closed.')
+        return redirect('risks:detail', pk=risk.pk)
 
 
 class RiskCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateView):

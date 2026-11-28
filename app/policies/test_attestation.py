@@ -97,3 +97,32 @@ class AttestFlowTests(AttestationBase):
         self.client.force_login(self.superuser)
         resp = self.client.get(f'/policies/{policy.pk}/')
         self.assertContains(resp, 'I have read and accept this policy')
+
+    def test_one_click_policy_workflow_transitions_and_hod_guard(self):
+        pol_staff = User.objects.create_user(
+            'pol_staff', password='pw', department=self.owner_dept, is_hod=False,
+        )
+        hod = User.objects.create_user(
+            'pol_hod', password='pw', department=self.owner_dept, is_hod=True,
+        )
+        policy = self.make_policy(status='draft')
+
+        # Staff in owning dept can submit draft for review
+        self.client.force_login(pol_staff)
+        r_submit = self.client.post(f'/policies/{policy.pk}/transition/', {'action': 'submit_review'})
+        self.assertRedirects(r_submit, f'/policies/{policy.pk}/')
+        policy.refresh_from_db()
+        self.assertEqual(policy.status, 'review')
+
+        # Regular staff cannot approve
+        r_forbid = self.client.post(f'/policies/{policy.pk}/transition/', {'action': 'approve'})
+        self.assertEqual(r_forbid.status_code, 403)
+
+        # HOD approves -> approved_by and approval_date stamped automatically
+        self.client.force_login(hod)
+        r_app = self.client.post(f'/policies/{policy.pk}/transition/', {'action': 'approve'})
+        self.assertRedirects(r_app, f'/policies/{policy.pk}/')
+        policy.refresh_from_db()
+        self.assertEqual(policy.status, 'approved')
+        self.assertEqual(policy.approved_by, hod)
+        self.assertIsNotNone(policy.approval_date)

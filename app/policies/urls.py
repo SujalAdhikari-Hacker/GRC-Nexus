@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     PolicyListView, PolicyDetailView,
     PolicyCreateView, PolicyUpdateView, PolicyDeleteView,
-    PolicyAttestView,
+    PolicyAttestView, PolicyTransitionView,
 )
 
 app_name = 'policies'
@@ -14,4 +14,5 @@ urlpatterns = [
     path('<int:pk>/edit/', PolicyUpdateView.as_view(), name='update'),
     path('<int:pk>/delete/', PolicyDeleteView.as_view(), name='delete'),
     path('<int:pk>/attest/', PolicyAttestView.as_view(), name='attest'),
+    path('<int:pk>/transition/', PolicyTransitionView.as_view(), name='transition'),
 ]

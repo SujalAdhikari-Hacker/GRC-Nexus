@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.db.models import Q
+from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, UpdateView, View
@@ -121,6 +122,14 @@ class IncidentDetailView(DepartmentScopedMixin, DetailView):
         ctx['lifecycle_position'] = [s for s, _ in Incident.STATUS_CHOICES].index(
             incident.status
         )
+        next_map = {
+            'detected': ('triaged', 'Triaged'),
+            'triaged': ('contained', 'Contained'),
+            'contained': ('mitigated', 'Mitigated'),
+        }
+        nxt = next_map.get(incident.status)
+        ctx['next_stage'] = nxt[0] if nxt else ''
+        ctx['next_stage_label'] = nxt[1] if nxt else ''
         ctx['incidents_sla'] = f'{TRIAGE_SLA_HOURS.get(incident.severity, 24)}h'
         ctx['nis2_clocks'] = (
             incident.nis2_clocks if incident.nis2_significant else []
@@ -200,6 +209,47 @@ class IncidentCloseView(ChangeScopedMixin, UpdateView):
 
     def get_success_url(self):
         return reverse('incidents:detail', args=[self.object.pk])
+
+
+class IncidentAdvanceView(ChangeScopedMixin, SingleObjectMixin, View):
+    """POST-only 1-click progression through triage/containment/mitigation stages."""
+
+    model = Incident
+    http_method_names = ['post']
+
+    _NEXT = {
+        'detected': 'triaged',
+        'triaged': 'contained',
+        'contained': 'mitigated',
+    }
+
+    def post(self, request, *args, **kwargs):
+        incident = self.get_object()
+        next_status = self._NEXT.get(incident.status)
+        if not next_status:
+            messages.info(
+                request,
+                'Incident is already mitigated or closed. Use Close Incident with a root cause to close.',
+            )
+            return redirect('incidents:detail', pk=incident.pk)
+
+        now = timezone.now()
+        incident.status = next_status
+        if next_status == 'triaged' and not incident.triaged_at:
+            incident.triaged_at = now
+        elif next_status == 'contained' and not incident.contained_at:
+            incident.contained_at = now
+        elif next_status == 'mitigated' and not incident.resolved_at:
+            incident.resolved_at = now
+        if not incident.handler_id:
+            incident.handler = request.user
+        incident.updated_by = request.user
+        incident.save()
+        messages.success(
+            request,
+            f'Incident {incident.reference} advanced to {incident.get_status_display()}.',
+        )
+        return redirect('incidents:detail', pk=incident.pk)
 
 
 class IncidentRaiseRiskView(ChangeScopedMixin, SingleObjectMixin, View):
