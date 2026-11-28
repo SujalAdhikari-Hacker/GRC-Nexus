@@ -209,6 +209,36 @@ class DataExchangeTests(TestCase):
         self.assertEqual(asset.owner_dept, self.dept)
         self.assertEqual(asset.criticality, 3)
 
+    def test_asset_upload_carries_the_continuity_fields(self):
+        from policies.models import Policy
+
+        bcp = Policy.objects.create(
+            title='Business Continuity Plan', code='BCP-001', owner_dept=self.dept,
+        )
+        drp = Policy.objects.create(
+            title='Disaster Recovery Plan', code='DRP-001', owner_dept=self.dept,
+        )
+        headers = [
+            'ID', 'Name', 'Description', 'Type', 'Department',
+            'RTO Hours', 'RPO Hours', 'MTPD Hours',
+            'BCP Policy', 'DRP Policy', 'Last Continuity Test',
+        ]
+
+        response = self.post_file('assets', workbook(headers, [
+            ['', 'Payments API', 'Public payments API server', 'software', 'IT',
+             4, 1, 24, 'BCP-001', 'DRP-001', '2026-01-15'],
+        ]), 'assets.xlsx')
+
+        self.assertEqual(response.context['result']['created'], 1)
+        asset = Asset.objects.get(name='Payments API')
+        self.assertEqual(asset.rto_hours, 4)
+        self.assertEqual(asset.rpo_hours, 1)
+        self.assertEqual(asset.mtpd_hours, 24)
+        self.assertEqual(asset.bcp_policy, bcp)
+        self.assertEqual(asset.drp_policy, drp)
+        self.assertEqual(asset.last_continuity_test.isoformat(), '2026-01-15')
+        self.assertEqual(asset.continuity_gaps, [])
+
     def test_incident_upload_numbers_its_own_reference(self):
         headers = ['ID', 'Title', 'Description', 'Department', 'Detected At']
 

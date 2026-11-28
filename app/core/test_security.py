@@ -595,6 +595,52 @@ class SSRFAndWebhookTests(TestCase):
         with self.assertRaises(UnsafeURL):
             safe_get('http://127.0.0.1:8000/')
 
+    def test_credentials_and_invalid_ports_are_rejected(self):
+        for url in (
+            'https://user:pass@services.nvd.nist.gov/',
+            'https://services.nvd.nist.gov:99999/',
+        ):
+            with self.subTest(url=url):
+                with self.assertRaises(UnsafeURL):
+                    validate_url(url)
+
+    def test_ipv4_mapped_ipv6_is_checked_as_ipv4(self):
+        for address in (
+            '::ffff:127.0.0.1', '::ffff:10.0.0.1', '::ffff:169.254.169.254',
+        ):
+            with self.subTest(address=address):
+                with self.assertRaises(UnsafeURL):
+                    validate_url(
+                        f'https://[{address}]/', allowed_hosts={address},
+                    )
+
+    def test_non_global_ranges_are_rejected(self):
+        for address in (
+            '100.64.0.1', '192.0.2.1', '198.18.0.1', '2001:db8::1',
+        ):
+            with self.subTest(address=address):
+                host = f'[{address}]' if ':' in address else address
+                with self.assertRaises(UnsafeURL):
+                    validate_url(f'https://{host}/', allowed_hosts={address})
+
+    def test_dns_resolving_to_a_private_address_is_rejected(self):
+        from unittest.mock import patch
+
+        infos = [(2, 1, 6, '', ('10.0.0.5', 0))]
+        with patch('core.safe_http.socket.getaddrinfo', return_value=infos):
+            with self.assertRaises(UnsafeURL):
+                validate_url('https://services.nvd.nist.gov/')
+
+    def test_a_public_allowlisted_host_passes(self):
+        from unittest.mock import patch
+
+        infos = [(2, 1, 6, '', ('93.184.216.34', 0))]
+        with patch('core.safe_http.socket.getaddrinfo', return_value=infos):
+            self.assertEqual(
+                validate_url('https://services.nvd.nist.gov/'),
+                'https://services.nvd.nist.gov/',
+            )
+
     def test_webhook_signature_round_trip(self):
         payload = b'{"event":"risk.created"}'
         header = f't=1000,v1={sign_payload("topsecret", 1000, payload)}'

@@ -9,8 +9,9 @@ The helpers below enforce four rules:
 
 * only ``http``/``https`` URLs without embedded credentials;
 * the hostname must be on the configured allowlist;
-* every resolved address must be public (no loopback, private, link-local,
-  multicast, reserved or unspecified addresses);
+* every resolved address must be globally routable: IPv4-mapped IPv6 is
+  unwrapped and judged as IPv4, and CGNAT, loopback, private, link-local,
+  multicast, reserved and documentation ranges are refused;
 * redirects are refused, and response bodies are size-capped.
 
 For the strongest guarantee, run the worker behind an egress proxy that
@@ -51,6 +52,23 @@ def _allowed_hosts():
     return DEFAULT_ALLOWED_HOSTS
 
 
+def _is_public(address):
+    """True only for a globally routable unicast address.
+
+    IPv4-mapped IPv6 (``::ffff:10.0.0.1``) is unwrapped and judged by its IPv4
+    address, so a mapped private address cannot slip through. ``is_global``
+    also catches shared CGNAT space (``100.64.0.0/10``) and documentation
+    ranges that the narrower ``is_private`` flag lets through.
+    """
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
+        return False
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+    return ip.is_global and not ip.is_multicast
+
+
 def validate_url(url, *, allowed_hosts=None):
     """Validate ``url`` and return it unchanged, or raise :class:`UnsafeURL`."""
     parsed = urlparse((url or '').strip())
@@ -69,7 +87,10 @@ def validate_url(url, *, allowed_hosts=None):
     if host not in allowlist:
         raise UnsafeURL(f'Host {host!r} is not on the outbound allowlist.')
 
-    port = parsed.port or (443 if parsed.scheme.lower() == 'https' else 80)
+    try:
+        port = parsed.port or (443 if parsed.scheme.lower() == 'https' else 80)
+    except ValueError as exc:
+        raise UnsafeURL('URL has an invalid port.') from exc
     try:
         infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
     except socket.gaierror as exc:
@@ -78,19 +99,7 @@ def validate_url(url, *, allowed_hosts=None):
         raise UnsafeURL(f'Could not resolve {host!r}.')
 
     for info in infos:
-        address = info[4][0]
-        try:
-            ip = ipaddress.ip_address(address)
-        except ValueError as exc:
-            raise UnsafeURL(f'Unexpected resolved address {address!r}.') from exc
-        if (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_multicast
-            or ip.is_reserved
-            or ip.is_unspecified
-        ):
+        if not _is_public(info[4][0]):
             raise UnsafeURL(f'{host!r} resolves to a non-public address.')
     return url
 

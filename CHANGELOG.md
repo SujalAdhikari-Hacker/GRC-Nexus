@@ -19,7 +19,14 @@ All notable changes to GRC Nexus are recorded here. The format follows
   hours, links to the BCP and DRP policies, and the date continuity was last
   tested. A gap report checks every active High/Critical asset for a missing BIA
   value, an unlinked BCP or DRP, RTO longer than MTPD, or no test in the last 12
-  months, and shows the gaps on the asset page.
+  months, and shows the gaps on the asset page. The asset register import and
+  export now carries those fields too.
+- **Hardened outbound-URL validator** (`core/safe_http.py`). Every outbound
+  fetch must be http(s) with no embedded credentials, come from an allowlisted
+  host, and resolve only to globally routable addresses. IPv4-mapped IPv6 is
+  judged as IPv4, and CGNAT, documentation and benchmarking ranges are refused
+  alongside loopback, private, link-local and multicast addresses. Invalid
+  ports and unresolvable hosts are rejected before any request is made.
 
 ## [3.2.0] - 2026-11-26
 

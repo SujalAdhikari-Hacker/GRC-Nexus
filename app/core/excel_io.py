@@ -164,6 +164,14 @@ def _policy_category(value):
     return category
 
 
+def _policy_ref(value):
+    code = str(value).strip()
+    policy = Policy.objects.filter(code__iexact=code).first()
+    if policy is None:
+        raise ValueError(f'unknown policy "{code}"')
+    return policy
+
+
 def _risk_ref(value):
     title = str(value).strip()
     matches = list(Risk.objects.filter(title__iexact=title)[:2])
@@ -339,6 +347,12 @@ ASSETS = Entity(
         Column('Confidentiality (1-3)', 'confidentiality', _int),
         Column('Integrity (1-3)', 'integrity', _int),
         Column('Availability (1-3)', 'availability', _int),
+        Column('RTO Hours', 'rto_hours', _int),
+        Column('RPO Hours', 'rpo_hours', _int),
+        Column('MTPD Hours', 'mtpd_hours', _int),
+        Column('BCP Policy', 'bcp_policy', _policy_ref, 'policy code'),
+        Column('DRP Policy', 'drp_policy', _policy_ref, 'policy code'),
+        Column('Last Continuity Test', 'last_continuity_test', _date),
         Column('Value', 'value', _text),
         Column('Is Active', 'is_active', _bool, 'Yes or No'),
         Column('Description', 'description', _text),
