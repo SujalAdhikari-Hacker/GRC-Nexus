@@ -23,12 +23,18 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Department</label>
-                            <div class="form-control inline-bar">
-                                <i class="bi bi-people text-token-info"></i>
-                                <strong>{% if form.instance.owner_dept %}{{ form.instance.owner_dept.name }}{% else %}{{ request.user.department.name }}{% endif %}</strong>
-                            </div>
-                            <div class="form-text small">Pinned to the reporting department; cannot be changed.</div>
+                            <label class="form-label" for="{% if 'owner_dept' in form.fields %}{{ form.owner_dept.id_for_label }}{% endif %}">Department</label>
+                            {% if 'owner_dept' in form.fields %}
+                                {{ form.owner_dept }}
+                                {% if form.owner_dept.errors %}<div class="text-danger small mt-1">{{ form.owner_dept.errors|join:", " }}</div>{% endif %}
+                                <div class="form-text small">Select the department responsible for handling this incident.</div>
+                            {% else %}
+                                <div class="form-control inline-bar">
+                                    <i class="bi bi-people text-token-info"></i>
+                                    <strong>{% if form.instance.owner_dept %}{{ form.instance.owner_dept.name }}{% else %}{{ request.user.department.name|default:"—" }}{% endif %}</strong>
+                                </div>
+                                <div class="form-text small">Pinned to the reporting department; cannot be changed.</div>
+                            {% endif %}
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Filed by</label>
@@ -46,12 +52,14 @@
                 <div class="card-header bg-white"><strong>{% if form.instance.pk %}Edit incident {{ form.instance.reference }}{% else %}Report a security incident{% endif %}</strong></div>
                 <div class="card-body">
                     {% for field in form %}
+                        {% if field.name != 'owner_dept' %}
                         <div class="mb-3">
                             <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
                             {{ field }}
                             {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
                             {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
                         </div>
+                        {% endif %}
                     {% endfor %}
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-dark">{% if form.instance.pk %}Save changes{% else %}File incident{% endif %}</button>

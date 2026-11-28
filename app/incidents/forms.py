@@ -1,6 +1,8 @@
 from django import forms
 from django.utils import timezone
 
+from core.models import Department
+
 from .models import Incident
 
 _STATUS_FLOW = [s for s, _ in Incident.STATUS_CHOICES]
@@ -52,8 +54,20 @@ class IncidentForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
         super().__init__(*args, **kwargs)
+        # Department-less superusers (and superusers in general) need to pick
+        # the owning department when filing an incident, since there is no
+        # user.department to pin to.
+        if (not self.instance or not self.instance.pk) and user and user.is_superuser:
+            self.fields['owner_dept'] = forms.ModelChoiceField(
+                queryset=Department.objects.order_by('name'),
+                required=True,
+                label='Department',
+                initial=user.department_id,
+                empty_label='Select department...',
+            )
         # datetime-local inputs want the *local* value, not the stored UTC.
         if self.instance and self.instance.detected_at:
             self.initial['detected_at'] = timezone.localtime(self.instance.detected_at)
@@ -88,3 +102,17 @@ class IncidentForm(forms.ModelForm):
                 (s, label) for s, label in Incident.STATUS_CHOICES
                 if s in ('detected', 'triaged')
             ]
+
+    def clean(self):
+        cleaned = super().clean()
+        if (
+            (not self.instance or not self.instance.pk)
+            and self.user is not None
+            and not self.user.is_superuser
+            and not self.user.department_id
+        ):
+            raise forms.ValidationError(
+                'Your account has no assigned department. Ask an administrator '
+                'to assign your department before filing an incident.'
+            )
+        return cleaned

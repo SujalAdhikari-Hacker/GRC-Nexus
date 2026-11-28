@@ -135,7 +135,14 @@ class IncidentCreateView(DepartmentCreateMixin, DepartmentScopedMixin, CreateVie
     template_name = 'incidents/incident_form.html'
     success_url = reverse_lazy('incidents:list')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
+        if form.cleaned_data.get('owner_dept'):
+            form.instance.owner_dept = form.cleaned_data['owner_dept']
         form.instance.created_by = self.request.user
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
@@ -150,6 +157,11 @@ class IncidentUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     model = Incident
     form_class = IncidentForm
     template_name = 'incidents/incident_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         form.instance.updated_by = self.request.user

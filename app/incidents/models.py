@@ -197,7 +197,7 @@ class Incident(models.Model):
 
     def clean(self):
         errors = {}
-        if self.closed_at and not self.root_cause:
+        if (self.status == 'closed' or self.closed_at) and not (self.root_cause or '').strip():
             errors['root_cause'] = 'An incident cannot be closed without a root cause.'
         if self.triaged_at and self.detected_at and self.triaged_at < self.detected_at:
             errors['triaged_at'] = 'Triage cannot happen before the incident was detected.'

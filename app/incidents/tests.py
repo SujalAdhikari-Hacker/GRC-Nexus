@@ -262,3 +262,46 @@ class IncidentDashboardTests(IncidentBase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'Open Incidents')
         self.assertContains(resp, 'Stolen laptop')
+
+
+class IncidentSuperadminAndClosureTests(IncidentBase):
+    def test_departmentless_superuser_can_file_incident(self):
+        self.assertIsNone(self.superuser.department_id)
+        self.client.force_login(self.superuser)
+        resp = self.client.post(reverse('incidents:create'), {
+            'title': 'Superadmin reported incident',
+            'description': 'Suspicious outbound traffic observed.',
+            'incident_type': 'unauthorized_access',
+            'source': 'monitoring',
+            'severity': 'high',
+            'status': 'detected',
+            'detected_at': '2026-11-28T09:00',
+            'data_subjects_affected': 0,
+            'owner_dept': self.dept.pk,
+        })
+        self.assertRedirects(resp, reverse('incidents:list'))
+        inc = Incident.objects.get(title='Superadmin reported incident')
+        self.assertEqual(inc.owner_dept, self.dept)
+
+    def test_edit_to_closed_requires_root_cause(self):
+        incident = self.make_incident()
+        self.client.force_login(self.user)
+        resp = self.client.post(reverse('incidents:update', args=[incident.pk]), {
+            'title': incident.title,
+            'description': incident.description,
+            'incident_type': incident.incident_type,
+            'source': incident.source,
+            'severity': incident.severity,
+            'status': 'closed',
+            'detected_at': '2026-11-28T09:00',
+            'data_subjects_affected': 0,
+            'root_cause': '',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertFormError(
+            resp.context['form'],
+            'root_cause',
+            'An incident cannot be closed without a root cause.',
+        )
+        incident.refresh_from_db()
+        self.assertNotEqual(incident.status, 'closed')
