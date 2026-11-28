@@ -61,10 +61,10 @@ class ManualVulnerabilityForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from assets.models import Asset
-        from core.models import User, Department
+        from core.models import Department, real_users
 
         self.fields['asset'].queryset = Asset.objects.filter(is_active=True).order_by('asset_id')
-        self.fields['assigned_to'].queryset = User.objects.filter(is_active=True).order_by('username')
+        self.fields['assigned_to'].queryset = real_users().filter(is_active=True).order_by('username')
         self.fields['assigned_team'].queryset = Department.objects.all().order_by('name')
 
     def clean(self):

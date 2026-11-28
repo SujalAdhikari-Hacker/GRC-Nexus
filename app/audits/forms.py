@@ -98,9 +98,10 @@ class ControlTestForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from core.models import real_users
         # Who performed the test must be a real, active user.
         self.fields['tester'].queryset = (
-            self.fields['tester'].queryset.filter(is_active=True).order_by('username')
+            real_users(self.fields['tester'].queryset).filter(is_active=True).order_by('username')
         )
         self.fields['tester'].required = False
 

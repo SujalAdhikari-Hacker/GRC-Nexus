@@ -15,6 +15,7 @@ accounts. Always call :func:`scope_queryset`.
 import csv
 import re
 
+from django import forms
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
@@ -166,6 +167,17 @@ def user_can_change(user, obj, field='owner_dept'):
     return user_has_object_perm(user, obj, perms=('change',))
 
 
+def exclude_anonymous_user_from_form(form):
+    """Strip django-guardian's AnonymousUser from every User choice field on ``form``."""
+    from .models import User, real_users
+
+    for field in form.fields.values():
+        if isinstance(field, forms.ModelChoiceField) and field.queryset is not None:
+            if field.queryset.model is User:
+                field.queryset = real_users(field.queryset)
+    return form
+
+
 def csv_safe(value):
     """Neutralise spreadsheet formula injection in exported cells.
 
@@ -252,6 +264,10 @@ class DepartmentPinnedMixin:
     """
 
     dept_fields = ('owner_dept', 'department')
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        return exclude_anonymous_user_from_form(form)
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset=queryset)

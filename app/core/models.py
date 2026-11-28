@@ -32,6 +32,16 @@ class User(AbstractUser):
         return self.username
 
 
+def real_users(queryset=None):
+    """Return real application users, excluding django-guardian's AnonymousUser."""
+    from django.conf import settings
+    anon_name = getattr(settings, 'ANONYMOUS_USER_NAME', 'AnonymousUser')
+    qs = queryset if queryset is not None else User.objects.all()
+    if anon_name:
+        qs = qs.exclude(username=anon_name)
+    return qs
+
+
 class UserMFA(models.Model):
     """Per-user TOTP second factor and hashed one-time backup codes."""
 

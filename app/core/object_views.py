@@ -70,8 +70,9 @@ def share_object(request, app_label, model_name, pk):
         principal = get_object_or_404(Group, pk=principal_id)
         target = {'group': principal}
     else:
+        from .models import real_users
         principal = get_object_or_404(
-            get_user_model(), pk=principal_id
+            real_users(), pk=principal_id
         )
         target = {'user': principal}
 

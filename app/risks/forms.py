@@ -112,6 +112,11 @@ class RiskTreatmentForm(forms.ModelForm):
             'action_plan': 'Plan / Description',
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from core.mixins import exclude_anonymous_user_from_form
+        exclude_anonymous_user_from_form(self)
+
 
 class RiskTreatmentUpdateForm(forms.ModelForm):
     class Meta:
@@ -130,6 +135,11 @@ class RiskTreatmentUpdateForm(forms.ModelForm):
             'due_date': 'Target date',
             'action_plan': 'Plan / Description',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from core.mixins import exclude_anonymous_user_from_form
+        exclude_anonymous_user_from_form(self)
 
 
 # ============================================================
@@ -156,6 +166,8 @@ class RiskExceptionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from core.mixins import exclude_anonymous_user_from_form
+        exclude_anonymous_user_from_form(self)
         if self.instance and self.instance.pk:
             self.fields['risk'].disabled = True
 
@@ -188,6 +200,11 @@ class RiskAppetiteForm(forms.ModelForm):
             'max_residual_score': 'Maximum acceptable residual score (1–25).',
             'risk_capacity':      'Maximum risk the org can absorb before significant failure.',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from core.mixins import exclude_anonymous_user_from_form
+        exclude_anonymous_user_from_form(self)
 
     def clean(self):
         cleaned = super().clean()

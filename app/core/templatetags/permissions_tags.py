@@ -38,9 +38,9 @@ def share_perm_choices():
 @register.simple_tag
 def shareable_users():
     """Active users who can be granted access to a record."""
-    from django.contrib.auth import get_user_model
+    from core.models import real_users
 
-    return get_user_model().objects.filter(is_active=True).order_by('username')
+    return real_users().filter(is_active=True).order_by('username')
 
 
 @register.simple_tag

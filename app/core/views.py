@@ -24,7 +24,7 @@ from vulnerabilities.models import Finding
 
 from .forms import CustomUserChangeForm, CustomUserCreationForm, DepartmentForm
 from .input_validation import choice, positive_int, search_query
-from .models import Department, User
+from .models import Department, User, real_users
 
 logger = logging.getLogger(__name__)
 
@@ -321,7 +321,7 @@ class UserListView(HODOrSuperuserMixin, ListView):
 
     def get_queryset(self):
         qs = scope_queryset(
-            User.objects.all(), self.request.user, field='department'
+            real_users(), self.request.user, field='department'
         ).select_related('department').prefetch_related('groups')
         q = search_query(self.request.GET.get('q', ''))
         if q:
@@ -345,7 +345,7 @@ class UserListView(HODOrSuperuserMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        base = scope_queryset(User.objects.all(), self.request.user, field='department')
+        base = scope_queryset(real_users(), self.request.user, field='department')
         ctx['departments'] = Department.objects.all()
         ctx['search_query'] = self.request.GET.get('q', '')
         ctx['selected_department'] = self.request.GET.get('department', '')
@@ -381,7 +381,7 @@ class DepartmentListView(HODOrSuperuserMixin, ListView):
         for d in self.object_list:
             rows.append({
                 'dept': d,
-                'user_count': d.users.count(),
+                'user_count': real_users(d.users).count(),
                 'asset_count': d.assets.count(),
                 'risk_count': d.risks.count(),
                 'control_count': d.controls.count(),

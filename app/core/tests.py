@@ -2452,3 +2452,60 @@ class DeletionCascadeTests(TestCase):
         self.assertFalse(Risk.objects.filter(pk=cascaded_pk).exists())
         ticket.refresh_from_db()
         self.assertEqual(ticket.status, 'cancelled')
+
+
+class AnonymousUserExclusionTests(TestCase):
+    """django-guardian's AnonymousUser row stays out of UI user lists, sharing, and dropdowns."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Real Users Dept')
+        cls.anon, _ = User.objects.get_or_create(
+            username='AnonymousUser',
+            defaults={'is_active': True},
+        )
+        # Attach AnonymousUser to the dept too, to verify DepartmentListView user_count excludes it.
+        User.objects.filter(pk=cls.anon.pk).update(department=cls.dept, is_active=True)
+        cls.anon.refresh_from_db()
+        cls.admin = User.objects.create_superuser(
+            'anon_check_admin', 'aca@example.com', 'pw', department=cls.dept,
+        )
+
+    def test_admin_user_and_department_lists_exclude_anonymous_user(self):
+        self.client.force_login(self.admin)
+        users_resp = self.client.get(reverse('core:users_list'))
+        self.assertEqual(users_resp.status_code, 200)
+        self.assertNotContains(users_resp, 'AnonymousUser')
+        self.assertEqual(users_resp.context['total_count'], 1)
+
+        dept_resp = self.client.get(reverse('core:departments_list'))
+        self.assertEqual(dept_resp.status_code, 200)
+        row = next(r for r in dept_resp.context['rows'] if r['dept'].pk == self.dept.pk)
+        self.assertEqual(row['user_count'], 1)
+
+    def test_shareable_users_and_share_endpoint_reject_anonymous_user(self):
+        from core.templatetags.permissions_tags import shareable_users
+        from risks.models import Risk, RiskCategory
+
+        self.assertNotIn(self.anon, list(shareable_users()))
+        cat = RiskCategory.objects.create(name='Share Ops')
+        risk = Risk.objects.create(title='Share Test Risk', category=cat, owner_dept=self.dept)
+        self.client.force_login(self.admin)
+        resp = self.client.post(
+            reverse('core:object_share', kwargs={'app_label': 'risks', 'model_name': 'risk', 'pk': risk.pk}),
+            {'action': 'grant', 'principal_type': 'user', 'principal_id': str(self.anon.pk), 'perms': ['view']},
+        )
+        self.assertEqual(resp.status_code, 404)
+
+    def test_form_user_dropdowns_exclude_anonymous_user(self):
+        self.client.force_login(self.admin)
+        for url in (
+            reverse('risks:create'),
+            reverse('kris:create'),
+            reverse('vulnerabilities:manual_create'),
+            reverse('audits:test_create'),
+        ):
+            with self.subTest(url=url):
+                resp = self.client.get(url)
+                self.assertEqual(resp.status_code, 200)
+                self.assertNotContains(resp, 'AnonymousUser')
