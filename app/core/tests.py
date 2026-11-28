@@ -2767,3 +2767,29 @@ class ScoreBreakdownAndDashboardControlTests(TestCase):
         self.assertEqual(resp.context['effective_control_count'], 1)
         self.assertContains(resp, '1 operational')
         self.assertContains(resp, '1 effective')
+
+
+class GroupHygieneAndIncidentLayoutTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Operations')
+        cls.hod = User.objects.create_user(
+            'hr_hod_hygiene', password='StrongPassword!123', department=cls.dept, is_hod=True,
+        )
+
+    def test_incidents_list_renders_nowrap_table_columns(self):
+        from incidents.models import Incident
+
+        Incident.objects.create(
+            title='Midnight SIEM Alert on Web Tier',
+            description='Automated intrusion alert triggered on edge tier.',
+            severity='high',
+            owner_dept=self.dept,
+            handler=self.hod,
+        )
+        self.client.force_login(self.hod)
+        resp = self.client.get(reverse('incidents:list'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'incidents-table')
+        self.assertContains(resp, 'text-nowrap')
+        self.assertContains(resp, 'min-width: 240px')

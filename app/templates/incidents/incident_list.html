@@ -55,21 +55,21 @@
             <table class="table table-sm table-hover mb-0 align-middle incidents-table">
                 <thead>
                     <tr>
-                        <th scope="col">Reference</th>
-                        <th scope="col">Title</th>
-                        <th scope="col">Type</th>
-                        <th scope="col">Severity</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Department</th>
-                        <th scope="col">Handler</th>
-                        <th scope="col">Detected</th>
-                        <th scope="col">Age</th>
+                        <th scope="col" class="text-nowrap">Reference</th>
+                        <th scope="col" style="min-width: 240px;">Title</th>
+                        <th scope="col" class="text-nowrap">Type</th>
+                        <th scope="col" class="text-nowrap">Severity</th>
+                        <th scope="col" class="text-nowrap">Status</th>
+                        <th scope="col" class="text-nowrap">Department</th>
+                        <th scope="col" class="text-nowrap">Handler</th>
+                        <th scope="col" class="text-nowrap">Detected</th>
+                        <th scope="col" class="text-nowrap">Age</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for incident in incidents %}
                     <tr>
-                        <td><a href="{% url 'incidents:detail' incident.pk %}" class="fw-semibold">{{ incident.reference }}</a></td>
+                        <td class="text-nowrap"><a href="{% url 'incidents:detail' incident.pk %}" class="fw-semibold">{{ incident.reference }}</a></td>
                         <td>
                             <a href="{% url 'incidents:detail' incident.pk %}" class="text-decoration-none text-body">{{ incident.title|truncatechars:60 }}</a>
                             {% if incident.is_breach %}<span class="badge bg-dark ms-1">PII</span>{% endif %}
@@ -80,13 +80,13 @@
                                 {% elif nis2 %}<span class="badge bg-secondary ms-1" title="NIS2 Article 23 applies">NIS2</span>{% endif %}
                             {% endwith %}
                         </td>
-                        <td class="text-muted small">{{ incident.get_incident_type_display }}</td>
-                        <td><span class="badge {{ incident.severity_badge }}">{{ incident.get_severity_display }}</span></td>
-                        <td><span class="badge {{ incident.status_badge }}">{{ incident.get_status_display }}</span></td>
-                        <td class="small">{{ incident.owner_dept.name }}</td>
-                        <td class="small">{% if incident.handler %}{{ incident.handler.get_full_name|default:incident.handler.username }}{% else %}<span class="text-warning">unassigned</span>{% endif %}</td>
-                        <td class="small text-muted">{{ incident.detected_at|date:"M d, H:i" }}</td>
-                        <td class="small {% if incident.sla_breached %}text-danger fw-semibold{% endif %}">
+                        <td class="text-muted small text-nowrap">{{ incident.get_incident_type_display }}</td>
+                        <td class="text-nowrap"><span class="badge {{ incident.severity_badge }}">{{ incident.get_severity_display }}</span></td>
+                        <td class="text-nowrap"><span class="badge {{ incident.status_badge }}">{{ incident.get_status_display }}</span></td>
+                        <td class="small text-nowrap">{{ incident.owner_dept.name }}</td>
+                        <td class="small text-nowrap">{% if incident.handler %}{{ incident.handler.get_full_name|default:incident.handler.username }}{% else %}<span class="text-warning">unassigned</span>{% endif %}</td>
+                        <td class="small text-muted text-nowrap">{{ incident.detected_at|date:"M d, H:i" }}</td>
+                        <td class="small text-nowrap {% if incident.sla_breached %}text-danger fw-semibold{% endif %}">
                             {{ incident.age_hours }}h{% if incident.sla_breached %} · SLA missed{% endif %}
                         </td>
                     </tr>

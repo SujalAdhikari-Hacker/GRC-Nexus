@@ -1806,3 +1806,7 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; }
     .welcome-banner { padding: 14px 16px; }
     .module-tabs { margin-bottom: 12px; }
 }
+
+.incidents-table {
+    min-width: 980px;
+}
