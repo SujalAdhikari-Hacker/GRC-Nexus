@@ -60,7 +60,26 @@ class FrameworkDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['coverage'] = get_framework_coverage(self.object)
-        ctx['control_rows'] = get_control_coverage_by_control_for_framework(self.object)
+        direct_ids = set(
+            Control.objects.filter(framework_controls__framework=self.object)
+            .values_list('framework_controls__pk', flat=True)
+        )
+        full_mapped_ids = set(
+            ControlFrameworkMapping.objects.filter(
+                framework_control__framework=self.object,
+                relationship__in=('equal', 'superset'),
+            ).values_list('framework_control_id', flat=True)
+        )
+        rows = []
+        for fc, controls in get_control_coverage_by_control_for_framework(self.object):
+            if not controls:
+                tier = 'gap'
+            elif fc.pk in direct_ids or fc.pk in full_mapped_ids:
+                tier = 'full'
+            else:
+                tier = 'partial'
+            rows.append((fc, controls, tier))
+        ctx['control_rows'] = rows
         return ctx
 
 

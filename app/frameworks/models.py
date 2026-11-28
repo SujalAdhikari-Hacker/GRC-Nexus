@@ -147,14 +147,18 @@ class ComplianceAssessment(_dj_models.Model):
 
     @property
     def readiness_percent(self):
-        """Compliant + partial (weighted 0.5) / total applicable."""
+        """Compliant + partial (weighted 0.5) / total applicable.
+
+        Returns ``None`` when every requirement is marked N/A so templates can
+        display ``N/A`` rather than a misleading ``100%``.
+        """
         total = self.total_items
         if not total:
             return 0
         na = self.na_count
         applicable = total - na
         if not applicable:
-            return 100
+            return None
         weighted = self.compliant_count + (self.partial_count * 0.5)
         return round((weighted / applicable) * 100)
 

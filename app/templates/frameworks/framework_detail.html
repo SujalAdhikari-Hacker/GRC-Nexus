@@ -67,13 +67,15 @@
                 </tr>
             </thead>
             <tbody>
-            {% for fc, controls in control_rows %}
+            {% for fc, controls, tier in control_rows %}
                 <tr>
                     <td><code>{{ fc.code }}</code></td>
                     <td>{{ fc.title }}</td>
                     <td>
-                        {% if controls %}
+                        {% if tier == 'full' %}
                             <span class="badge bg-success">Covered</span>
+                        {% elif tier == 'partial' %}
+                            <span class="badge bg-warning text-dark">Partial</span>
                         {% else %}
                             <span class="badge bg-danger">Gap</span>
                         {% endif %}

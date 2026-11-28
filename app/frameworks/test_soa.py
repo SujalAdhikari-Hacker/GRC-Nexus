@@ -112,6 +112,41 @@ class SoAReportTests(TestCase):
         ]
         self.assertIn(('A.5.2', 'excluded'), entries)
 
+    def test_soa_summary_counts_match_requirement_rows(self):
+        ControlFrameworkMapping.objects.create(
+            control=self.control, framework_control=self.req_a, relationship='equal',
+        )
+        self.client.force_login(self.user)
+        resp = self.client.get(f'/frameworks/soa/?framework={self.framework.pk}')
+        counts = resp.context['counts']
+        self.assertEqual(counts['covered'], 1)
+        self.assertEqual(counts['no_internal_control'], 1)
+        self.assertEqual(counts['partially_covered'], 0)
+
+    def test_framework_detail_labels_partial_mapping_as_partial(self):
+        ControlFrameworkMapping.objects.create(
+            control=self.control, framework_control=self.req_a, relationship='subset',
+        )
+        self.client.force_login(self.user)
+        resp = self.client.get(f'/frameworks/{self.framework.pk}/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, '>Partial<')
+
+    def test_all_na_assessment_returns_none_and_renders_na(self):
+        assessment = ComplianceAssessment.objects.create(
+            framework=self.framework, name='All N/A Test', owner_dept=self.dept,
+            assessment_date='2026-01-01',
+        )
+        assessment.items.create(framework_control=self.req_a, status='na')
+        assessment.items.create(framework_control=self.req_b, status='na')
+        self.assertIsNone(assessment.readiness_percent)
+        self.client.force_login(self.user)
+        resp = self.client.get(f'/frameworks/assessments/{assessment.pk}/')
+        self.assertContains(resp, 'N/A')
+        self.assertNotContains(resp, '100%\n')
+        list_resp = self.client.get('/frameworks/assessments/')
+        self.assertContains(list_resp, 'N/A')
+
     def test_login_required(self):
         resp = self.client.get('/frameworks/soa/')
         self.assertEqual(resp.status_code, 302)

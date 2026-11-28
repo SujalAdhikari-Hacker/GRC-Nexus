@@ -33,9 +33,11 @@
 <div class="row g-3 mb-3">
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="value" style="color:{% if assessment.readiness_percent >= 75 %}#059669{% elif assessment.readiness_percent >= 40 %}#D97706{% else %}#DC2626{% endif %};">
-                {{ assessment.readiness_percent }}%
+            {% with pct=assessment.readiness_percent %}
+            <div class="value" style="color:{% if pct is None %}#6B7280{% elif pct >= 75 %}#059669{% elif pct >= 40 %}#D97706{% else %}#DC2626{% endif %};">
+                {% if pct is None %}N/A{% else %}{{ pct }}%{% endif %}
             </div>
+            {% endwith %}
             <div class="label"><i class="bi bi-bar-chart-line"></i> Readiness</div>
         </div>
     </div>

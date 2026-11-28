@@ -108,6 +108,18 @@ class SoAReportView(LoginRequiredMixin, View):
                 'verdict_badge': badge,
             })
 
+        # Template KPI cards read underscore keys; aggregate the exact verdict
+        # categories so summary cards always match the rows below.
+        counts['partially_covered'] = (
+            counts.get('partially covered', 0)
+            + counts.get('mapped, not implemented', 0)
+            + counts.get('gap — partially compliant', 0)
+        )
+        counts['no_internal_control'] = (
+            counts.get('no internal control', 0)
+            + counts.get('gap — non-compliant', 0)
+        )
+
         if request.GET.get('export') == 'csv':
             return self._export_csv(framework, rows)
 

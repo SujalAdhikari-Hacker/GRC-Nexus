@@ -56,13 +56,15 @@
                     <td><small>{{ a.assessor|default:"—" }}</small></td>
                     <td><small>{{ a.assessment_date }}</small></td>
                     <td>
+                        {% with pct=a.readiness_percent %}
                         <div class="d-flex align-items-center gap-2">
                             <div class="progress flex-grow-1 h-8px">
-                                <div class="progress-bar {% if a.readiness_percent >= 75 %}bg-success{% elif a.readiness_percent >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
-                                     style="width:{{ a.readiness_percent }}%;"></div>
+                                <div class="progress-bar {% if pct is None %}bg-secondary{% elif pct >= 75 %}bg-success{% elif pct >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                                     style="width:{% if pct is None %}0{% else %}{{ pct }}{% endif %}%;"></div>
                             </div>
-                            <strong class="fs-12">{{ a.readiness_percent }}%</strong>
+                            <strong class="fs-12">{% if pct is None %}N/A{% else %}{{ pct }}%{% endif %}</strong>
                         </div>
+                        {% endwith %}
                         <div class="small text-muted mt-1">{{ a.compliant_count }}✓ · {{ a.partial_count }}~ · {{ a.non_compliant_count }}✗ · {{ a.not_assessed_count }} open</div>
                     </td>
                     <td class="text-end"><a href="{% url 'frameworks:assessment_detail' a.pk %}" class="btn btn-sm btn-outline-dark">View</a></td>

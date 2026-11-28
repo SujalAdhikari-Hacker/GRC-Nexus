@@ -68,7 +68,8 @@ class ComplianceAssessmentAdmin(SimpleHistoryAdmin):
     def readiness_display(self, obj):
         if not obj.pk:
             return '—'
-        return f'{obj.readiness_percent}% ({obj.compliant_count}✓ {obj.partial_count}~ {obj.non_compliant_count}✗)'
+        pct = f'{obj.readiness_percent}%' if obj.readiness_percent is not None else 'N/A'
+        return f'{pct} ({obj.compliant_count}✓ {obj.partial_count}~ {obj.non_compliant_count}✗)'
 
 
 @admin.register(ComplianceAssessmentItem)
