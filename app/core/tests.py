@@ -2925,3 +2925,58 @@ class FormulaBreakdownTests(TestCase):
         r_ven = self.client.get(reverse('vendors:detail', args=[self.vendor.pk]))
         self.assertEqual(r_ven.status_code, 200)
         self.assertContains(r_ven, 'Certifications (/25)')
+
+
+class QAFunctionalFixesTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        from risks.models import Risk, RiskCategory
+
+        cls.dept = Department.objects.create(name='QA Func Dept')
+        cls.hod = User.objects.create_user(
+            'qa_func_hod', password='StrongPassword!123', department=cls.dept, is_hod=True,
+        )
+        cls.super = User.objects.create_superuser(
+            'qa_func_super', email='qafunc@example.com', password='StrongPassword!123',
+        )
+        cat = RiskCategory.objects.create(name='QA Func Cat')
+        Risk.objects.create(
+            title='Sample RSK Prefix Item', category=cat, owner_dept=cls.dept, likelihood=3, impact=3,
+        )
+        for i in range(11):
+            User.objects.create_user(f'page_user_{i:02d}', password='StrongPassword!123', department=cls.dept)
+
+    def test_global_search_matches_bare_rsk_prefix(self):
+        self.client.force_login(self.hod)
+        resp = self.client.get(reverse('core:search'), {'q': 'RSK-'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Sample RSK Prefix Item')
+
+    def test_user_list_honors_items_per_page_preference(self):
+        from core.settings_model import UserPreference
+
+        pref = UserPreference.get_for(self.super)
+        pref.items_per_page = 10
+        pref.save()
+
+        self.client.force_login(self.super)
+        r1 = self.client.get(reverse('core:users_list'))
+        self.assertEqual(r1.status_code, 200)
+        self.assertEqual(len(r1.context['users']), 10)
+        self.assertContains(r1, '?page=2')
+
+        r2 = self.client.get(reverse('core:users_list'), {'page': 2})
+        self.assertEqual(r2.status_code, 200)
+        self.assertGreaterEqual(len(r2.context['users']), 1)
+
+    def test_sync_cves_endpoint_requires_superuser(self):
+        url = reverse('vulnerabilities:sync_cves')
+        self.client.force_login(self.hod)
+        self.assertEqual(self.client.post(url).status_code, 403)
+
+        self.client.force_login(self.super)
+        from unittest.mock import patch
+        with patch('vulnerabilities.views.call_command') as mock_cmd:
+            resp = self.client.post(url)
+        self.assertRedirects(resp, reverse('vulnerabilities:live_feed'))
+        mock_cmd.assert_called_once_with('sync_recent_cves', days=7)

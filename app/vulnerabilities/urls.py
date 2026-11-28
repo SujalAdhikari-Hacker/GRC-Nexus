@@ -6,6 +6,7 @@ from .views import (
     LiveCVEFeedView,
     ManualVulnerabilityCreateView,
     ScannerImportView,
+    sync_recent_cves_view,
 )
 
 app_name = 'vulnerabilities'
@@ -13,6 +14,7 @@ app_name = 'vulnerabilities'
 urlpatterns = [
     path('', FindingListView.as_view(), name='finding_list'),
     path('live/', LiveCVEFeedView.as_view(), name='live_feed'),
+    path('sync-cves/', sync_recent_cves_view, name='sync_cves'),
     path('manual/new/', ManualVulnerabilityCreateView.as_view(), name='manual_create'),
     path('import/', ScannerImportView.as_view(), name='scanner_import'),
     path('findings/<int:pk>/', FindingDetailView.as_view(), name='finding_detail'),

@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.core.management import call_command
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
@@ -293,6 +294,22 @@ class LiveCVEFeedView(LoginRequiredMixin, ListView):
         ctx['kev_filter'] = self.request.GET.get('kev', '')
         ctx['days_filter'] = self.request.GET.get('days', '')
         return ctx
+
+
+@login_required
+@require_POST
+def sync_recent_cves_view(request):
+    """Superuser-only trigger to pull recent CVEs from NVD."""
+    if not request.user.is_superuser:
+        raise PermissionDenied('Only superadmins can sync live CVE feeds.')
+
+    try:
+        call_command('sync_recent_cves', days=7)
+        synced = Vulnerability.objects.filter(source='nvd').exclude(cve_id__isnull=True).count()
+        messages.success(request, f'Live CVE feed synced ({synced} NVD CVE(s) in catalog).')
+    except Exception:
+        messages.warning(request, 'Live NVD sync could not complete right now. Check container logs or network connectivity.')
+    return redirect('vulnerabilities:live_feed')
 
 
 # ============================================================

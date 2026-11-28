@@ -50,6 +50,8 @@ class RiskQuickActionTests(TestCase):
         self.assertEqual(before, 16)
 
         self.client.force_login(self.staff)
+        detail_resp = self.client.get(reverse('risks:detail', args=[self.risk.pk]))
+        self.assertContains(detail_resp, 'linkControlBox')
         resp = self.client.post(
             reverse('risks:link_control', args=[self.risk.pk]),
             {'control_id': self.control.pk},

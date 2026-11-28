@@ -21,10 +21,13 @@ from django.views.generic import (
 from django.views.generic.detail import SingleObjectMixin
 
 _RISK_CODE_RE = re.compile(r'^(?:rsk[-_\s]*)?0*(\d+)$', re.IGNORECASE)
+_RISK_PREFIX_ONLY_RE = re.compile(r'^rsk[-_\s]*$', re.IGNORECASE)
 
 
 def risk_search_filter(q):
     """Build a search Q filter for Risk title/description plus RSK-<pk> codes."""
+    if _RISK_PREFIX_ONLY_RE.match(q.strip()):
+        return Q()
     cond = Q(title__icontains=q) | Q(description__icontains=q)
     match = _RISK_CODE_RE.match(q.strip())
     if match:
@@ -194,7 +197,7 @@ class RiskDetailView(DepartmentScopedMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_risk_context(self.object))
         ctx['residual_breakdown'] = residual_score_breakdown(self.object)
-        if user_can_change(self.object, self.request.user):
+        if user_can_change(self.request.user, self.object):
             linked_ids = self.object.controls.values_list('pk', flat=True)
             ctx['available_controls'] = (
                 scope_queryset(Control.objects.all(), self.request.user)

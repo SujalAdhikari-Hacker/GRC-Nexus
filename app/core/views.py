@@ -412,7 +412,13 @@ class UserListView(HODOrSuperuserMixin, ListView):
     model = User
     template_name = 'core/users_list.html'
     context_object_name = 'users'
-    paginate_by = 30
+    paginate_by = 25
+
+    def get_paginate_by(self, queryset):
+        pref = getattr(self.request.user, 'preference', None)
+        if pref and getattr(pref, 'items_per_page', None):
+            return pref.items_per_page
+        return self.paginate_by
 
     def get_queryset(self):
         qs = scope_queryset(
