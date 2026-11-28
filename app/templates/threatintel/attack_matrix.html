@@ -53,11 +53,11 @@
 </div>
 {% else %}
 <div style="overflow-x:auto; padding-bottom:8px;">
-    <table class="table table-bordered mb-0" style="table-layout:fixed; min-width:1400px; font-size:11px;">
+    <table class="table table-bordered mb-0" style="table-layout:fixed; min-width:1960px; font-size:11px;">
         <thead>
             <tr>
                 {% for col in columns %}
-                <th scope="col" class="text-center align-top" style="width:100px; background:var(--surface-2);">
+                <th scope="col" class="text-center align-top" style="width:140px; min-width:140px; background:var(--surface-2); white-space:normal; word-break:break-word; line-height:1.25;">
                     <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;">{{ col.tactic.name }}</div>
                     <div class="small text-muted mt-1 fs-10"><code>{{ col.tactic.attack_id }}</code></div>
                     <div class="mt-1">

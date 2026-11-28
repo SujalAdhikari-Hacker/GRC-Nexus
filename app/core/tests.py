@@ -2579,7 +2579,7 @@ class SearchDeleteAndSettingsFixTests(TestCase):
         self.client.force_login(self.hod)
         resp = self.client.get(reverse('core:settings'))
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, 'v3.2.0')
+        self.assertContains(resp, 'v3.3.0')
         self.assertNotContains(resp, 'Today prints as: <code>Y-m-d</code>')
 
         help_text = PolicyForm().fields['content'].help_text

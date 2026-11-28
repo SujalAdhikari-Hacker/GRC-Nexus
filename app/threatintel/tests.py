@@ -99,3 +99,5 @@ class AttackSyncAndEmptyStateTests(TestCase):
         self.assertRedirects(resp, reverse('threatintel:attack_matrix'))
         from .models import ThreatActor
         self.assertGreaterEqual(ThreatActor.objects.count(), 10)
+        r_mat = self.client.get(reverse('threatintel:attack_matrix'))
+        self.assertEqual(r_mat.context['total_techniques'], 30)

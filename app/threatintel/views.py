@@ -233,7 +233,9 @@ class AttackMatrixView(LoginRequiredMixin, TemplateView):
 
         ctx['columns'] = columns
         ctx['total_tactics'] = len(tactics)
-        ctx['total_techniques'] = sum(c['technique_count'] for c in columns)
+        ctx['total_techniques'] = Technique.objects.filter(
+            deprecated=False, is_subtechnique=False
+        ).count()
         ctx['total_iocs'] = IOC.objects.filter(is_active=True).count()
         return ctx
 

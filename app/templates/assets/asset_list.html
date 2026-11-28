@@ -98,7 +98,7 @@
                     </td>
                     <td><small>{{ asset.get_asset_type_display }}</small></td>
                     <td><small>{{ asset.get_hosting_display }}</small></td>
-                    <td><small>{{ asset.get_cloud_provider_display|truncatechars:14 }}</small></td>
+                    <td><small>{{ asset.get_cloud_provider_display|truncatechars:22 }}</small></td>
                     <td><small>{{ asset.get_os_family_display|truncatechars:12 }}</small></td>
                     <td class="text-center">
                         {% if asset.classification == 'restricted' %}<span class="badge bg-danger">Restricted</span>
