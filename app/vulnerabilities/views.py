@@ -23,8 +23,9 @@ from core.mixins import (
 )
 from core.reports import ReportMixin
 
-from .forms import ManualVulnerabilityForm
+from .forms import ManualVulnerabilityForm, ScannerImportForm
 from .models import Finding, Vulnerability, composite_score_breakdown
+from .scanner_import import import_scanner_upload
 from .services import cascade_finding_to_risk, enrich_vulnerability
 
 
@@ -362,6 +363,40 @@ class ManualVulnerabilityCreateView(LoginRequiredMixin, FormView):
             'cvss_severity': 'medium',
             'cvss_score': 5.0,
         }
+
+
+class ScannerImportView(LoginRequiredMixin, FormView):
+    """Upload CSV or JSON scanner outputs into department-scoped Findings."""
+
+    template_name = 'vulnerabilities/scanner_import.html'
+    form_class = ScannerImportForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        result = import_scanner_upload(
+            form.cleaned_data['file'],
+            self.request.user,
+            default_asset=form.cleaned_data.get('default_asset'),
+            scanner_label=form.cleaned_data.get('scanner_label', '').strip(),
+        )
+        if 'error' in result:
+            messages.error(self.request, result['error'])
+        elif result['skipped']:
+            messages.warning(
+                self.request,
+                f"Imported {result['created']} new and {result['updated']} updated finding(s); "
+                f"skipped {result['skipped']} row(s).",
+            )
+        else:
+            messages.success(
+                self.request,
+                f"Imported {result['created']} new and {result['updated']} updated finding(s).",
+            )
+        return self.render_to_response(self.get_context_data(form=form, result=result))
 
 
 class FindingDeleteView(HODOrSuperuserMixin, ChangeScopedMixin, DeleteView):

@@ -14,6 +14,7 @@ class Vulnerability(models.Model):
     ]
     SOURCE_CHOICES = [
         ('manual',        'Manual Entry'),
+        ('scanner',       'Scanner Import'),
         ('nvd',           'NVD API'),
         ('cisa',          'CISA Feed'),
         ('circl',         'CIRCL Feed'),

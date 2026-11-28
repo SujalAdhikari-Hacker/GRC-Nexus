@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Import Scanner Output{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><a href="{% url 'vulnerabilities:finding_list' %}">Vulnerabilities</a></li>
+    <li class="breadcrumb-item active">Import Scan</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-upload"></i> Import Scanner Output (CSV / JSON)</strong>
+                <a href="{% url 'vulnerabilities:finding_list' %}" class="btn btn-sm btn-outline-dark">Back to findings</a>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger py-2 small">{{ form.non_field_errors }}</div>
+                    {% endif %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text small">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="text-danger small mt-1">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-cloud-upload"></i> Import findings
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% if result %}
+        <div class="card mt-4">
+            <div class="card-header bg-white">
+                <strong>Import Summary{% if result.format %} ({{ result.format }}){% endif %}</strong>
+            </div>
+            <div class="card-body">
+                {% if result.error %}
+                    <div class="alert alert-danger mb-0">{{ result.error }}</div>
+                {% else %}
+                    <div class="row g-2 text-center mb-3">
+                        <div class="col-3">
+                            <div class="p-2 border rounded">
+                                <div class="h5 mb-0">{{ result.total_rows }}</div>
+                                <div class="small text-muted">Total rows</div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="p-2 border rounded">
+                                <div class="h5 mb-0 text-success">{{ result.created }}</div>
+                                <div class="small text-muted">Created</div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="p-2 border rounded">
+                                <div class="h5 mb-0 text-primary">{{ result.updated }}</div>
+                                <div class="small text-muted">Updated</div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="p-2 border rounded">
+                                <div class="h5 mb-0 text-warning">{{ result.skipped }}</div>
+                                <div class="small text-muted">Skipped</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if result.errors %}
+                        <div class="alert alert-warning mb-0 small">
+                            <strong>Skipped / Error Details{% if result.error_count > 50 %} (showing first 50 of {{ result.error_count }}){% endif %}:</strong>
+                            <ul class="mb-0 mt-1">
+                                {% for err in result.errors %}
+                                    <li>{{ err }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header bg-white"><strong>Supported Formats &amp; Matching</strong></div>
+            <div class="card-body small">
+                <p class="mb-2">
+                    Matches rows against active assets you are authorised to write to using
+                    <code>asset_id</code>, <code>ip_address</code>, <code>hostname</code>, <code>fqdn</code>, or <code>name</code>.
+                </p>
+                <p class="fw-semibold mb-1">CSV Columns</p>
+                <p class="text-muted mb-2">
+                    Flexible headers from Nessus, OpenVAS, Qualys, Trivy, or generic exports:
+                    <code>cve</code>/<code>cve_id</code>, <code>title</code>/<code>plugin_name</code>,
+                    <code>asset</code>/<code>host</code>/<code>ip</code>, <code>port</code>,
+                    <code>severity</code>/<code>risk</code>, <code>cvss</code>, <code>description</code>,
+                    <code>solution</code>, <code>evidence</code>/<code>plugin_output</code>.
+                </p>
+                <p class="fw-semibold mb-1">JSON Formats</p>
+                <ul class="text-muted mb-0 ps-3">
+                    <li>Flat JSON array of finding objects</li>
+                    <li>Wrapped JSON (<code>findings</code>, <code>vulnerabilities</code>, or <code>results</code>)</li>
+                    <li>Trivy JSON (<code>Results[].Vulnerabilities[]</code>)</li>
+                    <li>SARIF 2.1.0 (<code>runs[].results[]</code>)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

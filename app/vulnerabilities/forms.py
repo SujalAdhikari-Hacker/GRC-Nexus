@@ -76,3 +76,45 @@ class ManualVulnerabilityForm(forms.Form):
             if existing:
                 cleaned['existing_vulnerability'] = existing
         return cleaned
+
+
+class ScannerImportForm(forms.Form):
+    """Upload a CSV or JSON scanner output to create/update Findings."""
+
+    file = forms.FileField(
+        label='Scanner export (.csv or .json)',
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'form-control',
+            'accept': '.csv,.json',
+        }),
+        help_text='Max 5 MB. Supports CSV (Nessus/OpenVAS/Qualys/generic) and JSON (flat list, Trivy, SARIF 2.1.0).',
+    )
+    default_asset = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        label='Fallback asset (optional)',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        help_text='Used when a scanner row does not specify a host, IP, FQDN, or asset ID.',
+    )
+    scanner_label = forms.CharField(
+        max_length=80,
+        required=False,
+        label='Scanner name (optional)',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. OpenVAS, Nessus, Trivy',
+        }),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from assets.models import Asset
+        from core.mixins import writable_queryset
+
+        qs = Asset.objects.filter(is_active=True)
+        if user is not None:
+            qs = writable_queryset(qs, user)
+        else:
+            qs = qs.none()
+        self.fields['default_asset'].queryset = qs.order_by('asset_id')
+
