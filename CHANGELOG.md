@@ -12,7 +12,7 @@ Security hardening, RBAC/RLS completion, scanner & executive reporting automatio
 
 ### Changed
 
-- **UI/UX refresh.** Simplified layout density and introduced subtle, accessibility-aware micro-interactions (`tokens.css`, `app.css`) with `prefers-reduced-motion` support across dashboards, tables, forms, and cards.
+- **UI/UX refresh.** Simplified layout density and introduced subtle, accessibility-aware micro-interactions (`brand.css`) with `prefers-reduced-motion` support across dashboards, tables, forms, and cards.
 - **Repository hygiene cleanup.** Removed stray root-level app stubs (`assets/`, `frameworks/`, `policies/`), unused `app/vendors/cls` and seal leftovers, duplicate `DB relationship Diagram.png`, and tracked generated `docs/previews/*.pdf` artifacts.
 - **Role-driven dashboard hub & control clarity.** Added **My Tasks Today** (pending policy attestations and assigned tickets) for every user, **Approvals & Attention Queue** for HODs/Superadmins, and `operational` / `effective` control counts on the Dashboard card (`core/views.py`, `dashboard.html`).
 - **HOD/Staff group alignment & seed hygiene.** Stripped stray `admin` logentry permissions from `Department Staff` (aligned with `Department HODs` at 172 perms), aligned all HOD users (`sunita.magar`) to `Department HODs`, deduplicated seeded Operations `Employee Laptops`, removed leftover QA test incident, fixed `Critical patch SLA (7 days)` KRI direction + auto-cancelled its false ticket, aligned `CTL-BCP-001` status/lifecycle, and corrected seed typos (`AWS S3 Backup Bucket`, `SIEM alert tuning gaps`) (`core.0019`, `core.0022`).

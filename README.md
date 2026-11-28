@@ -12,7 +12,8 @@
 [![Django](https://img.shields.io/badge/django-5.2-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
-[![Tests](https://img.shields.io/badge/tests-501%20passing-brightgreen)](#testing)
+[![Release](https://img.shields.io/badge/release-v3.3.0-00A8E8)](https://github.com/SujalAdhikari-Hacker/GRC-Nexus/releases/tag/v3.3.0)
+[![Tests](https://img.shields.io/badge/tests-537%20passing-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
@@ -61,21 +62,16 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 ### Governance & inventory
 - **Asset inventory** — `AST-XXXX` IDs, hostname, IP, FQDN, OS, cloud provider/region,
   location, classification, CIA ratings and business context.
-- **Asset dependencies** — an upstream/downstream dependency graph (`depends_on`) with its own
-  form section: every asset page shows what it needs *and* which systems it can take down,
-  i.e. the outage blast radius auditors and ops both care about.
+- **Asset dependencies & BIA continuity gaps** — an upstream/downstream dependency graph (`depends_on`) plus RTO, RPO, MTPD (hours), BCP/DRP policy links, and continuity-test freshness tracking. Flagged automatically on High/Critical assets when values are missing, `RTO > MTPD`, or testing is older than 12 months (`/assets/continuity-gaps/`).
 - **Relationship Explorer** — interactive force-directed graph of
   asset ↔ vendor ↔ risk ↔ control ↔ policy ↔ framework connections.
 - **Classification & owner views** — grouped by Public/Internal/Confidential/Restricted, and by
   department or individual.
-- **Vendor register** — `VEN-XXXX` IDs, service type, tier and compliance attestations.
-  Contract expiry is derived from the renewal date, so a vendor left "active" whose contract has
-  lapsed is surfaced as **contract expired** (with days overdue) in the list and detail views.
+- **Vendor register & NIS2 supplier assurance** — `VEN-XXXX` IDs, service type, tier, compliance attestations, and a live 0–100 NIS2 Art. 18 / 21(2)(d) assurance score (certifications 25 / contract clauses 30, zeroed if expired / assessment recency 20 / data exposure 15 / jurisdiction 10). Contract expiry is derived from the renewal date and surfaces **contract expired** (with non-negative days overdue) in lists and detail views.
 - **Vendor risk assessment** — 5-dimension scoring (Security, Compliance, Financial,
   Reputation, Operational) on a `0–20` scale per dimension (totaling `0–100`) with an
-  auto-computed overall rating and non-negative overdue-day tracking.
-- **Policy library** — versioning, an approval workflow (Draft → Review → Approved, named
-  approver required), applies-to departments, and PDF attachment.
+  auto-computed overall rating.
+- **Policy library & 1-click workflow** — versioning, 1-click lifecycle actions (**Submit for Review**, HOD-guarded **Approve Policy**, **Request Changes**, **Retire**, **Reopen**) with automatic approver/date stamping, applies-to departments, and PDF attachment.
 
 ### Risk & controls
 - **Risk register** — inherent/residual scoring, appetite-breach flagging, treatment plans.
@@ -85,8 +81,8 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   residual once effective controls are in place — so linking real mitigation clears the breach,
   and "no appetite configured" is shown distinctly from "within appetite".
 - **Risk matrix** — side-by-side inherent vs residual 5×5 grids, clickable cells, quick-add.
-- **Workflow state machine** - risks move through legal transitions only; closing a risk that
-  breaches appetite requires a named approver. **A risk closes when every treatment plan is
+- **Workflow state machine & quick actions** — risks move through legal transitions only; closing a risk that
+  breaches appetite requires a named approver. Detail pages include inline **Link Control** and HOD/superadmin **Approve & Close** actions plus an expandable **Residual score breakdown** (`?` formula tooltip + per-control reduction table). **A risk closes when every treatment plan is
   resolved and at least one completed** — and it reopens automatically if a treatment returns to
   active. Completing a treatment promotes its controls onto the risk (so the residual score
   actually moves).
@@ -94,16 +90,15 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   named approver is notified and is the **only** person who can accept the risk (superuser can
   break-glass) — the approver is never silently overwritten.
 - **Controls** — lifecycle, effectiveness rating (evidence-gated: no test date, no rating),
-  frequency and primary framework.
+  frequency and primary framework; dashboard surfaces implemented, operational, and effective counts.
 - **Framework matrix** — Control × Framework grid with relationship types and coverage %.
 - **Control lifecycle board** — kanban: Proposed → Designed → Implemented → Operational →
   Monitored → Reviewed → Retired.
 - **Key Risk Indicators** — RAG status, trends, linked risks/appetites, 6-month trend chart.
-- **Vulnerabilities** — CVE catalogue with live NVD/EPSS/KEV enrichment and a composite risk
-  score. Findings cascade into the risk register; remediation auto-closes the derived risk.
+- **Vulnerabilities, SLA clocks & scanner import** — CVE catalogue with live NVD/EPSS/KEV enrichment, composite risk score breakdown card, shared `7/14/30/60/90`-day SLA clocks (`core/sla.py`) across findings & tickets, and **CSV/JSON scanner output import** (`/vulnerabilities/import/` supporting Nessus, OpenVAS, Qualys, Trivy JSON, and SARIF 2.1.0, scoped to writable department assets). Findings cascade into the risk register; remediation auto-closes the derived risk.
 
 ### Compliance
-- **Framework coverage** calculated with relationship weights.
+- **Framework coverage** calculated with relationship weights and an inline `?` formula tooltip (`full`/`partial` breakdown on detail pages).
 - **Compliance status** dashboard across all frameworks.
 - **Compliance assessments** — readiness checklists with auto-populated items per framework.
 - **Statement of Applicability** — a derived, always-current SoA report per framework
@@ -124,16 +119,14 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   Individual Privacy Act 2075) and a curated set of **NRB IT & cyber security directives**.
 
 ### Incident management
-- **Security incident register** — `INC-YYYY-NNNN` references, incident types, detection source,
-  severity and a forward-only lifecycle (Detected → Triaged → Contained → Mitigated → Closed)
-  with automatic timeline stamps (triage, containment, resolution, closure).
+- **Security incident register & stepper** — `INC-YYYY-NNNN` references, incident types, detection source,
+  severity, visual lifecycle stepper (`Detected → Triaged → Contained → Mitigated → Closed`), and 1-click **Advance** actions with automatic timeline stamps (triage, containment, resolution, closure).
 - **Severity-driven triage SLAs** — critical 1h, high 4h, medium 24h, low 72h; an untriaged
   incident past its SLA escalates (in-app notification + email to the handler or HOD).
-- **Personal-data breach tracking (GDPR Art. 33)** — affected-person counting, a live 72-hour
-  notification clock with days/hours remaining, overdue escalation, and a cabinet-level warning
-  on the close page when the notification is still outstanding.
+- **Personal-data breach tracking (GDPR Art. 33 & NIS2 Art. 23)** — affected-person counting, a live 72-hour
+  GDPR notification clock, and statutory **NIS2 Article 23** clocks (`24 h` early warning / `72 h` notification / `30 d` final report) with `pending`, `due_soon`, `breached`, and `submitted` phase states (`sweep_nis2_deadlines`).
 - **Closure discipline** — an incident cannot be closed without a recorded root cause (enforced
-  across both Close and Edit paths); lessons learned are captured on the record, and
+  across both the detail Close modal / `/close/` and Edit paths); lessons learned are captured on the record, and
   department-less superusers select the owning department explicitly on creation.
 - **Risk linkage** — one click raises a risk-register entry from an investigated incident
   (pre-filled, pre-linked, refuses duplicates) — incidents may also be linked to existing risks.
@@ -141,7 +134,7 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 ### Audit & assurance
 - **Audit schedule** — types (External / Internal / Self-Assessment) and a status workflow,
   plus a kanban timeline.
-- **Evidence library** — screenshots, exports, configs and logs linked to controls.
+- **Evidence library & SHA-256 version checksums** — screenshots, exports, configs and logs linked to controls; every uploaded version records an immutable `EvidenceVersion` SHA-256 digest and size, allowing auditors to download any specific version with an `X-Checksum-SHA256` response header.
 - **Evidence scoring** — 5-dimension evaluation (Relevance, Completeness, Timeliness,
   Reliability, Sufficiency) → 0–100 score with rating bands.
 - **Control testing** — 3 result outcomes (`Pass`, `Partial`, `Fail`), with the tester
@@ -160,22 +153,21 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   attested by anyone, department-scoped ones by their audience.
 
 ### Threat intelligence
-- **MITRE ATT&CK matrix** — tactics × techniques, highlighting techniques with matching IOCs.
+- **MITRE ATT&CK matrix & baseline seeding** — tactics × techniques, highlighting techniques with matching IOCs, plus `--seed-baseline` / `--fallback-baseline` offline/curated baseline support (`14` tactics, `30` core techniques, `10` APT groups) and superadmin UI sync (`/threat-intel/sync-attack/`).
 - **Threat actors** — APT groups with attributed techniques.
 - **IOC feed** — live indicators (ThreatCluster / ThreatFox / OTX) with enrichment
   (first_seen, last_seen, malware_family, confidence).
 
-### Reporting
-- **Executive report** — multi-page narrative PDF with embedded charts, cover, TOC and
-  auto-generated recommendations.
+### Reporting & operations
+- **Executive report & monthly board-report packs** — multi-page narrative PDF with embedded charts, cover, TOC and auto-generated recommendations, plus `manage.py send_board_report` (with `"Send now"` trigger in Settings) to email the executive PDF monthly to configured board recipients.
+- **Service-run log** (`/admin-ui/service-runs/`) — superadmin audit log (`ServiceRun` via `LoggedCommand`) tracking every scheduled management command invocation, status (`ok` / `failed` / `running`), duration, and record counts.
 - **Asset inventory**, **risk register** and **vulnerability findings** — PDF + Excel.
 - **Per-audit report** — full engagement PDF.
 - All generated PDFs carry a confidentiality watermark (one seal per page).
 
 ### Platform
-- **Login & RBAC** — department-scoped, enforced at the queryset level, plus **object-level
-  permissions** via `django-guardian`: a HOD can share a single record with a user or group
-  from the sharing panel on its detail page, without widening their whole department view.
+- **Role-driven Dashboard hub** — shows **My Tasks Today** (unattested applicable approved policies and assigned open tickets) for every user, plus an **Approvals & Attention Queue** (`Policy review`, `RiskException`, `Appetite breach`, `Overdue ticket`) for HODs and Superadmins.
+- **Login, oversight & RBAC** — department-scoped and enforced at both queryset and PostgreSQL RLS layers, with read-only org-wide oversight (`Department.has_org_read_oversight`) for **Internal Audit** and **Compliance & Legal**, strict superuser-only `/admin/`, **object-level permissions** via `django-guardian`, **Sign out all devices** + superadmin session revocation (`User.session_nonce`), and **role-based idle & absolute session timeouts** (30 min idle / 8 h absolute for normal users; 15 min idle / 8 h absolute for superadmins).
 - **Command palette** (Ctrl/⌘ + K) — search across assets, risks (including `RSK-XXXX`
   risk codes, also searchable in `/risks/`), controls, policies, vendors, vulnerability findings,
   audit findings, audits, frameworks, KRIs, tickets and threat actors.
@@ -220,8 +212,8 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   route back, instead of a bare framework error.
 - **Authorised media downloads** — evidence and policy documents are served through a login- and
   department-scoped view (`core/media.py`), never raw `/media/`.
-- **Calm UI/UX & accessibility** — enterprise-minimal design system (`static/css/tokens.css`,
-  `static/css/app.css`) with smooth micro-interactions, skip link, live regions, visible focus
+- **Calm UI/UX & accessibility** — enterprise-minimal design system (`static/css/brand.css`)
+  with smooth micro-interactions, skip link, live regions, visible focus
   states, print stylesheet, `prefers-reduced-motion` support, and an off-canvas mobile sidebar.
 
 ---
@@ -420,6 +412,8 @@ in action.
 | `SITE_BASE_URL` | Absolute base URL used to build the links inside emails (a cron job has no request) |
 | `ESCALATION_FALLBACK_EMAILS` | Comma-separated catch-all for escalations that have no owner and no HOD. Empty drops them |
 | `DIGEST_LOOKBACK_HOURS`, `ESCALATION_GRACE_DAYS`, `ESCALATION_WARN_DAYS` | Scheduling knobs: grace period before an item escalates, and how far ahead to warn about expiring exceptions/contracts |
+| `BOARD_REPORT_RECIPIENTS` | Comma-separated email addresses for the monthly executive PDF board-report pack (`send_board_report`) |
+| `SESSION_IDLE_TIMEOUT`, `SESSION_SUPERADMIN_IDLE_TIMEOUT`, `SESSION_ABSOLUTE_TIMEOUT` | Session timeout policy in seconds (`1800` / `900` / `28800` defaults: 30m user idle, 15m superadmin idle, 8h absolute lifetime) |
 | `TIME_ZONE` | IANA zone for business date maths (`localdate()`): overdue/renewal/SLA logic. Default `UTC`; the shipped `.env` uses `Asia/Kathmandu` |
 | `LOGIN_MAX_FAILURES` / `LOGIN_FAILURE_WINDOW` / `LOGIN_BACKOFF_*` | Sign-in throttling: account failures allowed, the sliding window they count in (seconds), and the exponential cool-down (base / ceiling / multiplier). Defaults 5 / 900 / 30 / 900 / 2. `LOGIN_IP_*` configures the separate per-address counter |
 
@@ -476,6 +470,7 @@ A sample crontab (inside the host, where the compose project lives):
 */15 * * * * cd /srv/grc-nexus && docker compose exec -T web python manage.py sweep_nis2_deadlines
 15 * * * *  cd /srv/grc-nexus && docker compose exec -T web python manage.py send_escalations
 0 7 * * *   cd /srv/grc-nexus && docker compose exec -T web python manage.py send_email_digest
+0 8 1 * *   cd /srv/grc-nexus && docker compose exec -T web python manage.py send_board_report
 ```
 
 ---
@@ -489,11 +484,12 @@ docker compose exec web python manage.py migrate
 docker compose exec web python manage.py collectstatic --noinput
 docker compose exec web python manage.py recompute_risk_scores   # re-derive residual scores
 docker compose exec web python manage.py scan_for_alerts         # generate remediation tickets
-docker compose exec web python manage.py sync_attack_data        # MITRE ATT&CK data
+docker compose exec web python manage.py sync_attack_data --seed-baseline   # offline/baseline ATT&CK + actors
 docker compose exec web python manage.py sync_recent_cves        # latest CVEs from NVD
 docker compose exec web python manage.py send_escalations         # overdue/expiring items → notify + email
 docker compose exec web python manage.py send_email_digest        # daily/weekly digest to opted-in users
-docker compose exec web python manage.py test                    # run the test suite
+docker compose exec web python manage.py send_board_report        # monthly executive PDF pack by email
+docker compose exec web python manage.py test --noinput           # run the test suite
 docker compose exec web python manage.py check_links             # crawl the UI as admin, report dead links
 docker compose exec web python manage.py check_links --user it_hod --max 500   # crawl as another role
 docker compose down                                              # stop
@@ -517,21 +513,21 @@ view, CSV-injection guarding, export fidelity, the PDF watermark, and the email 
 preference gating, digest scheduling windows, escalation detection/grace periods, notification
 idempotency and the escalation auto-clear rules, deletion-cascade alert cancellation and
 baseline-risk preservation, SoA summary/all-N/A readiness, `AnonymousUser` exclusion across
-user views/sharing/forms, `RSK-XXXX` & audit-finding search, vendor 0–20 scoring, and
-incident closure validation.
+user views/sharing/forms, `RSK-XXXX` & audit-finding search, vendor 0–20 scoring, incident closure validation, CSV/JSON scanner imports, monthly executive PDF board-report packs, sign-out-all-devices & admin session revocation, role-based idle/absolute session timeouts, Internal Audit & Compliance read-only oversight (Python + RLS), 1-click lifecycle workflows, role-driven dashboard hubs, and score formula breakdowns.
 
 ```bash
-docker compose exec web python manage.py test
-# Ran 501 tests - OK
+docker compose exec web python manage.py test --noinput
+# Ran 537 tests - OK
 ```
 
 The suite also includes a dedicated security regression module
 (`app/core/test_security.py`): CSP/nonce and browser headers, CSRF
 enforcement, SQL-injection and XSS payloads, upload magic-byte checks,
 rate limiting, MFA enrolment/login/backup codes, forced password
-rotation, log redaction, SSRF blocking, webhook HMAC/replay checks,
-CORS allowlisting, source-map absence and database-level row-level
-security.
+rotation & reuse blocking, superuser-only Django Admin, org-wide oversight RLS,
+session revocation, role-based idle/absolute session timeouts, log redaction,
+SSRF blocking, webhook HMAC/replay checks, CORS allowlisting, source-map
+absence and database-level row-level security.
 
 ---
 
@@ -539,18 +535,11 @@ security.
 
 The hardening pass is deliberately layered. No single control is trusted on its own.
 
-- **Authorization is centralised** in `app/core/mixins.py` (`scope_queryset`,
-  `user_can_access`, ...). Views must never hand-roll department filtering. Cross-department
-  detail pages return 404, and related links render as plain text when the target is not
-  accessible.
-- **PostgreSQL row-level security (RLS)** is the database backstop. The application connects
-  as `DB_APP_USER` (`grc_app`), a non-superuser role, and every department-owned business
-  table has `FORCE ROW LEVEL SECURITY` with a `grc_dept_isolation` policy. Per-user MFA
-  secrets are scoped to their owner as well. `RLSMiddleware` sets
-  `app.bypass_rls=off`, `app.department_id` and `app.user_id` per request; the connection
-  starts with bypass on for migrations and management commands. The policy also honours
-  explicit control sharing, django-guardian object grants, notification recipients and
-  policy audiences. `python manage.py enable_rls` re-applies the policies.
+- **Authorization & oversight** — queryset scoping lives in `app/core/mixins.py` (`scope_queryset`,
+  `user_can_access`, `user_has_org_read`, ...), backed by PostgreSQL row-level security (`FORCE ROW LEVEL SECURITY`,
+  `grc_dept_isolation` and `grc_org_oversight_read` for Audit/Compliance departments with `has_org_read_oversight=True`,
+  while keeping `core_usermfa` and `core_notification` isolated). Django Admin (`/admin/`) is strictly restricted to active superusers, cross-department detail pages return `404`, and related links render as plain text when inaccessible.
+- **Session authentication, revocation & timeouts** — session-backed authentication (no JWTs or `localStorage` tokens), **Sign out all devices** and admin session revocation via `User.session_nonce`, plus `SessionTimeoutMiddleware` enforcing **30 min idle / 8 h absolute** for normal users and **15 min idle / 8 h absolute** for superadmins.
 - **CSP with per-response nonces.** Inline event handlers were removed and replaced with
   `static/js/ui.js`; `script-src-attr 'none'`, `object-src 'none'` and
   `frame-ancestors 'none'` are enforced. `/admin/` gets the narrow exceptions Django admin
@@ -562,15 +551,12 @@ The hardening pass is deliberately layered. No single control is trusted on its 
 - **Same-origin CORS by default.** No permissive wildcard is configured. An explicit
   allowlist middleware only emits `Access-Control-Allow-Origin` for configured origins and
   never enables credentials.
-- **Session authentication, not JWT.** There is no JWT issuer or verifier to misconfigure,
-  and no access/refresh token is stored in `localStorage`. The only client storage is the
-  non-sensitive theme preference.
 - **MFA is opt-in.** Users can enrol a standard TOTP authenticator, receive hashed one-time
   backup codes, regenerate them, or disable MFA after re-entering their password and a valid
-  code. `MFA_REQUIRED_FOR_STAFF` can enforce it for staff.
+  code (disabling MFA revokes other active sessions). `MFA_REQUIRED_FOR_STAFF` can enforce it for staff.
 - **Password policy and rotation.** PBKDF2-SHA256 is explicit, the minimum length is 12,
   common/numeric/similarity validators run, and `User.must_change_password` forces a change
-  before the rest of the app is reachable. `flag_default_passwords` flags accounts still on a
+  (rejecting password reuse) before the rest of the app is reachable. `flag_default_passwords` flags accounts still on a
   known seeded password. `seed_demo` no longer ships a fixed password: use `DEMO_PASSWORD` or
   let it generate one, then rotate on first sign-in.
 - **Rate limiting and exponential backoff.** Sign-in, password-change and MFA endpoints get
@@ -595,8 +581,8 @@ The hardening pass is deliberately layered. No single control is trusted on its 
   include stack traces, file paths or raw database errors. `ErrorLoggingMiddleware` logs the
   full exception with a request id; the id is also returned in `X-Request-ID` for support.
 - **SSRF-resistant outbound HTTP.** Threat-intelligence and vulnerability enrichment calls go
-  through `core/safe_http.py`: HTTPS/HTTP only, host allowlist, DNS resolution checks against
-  private/loopback/link-local/metadata addresses, no redirects and a response-size cap.
+  through `core/safe_http.py`: HTTPS only, no embedded credentials, host allowlist, DNS resolution checks against
+  private/loopback/link-local/CGNAT/metadata addresses (including IPv4-mapped IPv6), no redirects, and a response-size cap.
 - **Webhook signatures.** `core/webhooks.py` provides HMAC-SHA256 signing/verification with a
   timestamp replay window and constant-time comparison. The project has no inbound webhook
   endpoints, so the helper is covered by tests rather than wired to a route.
@@ -667,24 +653,19 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
 
 The platform is under active development.
 
-**Recently shipped**
+**Recently shipped (`v3.3.0`)**
 
-- [x] UI/UX redesign — calmer, enterprise-minimal palette, spacing tokens, smooth micro-interactions, and cleaner navigation
+- [x] Multi-user RBAC & auth hardening pass — stripped `is_staff` from department HODs, blocked password reuse on forced rotation, aligned Internal Audit & Compliance read-only oversight (Python + PostgreSQL RLS), aligned UI buttons & scoped form dropdowns, and balanced HOD/Staff group permissions
+- [x] Session security & revocation — role-based timeouts (`30m` user / `15m` superadmin idle + `8h` absolute), sign-out-all-devices, and superadmin session revocation
+- [x] CSV/JSON scanner output import (`/vulnerabilities/import/`), scheduled monthly executive PDF board-report packs (`send_board_report`), and curated MITRE ATT&CK baseline seeding
+- [x] Role-driven Dashboard hub (`My Tasks Today` / `Approvals & Attention Queue`), 1-click lifecycle actions (Policies, Incidents stepper & Close modal, Risks link control & approve/close), and inline `?` formula breakdowns
 - [x] Superadmin QA hardening — fixed incident creation/closure validation, vendor 0–20 scoring, SoA summary KPIs & all-N/A readiness, deletion-cascade cleanup, audit open-finding consistency, `AnonymousUser` exclusion, `RSK-XXXX` & audit-finding search, and missing delete workflows
-- [x] Object-level permissions via `django-guardian`, with a per-record sharing panel
-- [x] Audit finding → verification loop (a finding cannot be closed until it is verified)
-- [x] Bulk actions on registers and per-user saved list views
-- [x] Design-system cleanup — recurring inline styles moved to tokens/utility classes
-- [x] Residual-governed appetite breach detection; treatment completes → risk closes
-- [x] Vendor contract-expiry derivation; ticket linking; approver-gated risk exceptions
-- [x] Custom 403/404 pages; delete actions; stray duplicate tree removed
-- [x] Email digests and escalation notifications (scheduled `send_escalations` / `send_email_digest`)
+- [x] SLA clocks (`7/14/30/60/90` days), BIA continuity gaps (`RTO`/`RPO`/`MTPD`), NIS2 Art. 23 incident clocks, SHA-256 evidence version checksums, and `ServiceRun` logging
 
 **Planned**
 
-- [ ] Multi-user RBAC & auth hardening pass (strip `is_staff` from department HODs, block password reuse on forced rotation, and align Internal Audit / Compliance cross-department oversight)
-- [ ] SSO / OIDC and enforced MFA for enterprise deployments
-- [ ] Vulnerability scanner & SIEM integrations (OpenVAS, Nmap, Wazuh)
+- [ ] SSO / SAML / OIDC and SCIM provisioning for enterprise deployments
+- [ ] Live scanner & SIEM connectors (OpenVAS, Nmap, Nessus, Wazuh)
 - [ ] Role-scoped AI GRC assistant for non-technical natural-language queries
 
 ---
