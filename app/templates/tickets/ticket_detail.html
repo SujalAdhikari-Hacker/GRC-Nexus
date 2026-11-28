@@ -17,7 +17,7 @@
     </div>
     <div class="d-flex gap-2">
         <a href="{% url 'tickets:update' ticket.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
-        {% if user.is_staff %}
+        {% if user.is_superuser %}
         <a href="{% url 'admin:tickets_ticket_change' ticket.pk %}" class="btn btn-sm btn-outline-dark">Admin</a>
         {% endif %}
     </div>

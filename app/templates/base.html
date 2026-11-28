@@ -244,9 +244,7 @@
                         <div class="user-menu-divider"></div>
                         {% endif %}
                         {% if user.is_superuser %}
-                        {% if user.is_staff %}
                         <a href="{% url 'admin:index' %}" class="user-menu-item"><i class="bi bi-gear"></i><span>Django Admin</span></a>
-                        {% endif %}
                         <div class="user-menu-divider"></div>
                         {% endif %}
                         <a href="{% url 'password_change' %}" class="user-menu-item"><i class="bi bi-key"></i><span>Change Password</span></a>

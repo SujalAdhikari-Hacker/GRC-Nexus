@@ -9,6 +9,11 @@ class CoreConfig(AppConfig):
     name = 'core'
 
     def ready(self):
+        from django.contrib import admin
+
+        admin.site.has_permission = lambda request: bool(
+            request.user.is_active and request.user.is_superuser
+        )
         import core.settings_model  # noqa
         import core.notification_signals  # noqa
 

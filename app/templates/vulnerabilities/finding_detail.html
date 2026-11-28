@@ -31,7 +31,7 @@
         {% if user.is_superuser or user.is_hod %}
         <a href="{% url 'vulnerabilities:finding_delete' finding.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Delete</a>
         {% endif %}
-        {% if user.is_staff %}
+        {% if user.is_superuser %}
         <a href="{% url 'admin:vulnerabilities_finding_change' finding.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
         {% endif %}
     </div>

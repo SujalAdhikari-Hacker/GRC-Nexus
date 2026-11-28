@@ -781,3 +781,39 @@ class ErrorPageContextTests(SimpleTestCase):
         self.assertEqual(
             user_preference_context(request)['user_theme_pref'], 'system'
         )
+
+
+class AdminSuperuserOnlyTests(TestCase):
+    """Django Admin is strictly reserved for active superusers (never department HODs)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Admin Lock Dept')
+        cls.hod_staff = User.objects.create_user(
+            'hod_with_staff', 'hws@example.com', 'pw',
+            department=cls.dept, is_hod=True, is_staff=True,
+        )
+        cls.superuser = User.objects.create_superuser(
+            'real_superadmin', 'rsa@example.com', 'pw',
+        )
+
+    def test_non_superuser_staff_is_blocked_from_django_admin_and_links(self):
+        from tickets.models import Ticket
+
+        ticket = Ticket.objects.create(title='Admin link test', owner_dept=self.dept)
+        self.client.force_login(self.hod_staff)
+
+        for admin_path in ('/admin/', '/admin/core/user/'):
+            with self.subTest(path=admin_path):
+                resp = self.client.get(admin_path)
+                self.assertEqual(resp.status_code, 302)
+                self.assertIn('/admin/login/', resp['Location'])
+
+        detail_resp = self.client.get(reverse('tickets:detail', kwargs={'pk': ticket.pk}))
+        self.assertEqual(detail_resp.status_code, 200)
+        self.assertNotContains(detail_resp, reverse('admin:tickets_ticket_change', args=[ticket.pk]))
+
+    def test_superuser_can_open_django_admin(self):
+        self.client.force_login(self.superuser)
+        resp = self.client.get('/admin/')
+        self.assertEqual(resp.status_code, 200)

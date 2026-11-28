@@ -20,7 +20,7 @@
         {% if user.is_superuser or user.is_hod %}
         <a href="{% url 'kris:delete' kri.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Delete</a>
         {% endif %}
-        {% if user.is_staff %}
+        {% if user.is_superuser %}
         <a href="{% url 'admin:kris_kri_change' kri.pk %}" class="btn btn-sm btn-outline-dark">Admin</a>
         {% endif %}
     </div>

@@ -21,7 +21,7 @@
         {% if can_change %}
             <a href="{% url 'incidents:update' incident.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
         {% endif %}
-        {% if user.is_staff %}
+        {% if user.is_superuser %}
             <a href="{% url 'admin:incidents_incident_change' incident.pk %}" class="btn btn-sm btn-outline-dark">Admin</a>
         {% endif %}
     </div>

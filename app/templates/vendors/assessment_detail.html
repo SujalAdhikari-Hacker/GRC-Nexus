@@ -25,7 +25,7 @@
         {% if user.is_superuser or user.is_hod %}
         <a href="{% url 'vendors:assessment_delete' assessment.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Delete</a>
         {% endif %}
-        {% if user.is_staff %}
+        {% if user.is_superuser %}
         <a href="{% url 'admin:vendors_vendorassessment_change' assessment.pk %}" class="btn btn-sm btn-outline-dark">Admin</a>
         {% endif %}
         <a href="{% url 'vendors:detail' vendor.pk %}" class="btn btn-sm btn-outline-dark">View vendor</a>

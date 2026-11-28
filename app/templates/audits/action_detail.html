@@ -29,7 +29,7 @@
         {% endif %}
         <a href="{% url 'audits:action_update' action.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
         {% if user.is_superuser %}
-        {% if user.is_staff %}
+        {% if user.is_superuser %}
         <a href="{% url 'admin:audits_actionitem_change' action.pk %}" class="btn btn-sm btn-outline-dark" title="Open in Django admin">Admin</a>
         {% endif %}
         {% endif %}
