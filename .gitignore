@@ -42,6 +42,7 @@ backup_before_rls.sql
 # ---------------------------------------------------------------------------
 media/
 staticfiles/
+docs/previews/
 dist/
 build/
 
