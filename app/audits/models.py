@@ -323,14 +323,9 @@ class ControlTest(models.Model):
     untested controls give zero assurance.
     """
     RESULT_CHOICES = [
-        ('pass',                   'Pass'),
-        ('partial',                'Partial'),
-        ('fail',                   'Fail'),
-        ('self_audit',             'Self Audit'),
-        ('customer_complaint',     'Customer Complaint'),
-        ('continuous_complaint',   'Continuous Complaint'),
-        ('continuous_monitoring',  'Continuous Monitoring'),
-        ('other',                  'Other'),
+        ('pass',    'Pass'),
+        ('partial', 'Partial'),
+        ('fail',    'Fail'),
     ]
 
     control = models.ForeignKey(

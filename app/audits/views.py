@@ -495,7 +495,7 @@ class FindingListView(BulkActionsMixin, SavedViewsMixin, DepartmentScopedMixin, 
 
         base = scope_queryset(AuditFinding.objects.all(), self.request.user)
         ctx['total_count'] = base.count()
-        ctx['open_count'] = base.filter(status='open').count()
+        ctx['open_count'] = base.exclude(status__in=['resolved', 'closed', 'accepted']).count()
         ctx['critical_count'] = base.filter(severity='critical').count()
         ctx['overdue_count'] = base.filter(
             due_date__lt=timezone.localdate()
