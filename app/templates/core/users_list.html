@@ -74,8 +74,14 @@
                         {% if u.is_active %}<i class="bi bi-check-circle-fill text-token-success"></i>
                         {% else %}<i class="bi bi-x-circle-fill text-danger"></i>{% endif %}
                     </td>
-                    <td class="text-end">
-                        {% if user.is_superuser %}<a href="{% url 'core:user_update' u.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>{% endif %}
+                    <td class="text-end text-nowrap">
+                        {% if user.is_superuser %}
+                        <form method="post" action="{% url 'core:user_revoke_sessions' u.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger me-1" title="Sign out all active devices for {{ u.username }}">Revoke sessions</button>
+                        </form>
+                        <a href="{% url 'core:user_update' u.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+                        {% endif %}
                     </td>
                 </tr>
             {% empty %}

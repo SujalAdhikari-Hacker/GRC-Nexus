@@ -48,6 +48,12 @@
             <h2>Sign in</h2>
             <p class="subtitle">Access your governance workspace.</p>
 
+            {% if request.GET.signed_out_all == '1' %}
+                <div class="alert alert-info py-2 small mb-3">
+                    You have been signed out from all devices. Please sign in again.
+                </div>
+            {% endif %}
+
             {% if form.errors %}
                 {% for error in form.non_field_errors %}
                     <div class="alert alert-danger py-2 small mb-3">{{ error }}</div>

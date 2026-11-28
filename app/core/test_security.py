@@ -974,3 +974,65 @@ class OrgReadOversightTests(TestCase):
         self.client.force_login(self.fin_user)
         resp = self.client.get(reverse('assets:detail', kwargs={'pk': self.it_asset.pk}))
         self.assertEqual(resp.status_code, 404)
+
+
+class SessionRevocationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Ops')
+        cls.user = User.objects.create_user(
+            username='multi_device_user',
+            password='StrongPassword!123',
+            department=cls.dept,
+        )
+        cls.superuser = User.objects.create_superuser(
+            username='revoker_admin',
+            email='revoker@example.com',
+            password='StrongPassword!123',
+        )
+
+    def test_sign_out_all_devices_revokes_all_sessions_and_requires_post(self):
+        client_a = self.client_class()
+        client_b = self.client_class()
+        client_a.force_login(self.user)
+        client_b.force_login(self.user)
+
+        self.assertEqual(client_b.get(reverse('core:dashboard')).status_code, 200)
+        self.assertEqual(client_a.get(reverse('core:sign_out_all_devices')).status_code, 405)
+
+        resp = client_a.post(reverse('core:sign_out_all_devices'))
+        self.assertRedirects(
+            resp, f"{reverse('login')}?signed_out_all=1", fetch_redirect_response=True,
+        )
+
+        # Both Client A and Client B are immediately locked out
+        self.assertRedirects(
+            client_a.get(reverse('core:dashboard')),
+            f"{reverse('login')}?next={reverse('core:dashboard')}",
+        )
+        self.assertRedirects(
+            client_b.get(reverse('core:dashboard')),
+            f"{reverse('login')}?next={reverse('core:dashboard')}",
+        )
+
+    def test_superuser_admin_session_revocation(self):
+        victim_client = self.client_class()
+        victim_client.force_login(self.user)
+        self.assertEqual(victim_client.get(reverse('core:dashboard')).status_code, 200)
+
+        url = reverse('core:user_revoke_sessions', kwargs={'pk': self.user.pk})
+
+        # Non-superuser cannot revoke another user's sessions
+        other_client = self.client_class()
+        other_client.force_login(self.user)
+        self.assertEqual(other_client.post(url).status_code, 403)
+
+        admin_client = self.client_class()
+        admin_client.force_login(self.superuser)
+        resp = admin_client.post(url)
+        self.assertRedirects(resp, reverse('core:users_list'))
+
+        self.assertRedirects(
+            victim_client.get(reverse('core:dashboard')),
+            f"{reverse('login')}?next={reverse('core:dashboard')}",
+        )

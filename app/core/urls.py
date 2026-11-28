@@ -1,5 +1,6 @@
 from django.urls import path, re_path
 from .settings_views import settings_view, send_test_email, send_board_report_now
+from .auth_views import sign_out_all_devices, revoke_user_sessions
 from .email_views import EmailSettingsView, SendSMTPTestView
 from .media import download_media
 from .object_views import share_object, saved_view_save, saved_view_delete
@@ -37,6 +38,7 @@ urlpatterns = [
     path('admin-ui/users/', UserListView.as_view(), name='users_list'),
     path('admin-ui/users/new/', UserCreateView.as_view(), name='user_create'),
     path('admin-ui/users/<int:pk>/edit/', UserUpdateView.as_view(), name='user_update'),
+    path('admin-ui/users/<int:pk>/revoke-sessions/', revoke_user_sessions, name='user_revoke_sessions'),
 
     path('admin-ui/departments/', DepartmentListView.as_view(), name='departments_list'),
     path('admin-ui/departments/new/', DepartmentCreateView.as_view(), name='department_create'),
@@ -55,6 +57,7 @@ urlpatterns = [
     path('settings/email/test/', SendSMTPTestView.as_view(), name='send_smtp_test'),
     path('settings/test-email/', send_test_email, name='send_test_email'),
     path('settings/send-board-report/', send_board_report_now, name='send_board_report_now'),
+    path('settings/sign-out-all/', sign_out_all_devices, name='sign_out_all_devices'),
 
     # Two-factor authentication
     path('mfa/setup/', mfa_setup, name='mfa_setup'),

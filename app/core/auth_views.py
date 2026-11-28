@@ -1,9 +1,16 @@
 """Authentication views that add product-level security behaviour."""
 from django import forms
-from django.contrib import messages
+from django.conf import settings
+from django.contrib import auth, messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.views import PasswordChangeView
-from django.urls import reverse_lazy
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse, reverse_lazy
+from django.views.decorators.http import require_POST
+
+from .models import real_users
 
 
 class NoReusePasswordChangeForm(PasswordChangeForm):
@@ -40,3 +47,30 @@ class SecurePasswordChangeView(PasswordChangeView):
             user.save(update_fields=['must_change_password'])
         messages.success(self.request, 'Your password has been changed.')
         return response
+
+
+@login_required
+@require_POST
+def sign_out_all_devices(request):
+    """Revoke every active session belonging to the signed-in user."""
+    request.user.revoke_sessions()
+    auth.logout(request)
+    return redirect(f"{reverse(settings.LOGIN_URL)}?signed_out_all=1")
+
+
+@login_required
+@require_POST
+def revoke_user_sessions(request, pk):
+    """Superuser-only: immediately revoke all active sessions for a user."""
+    if not request.user.is_superuser:
+        raise PermissionDenied('Only superadmins can revoke another user\'s sessions.')
+    target = get_object_or_404(real_users(), pk=pk)
+    target.revoke_sessions()
+    if target.pk == request.user.pk:
+        auth.logout(request)
+        return redirect(f"{reverse(settings.LOGIN_URL)}?signed_out_all=1")
+    messages.success(
+        request,
+        f'All active sessions for {target.username} have been revoked.',
+    )
+    return redirect('core:users_list')

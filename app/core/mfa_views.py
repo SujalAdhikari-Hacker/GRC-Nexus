@@ -1,6 +1,7 @@
 """Enrolment, verification and recovery for TOTP multi-factor auth."""
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import check_password, make_password
 from django.shortcuts import redirect, render
@@ -205,6 +206,8 @@ def mfa_disable(request):
 
     _mfa_success(request)
     mfa.delete()
+    request.user.revoke_sessions()
+    update_session_auth_hash(request, request.user)
     request.session['mfa_verified'] = True
     messages.success(request, 'Two-factor authentication has been disabled.')
     return redirect('core:settings')

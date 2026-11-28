@@ -1,6 +1,10 @@
+import secrets
+
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
+from django.utils.crypto import salted_hmac
 from simple_history.models import HistoricalRecords
 
 
@@ -32,11 +36,51 @@ class User(AbstractUser):
     is_hod = models.BooleanField(default=False)
     # Seeded/default-password accounts must rotate before using the app.
     must_change_password = models.BooleanField(default=False)
+    session_nonce = models.CharField(
+        max_length=32,
+        default='',
+        blank=True,
+        editable=False,
+        help_text='Rotated to immediately invalidate all active sessions for this user.',
+    )
 
     history = HistoricalRecords()
 
     def __str__(self):
         return self.username
+
+    def get_session_auth_hash(self):
+        if not self.session_nonce:
+            return super().get_session_auth_hash()
+        return salted_hmac(
+            'core.models.User.get_session_auth_hash',
+            f'{self.password}:{self.session_nonce}',
+            secret=settings.SECRET_KEY,
+            algorithm='sha256',
+        ).hexdigest()
+
+    def revoke_sessions(self):
+        """Invalidate every active session for this user across all devices."""
+        self.session_nonce = secrets.token_hex(16)
+        self.save(update_fields=['session_nonce'])
+        try:
+            from django.contrib.sessions.models import Session
+
+            user_id_str = str(self.pk)
+            pks_to_delete = []
+            for sess in Session.objects.all().iterator():
+                try:
+                    data = sess.get_decoded()
+                except Exception:
+                    continue
+                if str(data.get('_auth_user_id', '')) == user_id_str:
+                    pks_to_delete.append(sess.pk)
+            if pks_to_delete:
+                Session.objects.filter(pk__in=pks_to_delete).delete()
+        except Exception:
+            # Non-DB session engines still drop sessions immediately because
+            # session_nonce invalidates get_session_auth_hash().
+            pass
 
 
 def real_users(queryset=None):
