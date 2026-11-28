@@ -6,42 +6,41 @@ All notable changes to GRC Nexus are recorded here. The format follows
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-11-28
+
+Security hardening, RBAC/RLS completion, scanner & executive reporting automation, and 1-click governance workflows.
+
 ### Changed
 
 - **UI/UX refresh.** Simplified layout density and introduced subtle, accessibility-aware micro-interactions (`tokens.css`, `app.css`) with `prefers-reduced-motion` support across dashboards, tables, forms, and cards.
 - **Repository hygiene cleanup.** Removed stray root-level app stubs (`assets/`, `frameworks/`, `policies/`), unused `app/vendors/cls` and seal leftovers, duplicate `DB relationship Diagram.png`, and tracked generated `docs/previews/*.pdf` artifacts.
+- **Role-driven dashboard hub & control clarity.** Added **My Tasks Today** (pending policy attestations and assigned tickets) for every user, **Approvals & Attention Queue** for HODs/Superadmins, and `operational` / `effective` control counts on the Dashboard card (`core/views.py`, `dashboard.html`).
+- **HOD/Staff group alignment & seed hygiene.** Stripped stray `admin` logentry permissions from `Department Staff` (aligned with `Department HODs` at 172 perms), aligned all HOD users (`sunita.magar`) to `Department HODs`, deduplicated seeded Operations `Employee Laptops`, removed leftover QA test incident, fixed `Critical patch SLA (7 days)` KRI direction + auto-cancelled its false ticket, aligned `CTL-BCP-001` status/lifecycle, and corrected seed typos (`AWS S3 Backup Bucket`, `SIEM alert tuning gaps`) (`core.0019`, `core.0022`).
 
 ### Fixed
 
-- **Incidents create/close validation.** Allowed department-less superusers to pick `owner_dept` on `POST /incidents/new/` (eliminating HTTP 500) and enforced a mandatory `root_cause` whenever `status == 'closed'`, including edit-to-close transitions.
+- **Strict superuser-only Django Admin & RBAC UI alignment.** Restricted Django Admin (`/admin/`) to active superusers, removed `is_staff` from non-superuser forms/accounts (`core.0016`), hid admin links from non-superusers, aligned detail `Edit`/`Delete` buttons (`can_change` / `can_delete`) with backend permissions, and scoped non-superuser user dropdowns by department.
+- **Forced password-rotation hardening.** Blocked reusing the current password on `/password-change/` (`NoReusePasswordChangeForm`) and added clear rotation instructions.
+- **Incidents create/close validation & table layout.** Allowed department-less superusers to pick `owner_dept` on `POST /incidents/new/` (eliminating HTTP 500), enforced a mandatory `root_cause` whenever `status == 'closed'`, and added `text-nowrap` / horizontal table sizing on `/incidents/`.
 - **Vendor assessment scale & overdue days.** Standardized all five `VendorAssessment` dimensions to `0–20` (summing to `100`) and added `Vendor.days_overdue` so non-overdue renewal dates never display negative overdue counts.
 - **SoA KPIs, partial badges & all-N/A readiness.** Fixed `partially_covered` and `no_internal_control` summary counts on `/frameworks/soa/`, fixed the `</hh1>` tag in `soa_report.html`, added `Partial` badges on framework detail controls, and returned `None` (`N/A`) when all compliance assessment items are marked N/A.
 - **Deletion cascade cleanup & baseline safety.** Auto-cancelled open alert tickets when linked records are deleted, deleted unassessed `'identified'` risks when their source `Finding` is deleted, and stopped finding-to-risk cascades from closing `"Unassessed risk"` baseline records.
 - **Audit result choices & open finding consistency.** Trimmed `ControlTest.RESULT_CHOICES` to `pass`/`partial`/`fail` (`audits.0013`) and aligned `/audits/findings/` open count with `/audits/`.
 - **`AnonymousUser` exclusion.** Added `core.models.real_users()` and form/view guards so `django-guardian`'s `AnonymousUser` sentinel is hidden from `/admin-ui/users/`, department counts, sharing UI/endpoints, and user dropdowns.
-- **Search gaps, missing UI deletes & Settings/Policy polish.** Added `RSK-XXXX` code lookup in `/risks/` and `⌘K`, added scoped `AuditFinding` results in `⌘K`, fixed `userdate` Django format rendering and `v3.2.0` version label in Settings, fixed Policy body help text, corrected `0–20` dimension bars on vendor assessment detail, and added HOD/superuser delete views/buttons for Vendors, Vendor Assessments, KRIs, and Vulnerability Findings.
+- **Search gaps, missing UI deletes & Settings/Policy polish.** Added `RSK-XXXX` code lookup in `/risks/` and `⌘K`, added scoped `AuditFinding` results in `⌘K`, fixed `userdate` Django format rendering and version labels, fixed Policy body help text, corrected `0–20` dimension bars on vendor assessment detail, and added HOD/superuser delete views/buttons for Vendors, Vendor Assessments, KRIs, and Vulnerability Findings.
 
 ### Added
 
-- **SLA clocks on findings and tickets** (`core/sla.py`). One ladder — 7, 14,
-  30, 60 and 90 days — applies to audit findings and vulnerability findings by
-  severity, and to tickets by priority (critical/high/medium/low). A blank due
-  date is filled from the record's creation date on save; an explicit date is
-  left alone. A finding or ticket is **breached** when its due date is before
-  today and it is still open. Existing rows are backfilled by data migration,
-  and lists and detail pages show the due date with a breached badge.
-- **BIA and continuity gaps** (`assets`). Assets now carry RTO, RPO and MTPD in
-  hours, links to the BCP and DRP policies, and the date continuity was last
-  tested. A gap report checks every active High/Critical asset for a missing BIA
-  value, an unlinked BCP or DRP, RTO longer than MTPD, or no test in the last 12
-  months, and shows the gaps on the asset page. The asset register import and
-  export now carries those fields too.
-- **Hardened outbound-URL validator** (`core/safe_http.py`). Every outbound
-  fetch must be **https** with no embedded credentials, come from an allowlisted
-  host, and resolve only to globally routable addresses. IPv4-mapped IPv6 is
-  judged as IPv4, and CGNAT, documentation and benchmarking ranges are refused
-  alongside loopback, private, link-local and multicast addresses. Invalid
-  ports and unresolvable hosts are rejected before any request is made.
+- **Read-only org-wide oversight for Internal Audit & Compliance.** Added `Department.has_org_read_oversight` (`core.0017`, `core.0018`) enforced in both Python (`scope_queryset`) and PostgreSQL RLS (`grc_org_oversight_read`, while preserving per-user isolation on `core_usermfa` and `core_notification`).
+- **CSV & JSON scanner output import** (`/vulnerabilities/import/`). Pure-Python ingestion supporting Nessus/OpenVAS/Qualys/generic CSV, flat/wrapped JSON arrays, Trivy JSON, and SARIF 2.1.0, strictly scoped to writable department assets (`vulnerabilities/scanner_import.py`).
+- **Scheduled monthly executive PDF board-report pack** (`send_board_report`). Generates the WeasyPrint executive report headless (`render_pdf_bytes`), emails it with PDF attachment (`BOARD_REPORT_RECIPIENTS` / `OrganisationProfile`), logs a `ServiceRun`, and adds a superadmin `"Send now"` control in Settings (`core.0020`).
+- **Sign-out-all-devices & admin session revocation.** Added `User.session_nonce` (`core.0021`), `User.revoke_sessions()`, `/settings/sign-out-all/`, and superadmin `/admin-ui/users/<pk>/revoke-sessions/`.
+- **Role-based idle & 8-hour absolute session timeouts.** `SessionTimeoutMiddleware` enforces **30 min idle / 8 h absolute** for normal users and **15 min idle / 8 h absolute** for superadmins, with clear expiry notices and HTMX redirect support.
+- **1-click lifecycle workflows & guided empty states.** Added 1-click workflow buttons across Policies (`/policies/<pk>/transition/`), Incidents progress stepper + `/incidents/<pk>/advance/` + root-cause Close modal, and Risks inline control linking + HOD approve/close (`/risks/<pk>/link-control/`, `/approve-close/`), plus curated MITRE ATT&CK baseline seeding (`sync_attack_data --seed-baseline`) and superadmin UI sync.
+- **Formula transparency & score breakdowns.** Added inline `?` formula tooltips and expandable component breakdowns for Vulnerability composite scores, Residual Risk (`residual_score_breakdown`), Weighted Framework Coverage, and Vendor NIS2 Assurance.
+- **SLA clocks on findings and tickets** (`core/sla.py`). One ladder — 7, 14, 30, 60 and 90 days — applies to audit findings and vulnerability findings by severity, and to tickets by priority, with breach tracking and migration backfill.
+- **BIA and continuity gaps** (`assets`). Tracks RTO, RPO, MTPD, BCP/DRP links, and continuity tests, flagging missing/contradictory plans across High/Critical assets and supporting import/export.
+- **Hardened outbound-URL validator** (`core/safe_http.py`). Enforces HTTPS-only, no credentials, host allowlist, and DNS resolution checks rejecting private, loopback, link-local, CGNAT, and IPv4-mapped IPv6 addresses.
 
 ## [3.2.0] - 2026-11-26
 
