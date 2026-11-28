@@ -7,7 +7,7 @@ record must not be able to turn the worker into a proxy for
 
 The helpers below enforce four rules:
 
-* only ``http``/``https`` URLs without embedded credentials;
+* only ``https`` URLs without embedded credentials;
 * the hostname must be on the configured allowlist;
 * every resolved address must be globally routable: IPv4-mapped IPv6 is
   unwrapped and judged as IPv4, and CGNAT, loopback, private, link-local,
@@ -72,8 +72,8 @@ def _is_public(address):
 def validate_url(url, *, allowed_hosts=None):
     """Validate ``url`` and return it unchanged, or raise :class:`UnsafeURL`."""
     parsed = urlparse((url or '').strip())
-    if parsed.scheme.lower() not in ('http', 'https'):
-        raise UnsafeURL('Only http(s) URLs are allowed.')
+    if parsed.scheme.lower() != 'https':
+        raise UnsafeURL('Only https URLs are allowed.')
     if not parsed.hostname:
         raise UnsafeURL('URL has no hostname.')
     if parsed.username or parsed.password:
@@ -88,7 +88,7 @@ def validate_url(url, *, allowed_hosts=None):
         raise UnsafeURL(f'Host {host!r} is not on the outbound allowlist.')
 
     try:
-        port = parsed.port or (443 if parsed.scheme.lower() == 'https' else 80)
+        port = parsed.port or 443
     except ValueError as exc:
         raise UnsafeURL('URL has an invalid port.') from exc
     try:

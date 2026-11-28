@@ -595,6 +595,10 @@ class SSRFAndWebhookTests(TestCase):
         with self.assertRaises(UnsafeURL):
             safe_get('http://127.0.0.1:8000/')
 
+    def test_http_is_rejected_even_for_allowlisted_hosts(self):
+        with self.assertRaises(UnsafeURL):
+            validate_url('http://services.nvd.nist.gov/')
+
     def test_credentials_and_invalid_ports_are_rejected(self):
         for url in (
             'https://user:pass@services.nvd.nist.gov/',
