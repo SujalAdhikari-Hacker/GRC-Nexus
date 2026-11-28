@@ -537,6 +537,38 @@ class PasswordPolicyTests(TestCase):
         self.assertFalse(user.must_change_password)
         self.assertEqual(self.client.get(reverse('core:dashboard')).status_code, 200)
 
+    def test_forced_rotation_banner_and_blocks_password_reuse(self):
+        user = User.objects.create_user(
+            username='reuse_user',
+            password='A-very-long-unique-passphrase-42!',
+            must_change_password=True,
+        )
+        self.client.force_login(user)
+
+        get_resp = self.client.get(reverse('password_change'))
+        self.assertEqual(get_resp.status_code, 200)
+        self.assertContains(get_resp, 'Password rotation required')
+        self.assertNotContains(get_resp, 'Cancel')
+
+        reuse_resp = self.client.post(reverse('password_change'), {
+            'old_password': 'A-very-long-unique-passphrase-42!',
+            'new_password1': 'A-very-long-unique-passphrase-42!',
+            'new_password2': 'A-very-long-unique-passphrase-42!',
+        })
+        self.assertEqual(reuse_resp.status_code, 200)
+        self.assertContains(reuse_resp, 'cannot be the same as your current password')
+        user.refresh_from_db()
+        self.assertTrue(user.must_change_password)
+
+        ok_resp = self.client.post(reverse('password_change'), {
+            'old_password': 'A-very-long-unique-passphrase-42!',
+            'new_password1': 'Different-very-long-passphrase-99!',
+            'new_password2': 'Different-very-long-passphrase-99!',
+        })
+        self.assertEqual(ok_resp.status_code, 302)
+        user.refresh_from_db()
+        self.assertFalse(user.must_change_password)
+
     def test_default_password_command_flags_known_accounts(self):
         user = User.objects.create_user(
             username='legacy_demo_user', password='demo1234'
