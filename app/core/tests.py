@@ -2708,3 +2708,62 @@ class UIPermissionAndDropdownScopingTests(TestCase):
                 self.assertContains(resp, 'uiscope_peer_a')
                 self.assertNotContains(resp, 'uiscope_auditor_b')
                 self.assertNotContains(resp, 'uiscope_super')
+
+
+class ScoreBreakdownAndDashboardControlTests(TestCase):
+    """Vulnerability composite breakdown card and dashboard operational control counts."""
+
+    @classmethod
+    def setUpTestData(cls):
+        import datetime as _dt
+        from assets.models import Asset
+        from controls.models import Control
+        from vulnerabilities.models import Finding, Vulnerability
+
+        cls.dept = Department.objects.create(name='Score & Control Dept')
+        cls.user = User.objects.create_user(
+            'sc_user', 'sc@example.com', 'pw', department=cls.dept,
+        )
+        cls.asset = Asset.objects.create(
+            asset_id='QA-SC-1', name='Critical DB', criticality=4, owner_dept=cls.dept,
+        )
+        cls.vuln = Vulnerability.objects.create(
+            cve_id='CVE-2099-7777', title='RCE Vuln',
+            cvss_score='9.2', cvss_severity='critical',
+            epss_score='0.4', kev_status=True,
+        )
+        cls.finding = Finding.objects.create(
+            vulnerability=cls.vuln, asset=cls.asset, owner_dept=cls.dept,
+            discovered_date=_dt.date.today(),
+        )
+        Control.objects.create(
+            code='CTL-SC-1', name='Designed But Listed Implemented', owner_dept=cls.dept,
+            status='implemented', lifecycle_status='designed', effectiveness_rating='not_tested',
+        )
+        Control.objects.create(
+            code='CTL-SC-2', name='Live Operational Effective', owner_dept=cls.dept,
+            status='implemented', lifecycle_status='operational',
+            effectiveness_rating='effective', last_tested=_dt.date.today(),
+        )
+
+    def test_finding_detail_renders_composite_score_breakdown(self):
+        self.client.force_login(self.user)
+        resp = self.client.get(
+            reverse('vulnerabilities:finding_detail', kwargs={'pk': self.finding.pk})
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Composite score breakdown')
+        self.assertContains(resp, 'CVSS Severity (55%')
+        self.assertContains(resp, 'Asset Criticality (30%')
+        self.assertContains(resp, 'Threat Intel (15%')
+        self.assertAlmostEqual(resp.context['score_breakdown']['total'], float(self.finding.composite_score), places=2)
+
+    def test_dashboard_surfaces_operational_and_effective_control_counts(self):
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('core:dashboard'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['implemented_control_count'], 2)
+        self.assertEqual(resp.context['operational_control_count'], 1)
+        self.assertEqual(resp.context['effective_control_count'], 1)
+        self.assertContains(resp, '1 operational')
+        self.assertContains(resp, '1 effective')

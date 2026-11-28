@@ -260,6 +260,43 @@ class Finding(models.Model):
         }.get(self.vulnerability.cvss_severity, '#6B7280')
 
 
+def composite_score_breakdown(finding):
+    """Return the weighted component breakdown behind ``compute_composite_score``."""
+    if not finding.vulnerability_id or not finding.asset_id:
+        return {
+            'cvss': 0.0, 'severity_pts': 0.0,
+            'asset_crit': 0, 'asset_pts': 0.0,
+            'epss': 0.0, 'kev': False, 'threat_pts': 0.0,
+            'total': 0.0,
+        }
+
+    cvss = float(finding.vulnerability.cvss_score or 0)
+    severity = max(0.0, min(1.0, cvss / 10.0))
+
+    crit_map = {1: 0.25, 2: 0.5, 3: 0.75, 4: 1.0}
+    asset_crit = finding.asset.criticality
+    asset_factor = crit_map.get(asset_crit, 0.5)
+
+    epss = float(finding.vulnerability.epss_score or 0)
+    kev = bool(finding.vulnerability.kev_status)
+    threat = epss + (0.5 if kev else 0.0)
+    threat = max(0.0, min(1.0, threat))
+
+    severity_pts = round(55.0 * severity, 2)
+    asset_pts = round(30.0 * asset_factor, 2)
+    threat_pts = round(15.0 * threat, 2)
+    return {
+        'cvss': round(cvss, 1),
+        'severity_pts': severity_pts,
+        'asset_crit': asset_crit,
+        'asset_pts': asset_pts,
+        'epss': round(epss * 100.0, 1),
+        'kev': kev,
+        'threat_pts': threat_pts,
+        'total': round(severity_pts + asset_pts + threat_pts, 2),
+    }
+
+
 def compute_composite_score(finding):
     """Blend CVSS, asset criticality and threat intel into a 0–100 score.
 

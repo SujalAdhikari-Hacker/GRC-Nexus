@@ -24,7 +24,7 @@ from core.mixins import (
 from core.reports import ReportMixin
 
 from .forms import ManualVulnerabilityForm
-from .models import Finding, Vulnerability
+from .models import Finding, Vulnerability, composite_score_breakdown
 from .services import cascade_finding_to_risk, enrich_vulnerability
 
 
@@ -137,6 +137,11 @@ class FindingDetailView(DepartmentScopedMixin, DetailView):
     template_name = 'vulnerabilities/finding_detail.html'
     context_object_name = 'finding'
     department_field = 'owner_dept'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['score_breakdown'] = composite_score_breakdown(self.object)
+        return ctx
 
 
 # ============================================================

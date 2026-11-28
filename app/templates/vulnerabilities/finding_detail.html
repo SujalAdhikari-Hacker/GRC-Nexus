@@ -100,6 +100,31 @@
     </div>
 
     <div class="col-md-7">
+        <div class="card mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Composite score breakdown</strong>
+                <small class="text-muted"><code>100 × (0.55·CVSS + 0.30·Asset + 0.15·Threat)</code></small>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">CVSS Severity (55% · CVSS {{ score_breakdown.cvss }}/10)</span>
+                    <strong>{{ score_breakdown.severity_pts }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Asset Criticality (30% · Level {{ score_breakdown.asset_crit }}/4)</span>
+                    <strong>{{ score_breakdown.asset_pts }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Threat Intel (15% · EPSS {{ score_breakdown.epss }}%{% if score_breakdown.kev %} + KEV{% endif %})</span>
+                    <strong>{{ score_breakdown.threat_pts }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between bg-light">
+                    <strong>Total Composite Risk Score</strong>
+                    <strong>{{ score_breakdown.total }} / 100</strong>
+                </li>
+            </ul>
+        </div>
+
         <div class="card">
             <div class="card-header bg-white"><strong>Description</strong></div>
             <div class="card-body">{{ finding.vulnerability.description|default:"—"|linebreaks }}</div>

@@ -148,6 +148,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'breached_count': active_risks.filter(appetite_breached=True).count(),
             'control_count': controls.count(),
             'implemented_control_count': controls.filter(status='implemented').count(),
+            'operational_control_count': controls.filter(
+                lifecycle_status__in=['operational', 'monitored', 'reviewed']
+            ).count(),
+            'effective_control_count': controls.filter(
+                effectiveness_rating='effective'
+            ).count(),
             'policy_count': policies.count(),
             'vendor_count': vendors.count(),
             'top_risks': active_risks.order_by('-residual_score')[:5],
