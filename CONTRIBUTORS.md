@@ -10,7 +10,7 @@ Thank you to everyone who has contributed to **GRC Nexus**.
 - Role: Founder, Architect, Lead Developer
 - Contributions:
   - Full-stack development (Django backend, templates, HTMX, Chart.js)
-  - Data model design (12 apps, 30+ models)
+  - Data model design (13 apps, 30+ models, 501 automated tests)
   - Cascade engine and correlation engine
   - Department-scoped RBAC, object-level permissions (django-guardian) and audit trail
   - Executive PDF report generator with embedded charts

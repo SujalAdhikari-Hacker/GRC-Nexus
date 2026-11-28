@@ -62,6 +62,11 @@ MFA is opt-in. Set `MFA_REQUIRED_FOR_STAFF=true` to force staff and superusers
 to enrol. MFA codes use the same exponential model (`MFA_*` settings) and the
 disable/regenerate endpoints require both the password and a valid code.
 
+- **`AnonymousUser` sentinel isolation:** `django-guardian`'s internal
+  `AnonymousUser` account row is excluded via `core.models.real_users()` from
+  `/admin-ui/users/`, department user counts, sharing pickers/endpoints, and
+  every user assignment dropdown across forms.
+
 ## 3. Input validation
 
 Two layers apply:

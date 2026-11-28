@@ -6,6 +6,21 @@ All notable changes to GRC Nexus are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **UI/UX refresh.** Simplified layout density and introduced subtle, accessibility-aware micro-interactions (`tokens.css`, `app.css`) with `prefers-reduced-motion` support across dashboards, tables, forms, and cards.
+- **Repository hygiene cleanup.** Removed stray root-level app stubs (`assets/`, `frameworks/`, `policies/`), unused `app/vendors/cls` and seal leftovers, duplicate `DB relationship Diagram.png`, and tracked generated `docs/previews/*.pdf` artifacts.
+
+### Fixed
+
+- **Incidents create/close validation.** Allowed department-less superusers to pick `owner_dept` on `POST /incidents/new/` (eliminating HTTP 500) and enforced a mandatory `root_cause` whenever `status == 'closed'`, including edit-to-close transitions.
+- **Vendor assessment scale & overdue days.** Standardized all five `VendorAssessment` dimensions to `0–20` (summing to `100`) and added `Vendor.days_overdue` so non-overdue renewal dates never display negative overdue counts.
+- **SoA KPIs, partial badges & all-N/A readiness.** Fixed `partially_covered` and `no_internal_control` summary counts on `/frameworks/soa/`, fixed the `</hh1>` tag in `soa_report.html`, added `Partial` badges on framework detail controls, and returned `None` (`N/A`) when all compliance assessment items are marked N/A.
+- **Deletion cascade cleanup & baseline safety.** Auto-cancelled open alert tickets when linked records are deleted, deleted unassessed `'identified'` risks when their source `Finding` is deleted, and stopped finding-to-risk cascades from closing `"Unassessed risk"` baseline records.
+- **Audit result choices & open finding consistency.** Trimmed `ControlTest.RESULT_CHOICES` to `pass`/`partial`/`fail` (`audits.0013`) and aligned `/audits/findings/` open count with `/audits/`.
+- **`AnonymousUser` exclusion.** Added `core.models.real_users()` and form/view guards so `django-guardian`'s `AnonymousUser` sentinel is hidden from `/admin-ui/users/`, department counts, sharing UI/endpoints, and user dropdowns.
+- **Search gaps, missing UI deletes & Settings/Policy polish.** Added `RSK-XXXX` code lookup in `/risks/` and `⌘K`, added scoped `AuditFinding` results in `⌘K`, fixed `userdate` Django format rendering and `v3.2.0` version label in Settings, fixed Policy body help text, corrected `0–20` dimension bars on vendor assessment detail, and added HOD/superuser delete views/buttons for Vendors, Vendor Assessments, KRIs, and Vulnerability Findings.
+
 ### Added
 
 - **SLA clocks on findings and tickets** (`core/sla.py`). One ladder — 7, 14,

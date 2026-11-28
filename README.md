@@ -12,7 +12,7 @@
 [![Django](https://img.shields.io/badge/django-5.2-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
-[![Tests](https://img.shields.io/badge/tests-293%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-501%20passing-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
@@ -72,7 +72,8 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
   Contract expiry is derived from the renewal date, so a vendor left "active" whose contract has
   lapsed is surfaced as **contract expired** (with days overdue) in the list and detail views.
 - **Vendor risk assessment** — 5-dimension scoring (Security, Compliance, Financial,
-  Reputation, Operational) with an auto-computed overall rating.
+  Reputation, Operational) on a `0–20` scale per dimension (totaling `0–100`) with an
+  auto-computed overall rating and non-negative overdue-day tracking.
 - **Policy library** — versioning, an approval workflow (Draft → Review → Approved, named
   approver required), applies-to departments, and PDF attachment.
 
@@ -107,8 +108,9 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - **Compliance assessments** — readiness checklists with auto-populated items per framework.
 - **Statement of Applicability** — a derived, always-current SoA report per framework
   (`/frameworks/soa/`): one row per requirement with the verdict from your control mappings and
-  the newest assessment (covered / partially covered / gap / excluded), with CSV export for
-  auditors.
+  the newest assessment (`covered` / `partially covered` / `no internal control` / `excluded`),
+  accurate KPI summary counts, `Partial` vs `Covered` requirement badges on framework detail
+  pages, `N/A` readiness when every item is excluded, and CSV export for auditors.
 - **Cross-framework propagation** — mapping a control to one requirement proposes the closest
   equivalent in every other framework (same topic, best title match), so satisfying an ISO
   requirement surfaces its NIST/CIS/PCI/SOC 2/NRB counterparts instead of leaving them as gaps.
@@ -130,8 +132,9 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - **Personal-data breach tracking (GDPR Art. 33)** — affected-person counting, a live 72-hour
   notification clock with days/hours remaining, overdue escalation, and a cabinet-level warning
   on the close page when the notification is still outstanding.
-- **Closure discipline** — an incident cannot be closed without a recorded root cause; lessons
-  learned are captured on the record.
+- **Closure discipline** — an incident cannot be closed without a recorded root cause (enforced
+  across both Close and Edit paths); lessons learned are captured on the record, and
+  department-less superusers select the owning department explicitly on creation.
 - **Risk linkage** — one click raises a risk-register entry from an investigated incident
   (pre-filled, pre-linked, refuses duplicates) — incidents may also be linked to existing risks.
 
@@ -141,8 +144,8 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - **Evidence library** — screenshots, exports, configs and logs linked to controls.
 - **Evidence scoring** — 5-dimension evaluation (Relevance, Completeness, Timeliness,
   Reliability, Sufficiency) → 0–100 score with rating bands.
-- **Control testing** — 8 result types (Pass, Partial, Fail, Self Audit, Continuous Monitoring…),
-  with the tester recorded from the user list.
+- **Control testing** — 3 result outcomes (`Pass`, `Partial`, `Fail`), with the tester
+  recorded from active real users (excluding `django-guardian`'s `AnonymousUser` sentinel).
 - **Audit findings** — severity, source, owner, due date, recommendation, overdue tracking.
 - **Verification loop** — a finding moves Resolved → Verified → Closed; it cannot be closed
   until a HOD or superuser verifies the fix (rejection sends it back for remediation).
@@ -173,8 +176,9 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - **Login & RBAC** — department-scoped, enforced at the queryset level, plus **object-level
   permissions** via `django-guardian`: a HOD can share a single record with a user or group
   from the sharing panel on its detail page, without widening their whole department view.
-- **Command palette** (Ctrl/⌘ + K) — search across assets, risks, controls, policies, vendors,
-  findings, audits, frameworks, KRIs, tickets and threat actors.
+- **Command palette** (Ctrl/⌘ + K) — search across assets, risks (including `RSK-XXXX`
+  risk codes, also searchable in `/risks/`), controls, policies, vendors, vulnerability findings,
+  audit findings, audits, frameworks, KRIs, tickets and threat actors.
 - **Notifications** — a department-scoped work queue (unread is real unread).
 - **Announcements** — HODs and superadmins can write a message and send it to every department,
   a chosen set of departments, their own department, or specific people. It arrives in the bell,
@@ -208,14 +212,17 @@ realistic, self-hostable platform rather than a spreadsheet sprawl.
 - **Saved views** — name the filters you use most and recall them from a dropdown on the list.
 - **Tickets** — a work item can be linked to a specific asset, risk, control or policy (pick at
   most one), so tickets can be raised *for* a given record.
-- **Delete actions** — HOD/superuser-only and department-scoped, with a confirmation page that
-  warns about linked records before anything is removed.
+- **Delete actions** — HOD/superuser-only and department-scoped across core registers
+  (including Vendors, Vendor Assessments, KRIs, and Vulnerability Findings), with a confirmation
+  page that warns about linked records and cleans up unassessed derived risks and open alert
+  tickets automatically.
 - **Custom error pages** — 403 and 404 pages explain cross-department access denials and offer a
   route back, instead of a bare framework error.
 - **Authorised media downloads** — evidence and policy documents are served through a login- and
   department-scoped view (`core/media.py`), never raw `/media/`.
-- **Accessibility & responsive** — skip link, live regions, visible focus states, print
-  stylesheet, reduced-motion support and an off-canvas mobile sidebar.
+- **Calm UI/UX & accessibility** — enterprise-minimal design system (`static/css/tokens.css`,
+  `static/css/app.css`) with smooth micro-interactions, skip link, live regions, visible focus
+  states, print stylesheet, `prefers-reduced-motion` support, and an off-canvas mobile sidebar.
 
 ---
 
@@ -247,12 +254,13 @@ grc-nexus/
 ├── app/
 │   ├── config/            # settings (base/dev/prod), urls, wsgi
 │   ├── core/              # users, departments, dashboard, search, notifications, email, escalations, media, mixins
-│   ├── frameworks/        # frameworks, requirements, coverage, assessments
+│   ├── frameworks/        # frameworks, requirements, coverage, assessments, SoA
 │   ├── assets/            # asset inventory + relationship explorer
 │   ├── vendors/           # vendor register + risk assessments
 │   ├── policies/          # policy library + lifecycle workflow
 │   ├── controls/          # control library, effectiveness, evidence
 │   ├── risks/             # register, appetite, treatments, exceptions, cascade engine
+│   ├── incidents/         # security incidents, severity SLAs, NIS2 / GDPR breach clocks
 │   ├── vulnerabilities/   # CVE catalogue, findings, NVD/EPSS/KEV enrichment, cascade
 │   ├── kris/              # key risk indicators + readings
 │   ├── audits/            # audits, evidence, scoring, testing, findings, actions
@@ -260,7 +268,10 @@ grc-nexus/
 │   ├── tickets/           # remediation tickets + alerting
 │   ├── templates/         # shared + per-app templates
 │   └── static/            # CSS design tokens, JS, brand assets
-├── docs/                  # audit record and PDF previews
+├── db/                    # PostgreSQL runtime role bootstrap (`grc_app`)
+├── deploy/                # Caddy / nginx reverse-proxy examples
+├── docs/                  # deployment, security, email, audit record and branding
+├── scripts/               # secret-scan helper
 ├── docker-compose.yml
 ├── .env.example
 └── README.md
@@ -504,11 +515,14 @@ the finding verification loop, approver-gated risk-exception approval, ticket li
 authorization, the custom 403/404 pages, bulk actions and saved views, the authenticated media
 view, CSV-injection guarding, export fidelity, the PDF watermark, and the email layer:
 preference gating, digest scheduling windows, escalation detection/grace periods, notification
-idempotency and the escalation auto-clear rules.
+idempotency and the escalation auto-clear rules, deletion-cascade alert cancellation and
+baseline-risk preservation, SoA summary/all-N/A readiness, `AnonymousUser` exclusion across
+user views/sharing/forms, `RSK-XXXX` & audit-finding search, vendor 0–20 scoring, and
+incident closure validation.
 
 ```bash
 docker compose exec web python manage.py test
-# Ran 293 tests - OK
+# Ran 501 tests - OK
 ```
 
 The suite also includes a dedicated security regression module
@@ -655,6 +669,8 @@ The platform is under active development.
 
 **Recently shipped**
 
+- [x] UI/UX redesign — calmer, enterprise-minimal palette, spacing tokens, smooth micro-interactions, and cleaner navigation
+- [x] Superadmin QA hardening — fixed incident creation/closure validation, vendor 0–20 scoring, SoA summary KPIs & all-N/A readiness, deletion-cascade cleanup, audit open-finding consistency, `AnonymousUser` exclusion, `RSK-XXXX` & audit-finding search, and missing delete workflows
 - [x] Object-level permissions via `django-guardian`, with a per-record sharing panel
 - [x] Audit finding → verification loop (a finding cannot be closed until it is verified)
 - [x] Bulk actions on registers and per-user saved list views
@@ -666,7 +682,10 @@ The platform is under active development.
 
 **Planned**
 
-- [ ] SSO / OIDC and MFA for enterprise deployments
+- [ ] Multi-user RBAC & auth hardening pass (strip `is_staff` from department HODs, block password reuse on forced rotation, and align Internal Audit / Compliance cross-department oversight)
+- [ ] SSO / OIDC and enforced MFA for enterprise deployments
+- [ ] Vulnerability scanner & SIEM integrations (OpenVAS, Nmap, Wazuh)
+- [ ] Role-scoped AI GRC assistant for non-technical natural-language queries
 
 ---
 

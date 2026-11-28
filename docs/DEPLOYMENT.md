@@ -170,6 +170,7 @@ docker compose exec -T web python manage.py check --deploy
 
 # 4. Application checks
 docker compose exec -T web python manage.py check
+docker compose exec -T web python manage.py makemigrations --check --dry-run
 docker compose exec -T web python manage.py migrate --check
 docker compose exec -T web python manage.py test
 ```

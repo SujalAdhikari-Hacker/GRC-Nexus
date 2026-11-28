@@ -2,12 +2,14 @@
 
 | | |
 |---|---|
-| **Application** | GRC Nexus (`C:\Users\DEADSHOT\Desktop\GRC`) |
+| **Application** | GRC Nexus (self-hosted repository) |
 | **Stack** | Django 4.2 LTS · PostgreSQL 15 · gunicorn + whitenoise · Bootstrap 5 · Docker Compose |
 | **Audit date** | 17 October 2026 |
 | **Auditor role** | Senior engineer + GRC researcher + product analyst |
 | **Scope** | Every app, view, form, model, service, template, stylesheet, settings module, container and data path |
 | **Verdict** | **Ship-ready for a departmental pilot.** All identified correctness, security, performance and UI defects are fixed and verified. One data-housekeeping item and a short list of enterprise-scope gaps remain (section 6). |
+
+> **Historical snapshot:** This audit records the **17 October 2026** baseline (Django 4.2 LTS / PostgreSQL 15 / 28 tests). For the current **v3.2.0+** platform (Django 5.2 LTS, PostgreSQL 16, PostgreSQL RLS, email delivery, and 501 automated tests), see [`README.md`](../README.md), [`CHANGELOG.md`](../CHANGELOG.md), and [`docs/SECURITY.md`](SECURITY.md).
 
 ---
 
