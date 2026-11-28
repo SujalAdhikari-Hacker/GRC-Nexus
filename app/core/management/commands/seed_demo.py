@@ -37,7 +37,13 @@ class Command(BaseCommand):
         # ---------- Departments ----------
         departments = {}
         for name in ['IT', 'Finance', 'HR', 'Operations', 'Compliance']:
-            dept, created = Department.objects.get_or_create(name=name)
+            dept, created = Department.objects.get_or_create(
+                name=name,
+                defaults={'has_org_read_oversight': name == 'Compliance'},
+            )
+            if name == 'Compliance' and not dept.has_org_read_oversight:
+                dept.has_org_read_oversight = True
+                dept.save(update_fields=['has_org_read_oversight'])
             departments[name] = dept
             self.stdout.write(f"  Department: {name} {'(created)' if created else '(exists)'}")
 

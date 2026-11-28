@@ -52,24 +52,27 @@ class RLSMiddleware:
         self.get_response = get_response
 
     @staticmethod
-    def _set_context(bypass, department_id, user_id):
+    def _set_context(bypass, department_id, user_id, org_read='off'):
         with connection.cursor() as cursor:
             cursor.execute(
                 """
                 SELECT set_config('app.bypass_rls', %s, false),
                        set_config('app.department_id', %s, false),
-                       set_config('app.user_id', %s, false)
+                       set_config('app.user_id', %s, false),
+                       set_config('app.org_read', %s, false)
                 """,
-                [bypass, department_id, user_id],
+                [bypass, department_id, user_id, org_read],
             )
 
     @staticmethod
     def _context_for_user(user):
         if user is not None and user.is_authenticated and user.is_superuser:
-            return 'on', '', ''
+            return 'on', '', '', 'on'
         if user is not None and user.is_authenticated:
-            return 'off', str(user.department_id or ''), str(user.pk)
-        return 'off', '', ''
+            dept = getattr(user, 'department', None)
+            org_read = 'on' if (dept and getattr(dept, 'has_org_read_oversight', False)) else 'off'
+            return 'off', str(user.department_id or ''), str(user.pk), org_read
+        return 'off', '', '', 'off'
 
     @classmethod
     def activate_for_user(cls, user):
@@ -91,7 +94,7 @@ class RLSMiddleware:
         try:
             return self.get_response(request)
         finally:
-            self._set_context('on', '', '')
+            self._set_context('on', '', '', 'off')
 
 
 # ---------------------------------------------------------------------------

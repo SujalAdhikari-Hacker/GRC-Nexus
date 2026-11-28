@@ -10,6 +10,13 @@ class Department(models.Model):
         'self', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='children'
     )
+    has_org_read_oversight = models.BooleanField(
+        default=False,
+        help_text=(
+            'Members of this department have read-only visibility across all '
+            'departments (e.g. Internal Audit, Compliance).'
+        ),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     history = HistoricalRecords()

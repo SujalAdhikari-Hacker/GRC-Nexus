@@ -62,6 +62,19 @@ def _granted_pks(model, user):
     return cache[key]
 
 
+_OVERSIGHT_EXCLUDED_MODELS = {'core.usermfa', 'core.notification'}
+
+
+def user_has_org_read(user):
+    """True when ``user`` has org-wide read-only oversight (superusers or Audit/Compliance)."""
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    if user.is_superuser:
+        return True
+    dept = getattr(user, 'department', None)
+    return bool(dept and getattr(dept, 'has_org_read_oversight', False))
+
+
 def scope_queryset(queryset, user, field='owner_dept'):
     """Return ``queryset`` limited to the rows ``user`` is allowed to see.
 
@@ -75,6 +88,11 @@ def scope_queryset(queryset, user, field='owner_dept'):
         return queryset
 
     model = getattr(queryset, 'model', None)
+    if (
+        user_has_org_read(user)
+        and (model is None or model._meta.label_lower not in _OVERSIGHT_EXCLUDED_MODELS)
+    ):
+        return queryset
     condition = Q()
 
     if getattr(user, 'department_id', None):
@@ -128,6 +146,11 @@ def user_can_access(user, obj, field='owner_dept'):
     if not getattr(user, 'is_authenticated', False):
         return False
     if user.is_superuser:
+        return True
+    if (
+        user_has_org_read(user)
+        and obj._meta.label_lower not in _OVERSIGHT_EXCLUDED_MODELS
+    ):
         return True
     if getattr(obj, 'is_shared', False):
         return True

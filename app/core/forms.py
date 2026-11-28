@@ -24,4 +24,4 @@ class CustomUserChangeForm(forms.ModelForm):
 class DepartmentForm(forms.ModelForm):
     class Meta:
         model = Department
-        fields = ('name', 'parent')
+        fields = ('name', 'parent', 'has_org_read_oversight')

@@ -849,3 +849,128 @@ class AdminSuperuserOnlyTests(TestCase):
         self.client.force_login(self.superuser)
         resp = self.client.get('/admin/')
         self.assertEqual(resp.status_code, 200)
+
+
+class OrgReadOversightTests(TestCase):
+    """Audit & Compliance oversight depts have read-only org visibility enforced in Python + RLS."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from controls.models import Control, ControlFrameworkMapping
+        from frameworks.models import Framework, FrameworkControl
+
+        cls.it_dept = Department.objects.create(name='IT Sec Dept')
+        cls.audit_dept = Department.objects.create(
+            name='Internal Audit Oversight', has_org_read_oversight=True,
+        )
+        cls.fin_dept = Department.objects.create(name='Finance Dept')
+
+        cls.auditor = User.objects.create_user(
+            'oversight_auditor', 'oa@example.com', 'pw',
+            department=cls.audit_dept, is_hod=True,
+        )
+        cls.fin_user = User.objects.create_user(
+            'plain_finance', 'pf@example.com', 'pw',
+            department=cls.fin_dept, is_hod=True,
+        )
+        cls.it_asset = Asset.objects.create(
+            asset_id='QA-OV-1', name='Core Firewall', owner_dept=cls.it_dept,
+        )
+        cls.it_control = Control.objects.create(
+            code='CTL-OV-01', name='MFA Everywhere', owner_dept=cls.it_dept,
+            status='implemented',
+        )
+        cls.fw = Framework.objects.create(name='Oversight ISO', version='2022')
+        cls.fc = FrameworkControl.objects.create(
+            framework=cls.fw, code='A.5.1', title='Org Policy',
+        )
+        ControlFrameworkMapping.objects.create(
+            control=cls.it_control, framework_control=cls.fc,
+            relationship='implements',
+        )
+
+    def test_oversight_dept_can_read_cross_dept_and_sees_framework_coverage(self):
+        self.client.force_login(self.auditor)
+        asset_resp = self.client.get(reverse('assets:detail', kwargs={'pk': self.it_asset.pk}))
+        self.assertEqual(asset_resp.status_code, 200)
+        ctrl_resp = self.client.get(reverse('controls:detail', kwargs={'pk': self.it_control.pk}))
+        self.assertEqual(ctrl_resp.status_code, 200)
+
+        fw_resp = self.client.get(reverse('frameworks:list'))
+        self.assertEqual(fw_resp.status_code, 200)
+        fw_obj, cov = next(
+            pair for pair in fw_resp.context['frameworks_with_coverage']
+            if pair[0].pk == self.fw.pk
+        )
+        self.assertGreater(cov['percent'], 0)
+
+    def test_oversight_dept_cannot_modify_other_dept_records_in_views_or_rls(self):
+        self.client.force_login(self.auditor)
+        edit_resp = self.client.get(reverse('assets:update', kwargs={'pk': self.it_asset.pk}))
+        self.assertEqual(edit_resp.status_code, 404)
+        del_resp = self.client.post(reverse('assets:delete', kwargs={'pk': self.it_asset.pk}))
+        self.assertEqual(del_resp.status_code, 404)
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT set_config('app.bypass_rls', 'off', false), "
+                    "set_config('app.department_id', %s, false), "
+                    "set_config('app.user_id', %s, false), "
+                    "set_config('app.org_read', 'on', false)",
+                    [str(self.audit_dept.pk), str(self.auditor.pk)],
+                )
+                cursor.execute('SELECT count(*) FROM assets_asset WHERE id = %s', [self.it_asset.pk])
+                self.assertEqual(cursor.fetchone()[0], 1)
+                cursor.execute(
+                    "UPDATE assets_asset SET name = 'Tampered' WHERE id = %s",
+                    [self.it_asset.pk],
+                )
+                self.assertEqual(cursor.rowcount, 0)
+        finally:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT set_config('app.bypass_rls', 'on', false), "
+                    "set_config('app.department_id', '', false), "
+                    "set_config('app.user_id', '', false), "
+                    "set_config('app.org_read', 'off', false)"
+                )
+
+    def test_oversight_still_isolates_mfa_and_notifications_and_non_oversight_users(self):
+        from core.mixins import scope_queryset
+        from core.notifications import Notification
+
+        it_user = User.objects.create_user('it_owner_ov', department=self.it_dept)
+        mfa_it = UserMFA.objects.create(user=it_user, secret='C' * 32)
+        Notification.objects.create(
+            kind='announcement', title='IT private alert', owner_dept=self.it_dept,
+        )
+
+        self.assertEqual(
+            scope_queryset(UserMFA.objects.all(), self.auditor, field='user__department').count(),
+            0,
+        )
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT set_config('app.bypass_rls', 'off', false), "
+                    "set_config('app.department_id', %s, false), "
+                    "set_config('app.user_id', %s, false), "
+                    "set_config('app.org_read', 'on', false)",
+                    [str(self.audit_dept.pk), str(self.auditor.pk)],
+                )
+                cursor.execute('SELECT id FROM core_usermfa WHERE id = %s', [mfa_it.pk])
+                self.assertEqual(cursor.fetchall(), [])
+        finally:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT set_config('app.bypass_rls', 'on', false), "
+                    "set_config('app.department_id', '', false), "
+                    "set_config('app.user_id', '', false), "
+                    "set_config('app.org_read', 'off', false)"
+                )
+        self.assertEqual(scope_queryset(Notification.objects.all(), self.auditor).count(), 0)
+
+        self.client.force_login(self.fin_user)
+        resp = self.client.get(reverse('assets:detail', kwargs={'pk': self.it_asset.pk}))
+        self.assertEqual(resp.status_code, 404)

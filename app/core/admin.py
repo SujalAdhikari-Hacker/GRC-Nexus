@@ -6,7 +6,8 @@ from .models import OrganisationProfile
 
 @admin.register(Department)
 class DepartmentAdmin(SimpleHistoryAdmin):
-    list_display = ('name', 'parent')
+    list_display = ('name', 'parent', 'has_org_read_oversight')
+    list_filter = ('has_org_read_oversight',)
     search_fields = ('name',)
 
 

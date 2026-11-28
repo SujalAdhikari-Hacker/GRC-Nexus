@@ -42,6 +42,12 @@ EXCLUDED_TABLES = {
 SHAREABLE_LABELS = set(SHAREABLE_MODELS)
 
 POLICY_NAME = 'grc_dept_isolation'
+OVERSIGHT_POLICY_NAME = 'grc_org_oversight_read'
+OVERSIGHT_EXCLUDED_TABLES = {
+    'core_usermfa',
+    'core_notification',
+    'core_historicalnotification',
+}
 
 
 def _model_label(table_name):
@@ -182,11 +188,17 @@ def build_statements(connection=None):
             f'ALTER TABLE "{table}" ENABLE ROW LEVEL SECURITY',
             f'ALTER TABLE "{table}" FORCE ROW LEVEL SECURITY',
             f'DROP POLICY IF EXISTS {POLICY_NAME} ON "{table}"',
+            f'DROP POLICY IF EXISTS {OVERSIGHT_POLICY_NAME} ON "{table}"',
             (
                 f'CREATE POLICY {POLICY_NAME} ON "{table}" FOR ALL '
                 f'USING ({expression}) WITH CHECK ({expression})'
             ),
         ])
+        if table not in OVERSIGHT_EXCLUDED_TABLES:
+            statements.append(
+                f'CREATE POLICY {OVERSIGHT_POLICY_NAME} ON "{table}" FOR SELECT '
+                f"USING (current_setting('app.org_read', true) = 'on')"
+            )
     return statements
 
 
@@ -227,6 +239,7 @@ def remove_rls(apps=None, schema_editor=None, connection=None):
             if table in EXCLUDED_TABLES or not _expression(table, columns.get(table, set())):
                 continue
             cursor.execute(f'DROP POLICY IF EXISTS {POLICY_NAME} ON "{table}"')
+            cursor.execute(f'DROP POLICY IF EXISTS {OVERSIGHT_POLICY_NAME} ON "{table}"')
             cursor.execute(f'ALTER TABLE "{table}" NO FORCE ROW LEVEL SECURITY')
             cursor.execute(f'ALTER TABLE "{table}" DISABLE ROW LEVEL SECURITY')
         cursor.execute('DROP FUNCTION IF EXISTS grc_can_access(text, bigint)')
