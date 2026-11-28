@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿{% load static %}<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -7,6 +7,16 @@
     @page {
         size: A4 portrait;
         margin: 1.8cm 1.5cm;
+        @top-left {
+            content: "Audit Report · {{ audit.name|escapejs }}";
+            font-size: 8pt;
+            color: #9CA3AF;
+        }
+        @top-right {
+            content: "GRC Nexus v3.3.0";
+            font-size: 8pt;
+            color: #9CA3AF;
+        }
         @bottom-right {
             content: "Page " counter(page) " of " counter(pages);
             font-size: 8.5pt;
@@ -20,6 +30,8 @@
     }
     @page :first {
         margin: 0;
+        @top-left { content: ""; }
+        @top-right { content: ""; }
         @bottom-right { content: ""; }
         @bottom-left { content: ""; }
     }
@@ -33,10 +45,28 @@
         margin: 0;
     }
 
+    /* ---------- UTILITY CLASSES ---------- */
+    .pdf-heading {
+        font-size: 11.5pt;
+        font-weight: 700;
+        color: #0B1220;
+        margin: 18px 0 8px 0;
+    }
+    .w-55px { width: 55px; }
+    .w-60 { width: 60px; }
+    .w-70 { width: 70px; }
+    .w-80 { width: 80px; }
+    .w-90px { width: 90px; }
+    .w-100px { width: 100px; }
+    .w-110px { width: 110px; }
+    .grow-1 { flex: 1; min-width: 0; }
+    .text-token-muted { color: #6B7280; }
+    .mono { font-family: 'Courier New', Courier, monospace; font-size: 8pt; }
+
     /* ---------- COVER ---------- */
     .cover {
         height: 297mm;
-        padding: 40mm 20mm 20mm;
+        padding: 36mm 20mm 20mm;
         background: linear-gradient(160deg, #0B1220 0%, #0B1220 65%, #111827 100%);
         color: #FFFFFF;
         page-break-after: always;
@@ -51,30 +81,37 @@
     .cover-brand {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 50mm;
+        gap: 14px;
+        margin-bottom: 46mm;
     }
-    .cover-brand-mark {
-        width: 40px; height: 40px;
-        background: #00A8E8;
-        border-radius: 8px;
-        position: relative;
-    }
-    .cover-brand-mark::after {
-        content: "\2713";
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #0B1220;
-        font-size: 24px;
-        font-weight: 700;
+    .cover-logo {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: block;
     }
     .cover-brand-name {
-        font-size: 26pt;
+        font-size: 24pt;
         font-weight: 700;
         letter-spacing: -0.02em;
+        line-height: 1.1;
+    }
+    .cover-brand-tagline {
+        font-size: 9pt;
+        color: #9CA3AF;
+        letter-spacing: 0.03em;
+        margin-top: 2px;
+    }
+    .cover-version-pill {
+        margin-left: auto;
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(0, 168, 232, 0.45);
+        background: rgba(0, 168, 232, 0.14);
+        color: #38BDF8;
+        font-size: 8.5pt;
+        font-weight: 600;
+        letter-spacing: 0.04em;
     }
     .cover-eyebrow {
         color: #00A8E8;
@@ -115,7 +152,7 @@
         margin-bottom: 16px;
     }
     .cover-meta-block .label {
-        color: #6B7280;
+        color: #9CA3AF;
         font-size: 8.5pt;
         text-transform: uppercase;
         letter-spacing: .06em;
@@ -132,7 +169,7 @@
         left: 20mm;
         right: 20mm;
         font-size: 8pt;
-        color: #6B7280;
+        color: #9CA3AF;
         display: flex;
         justify-content: space-between;
     }
@@ -238,7 +275,8 @@
         font-size: 8.5pt;
         margin: 12px 0 20px 0;
     }
-    table.data thead { background: #0B1220; color: #FFFFFF; }
+    table.data thead { background: #0B1220; color: #FFFFFF; display: table-header-group; }
+    table.data tr { page-break-inside: avoid; }
     table.data thead th {
         text-align: left;
         padding: 7px 9px;
@@ -322,8 +360,12 @@
 <!-- ================= COVER ================= -->
 <div class="cover">
     <div class="cover-brand">
-        <div class="cover-brand-mark"></div>
-        <div class="cover-brand-name">GRC Nexus</div>
+        <img src="{% static 'img/logo.svg' %}" class="cover-logo" alt="GRC Nexus">
+        <div>
+            <div class="cover-brand-name">GRC Nexus</div>
+            <div class="cover-brand-tagline">From Assets to Assurance</div>
+        </div>
+        <div class="cover-version-pill">v3.3.0</div>
     </div>
 
     <div class="cover-eyebrow">Audit Report</div>
@@ -456,6 +498,7 @@
             <span class="badge badge-{{ f.severity }}">{{ f.get_severity_display }}</span>
             <span class="badge badge-neutral">{{ f.get_status_display }}</span>
             <span class="badge badge-neutral">{{ f.get_source_display }}</span>
+            {% if f.is_overdue %}<span class="badge badge-critical">SLA Overdue</span>{% endif %}
             {% if f.related_control %}· Control <strong>{{ f.related_control.code }}</strong>{% endif %}
             {% if f.owner_user %}· Owner <strong>{{ f.owner_user.username }}</strong>{% endif %}
             {% if f.due_date %}· Due <strong>{{ f.due_date|date:"Y-m-d" }}</strong>{% endif %}
@@ -567,23 +610,27 @@
     <table class="data">
         <thead>
             <tr>
-                <th scope="col" style="width:40px;">#</th>
+                <th scope="col" style="width:32px;">#</th>
                 <th scope="col">Title</th>
-                <th scope="col" class="w-70">Type</th>
-                <th scope="col" class="w-80">Control</th>
-                <th scope="col" class="w-80">Owner</th>
-                <th scope="col" class="text-center w-70">Score</th>
-                <th scope="col" class="text-center w-70">Rating</th>
+                <th scope="col" class="w-60">Type</th>
+                <th scope="col" class="w-70">Control</th>
+                <th scope="col" class="w-70">Owner</th>
+                <th scope="col" style="width:120px;">Version / SHA-256</th>
+                <th scope="col" class="text-center w-60">Score</th>
+                <th scope="col" class="text-center w-60">Rating</th>
             </tr>
         </thead>
         <tbody>
         {% for e in evidence_items %}
             <tr>
                 <td>{{ forloop.counter }}</td>
-                <td>{{ e.title|truncatechars:70 }}</td>
+                <td>{{ e.title|truncatechars:60 }}</td>
                 <td>{{ e.get_evidence_type_display }}</td>
                 <td>{{ e.related_control.code|default:"—" }}</td>
                 <td>{{ e.owner_user.username|default:"—" }}</td>
+                <td class="mono">
+                    {% if e.latest_version %}v{{ e.latest_version.version }} · {{ e.latest_version.sha256|slice:":12" }}…{% else %}—{% endif %}
+                </td>
                 <td class="text-center">
                     {% if e.score %}<strong>{{ e.score.total_score }}</strong>/100{% else %}—{% endif %}
                 </td>

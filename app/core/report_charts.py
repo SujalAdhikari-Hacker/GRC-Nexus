@@ -25,7 +25,7 @@ LIGHTGREY = '#E5E7EB'
 
 def _fig_to_base64(fig):
     buf = BytesIO()
-    fig.savefig(buf, format='png', dpi=110, bbox_inches='tight',
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight',
                 facecolor='white', edgecolor='none')
     plt.close(fig)
     buf.seek(0)
@@ -287,5 +287,86 @@ def framework_coverage_png(names, percents):
     for spine in ['left', 'bottom']:
         ax.spines[spine].set_color(LIGHTGREY)
 
+    fig.tight_layout()
+    return _fig_to_base64(fig)
+
+
+# ============================================================
+# VENDOR RISK BANDS BAR
+# ============================================================
+
+def vendor_risk_bands_png(band_counts):
+    """Render horizontal distribution across supplier risk bands."""
+    bands = [
+        ('Low risk (80-100)', 'low', GREEN),
+        ('Moderate (60-79)', 'moderate', BLUE),
+        ('Elevated (40-59)', 'elevated', YELLOW),
+        ('High risk (<40)', 'high', RED),
+    ]
+    total = sum(band_counts.get(k, 0) for _, k, _ in bands)
+    if not total:
+        return None
+
+    labels = [label for label, _, _ in bands]
+    values = [band_counts.get(k, 0) for _, k, _ in bands]
+    colors = [color for _, _, color in bands]
+
+    fig, ax = plt.subplots(figsize=(6.5, 2.5))
+    y = np.arange(len(labels))
+    ax.barh(y, values, color=colors, height=0.55)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=9, color=NAVY)
+    ax.invert_yaxis()
+    max_val = max(values) if values else 1
+    ax.set_xlim(0, max(max_val + max(1, max_val * 0.2), 2))
+    ax.set_xlabel('Active Vendors', fontsize=9, color=GREY)
+    ax.grid(axis='x', alpha=0.3, linestyle='--')
+
+    for yi, v in zip(y, values):
+        ax.text(v + 0.15, yi, str(v), va='center', fontsize=9,
+                fontweight='bold', color=NAVY)
+
+    for spine in ['top', 'right']:
+        ax.spines[spine].set_visible(False)
+    for spine in ['left', 'bottom']:
+        ax.spines[spine].set_color(LIGHTGREY)
+
+    fig.tight_layout()
+    return _fig_to_base64(fig)
+
+
+# ============================================================
+# BIA / CONTINUITY READINESS DONUT
+# ============================================================
+
+def bia_readiness_png(complete_count, gap_count):
+    """Render continuity-ready vs BIA/continuity-gap assets doughnut."""
+    total = (complete_count or 0) + (gap_count or 0)
+    if not total:
+        return None
+
+    fig, ax = plt.subplots(figsize=(4.5, 3.3))
+    labels = []
+    values = []
+    colors = []
+    if complete_count:
+        labels.append('Continuity Ready')
+        values.append(complete_count)
+        colors.append(GREEN)
+    if gap_count:
+        labels.append('Has BIA Gaps')
+        values.append(gap_count)
+        colors.append(ORANGE)
+
+    wedges, texts, autotexts = ax.pie(
+        values, labels=labels, autopct='%1.0f%%',
+        colors=colors, startangle=90,
+        wedgeprops=dict(width=0.42, edgecolor='white', linewidth=2),
+        textprops=dict(fontsize=9, color=NAVY),
+    )
+    for t in autotexts:
+        t.set_color('white')
+        t.set_fontweight('bold')
+    ax.axis('equal')
     fig.tight_layout()
     return _fig_to_base64(fig)

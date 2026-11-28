@@ -1,24 +1,68 @@
 ﻿{% extends "reports/base_pdf.html" %}
+{% block extra_page_css %}
+@page { size: A4 landscape; margin: 1.4cm 1.2cm; }
+{% endblock %}
 {% block content %}
-<p>Total assets: {{ total }} · High / Critical: {{ critical_count }}</p>
+<div class="stat-strip">
+    <div class="stat-pill blue">
+        <div class="val">{{ total }}</div>
+        <div class="lbl">Total Assets</div>
+    </div>
+    <div class="stat-pill red">
+        <div class="val">{{ critical_count }}</div>
+        <div class="lbl">High / Critical</div>
+    </div>
+    <div class="stat-pill green">
+        <div class="val">{{ bia_ready_count }}</div>
+        <div class="lbl">Continuity Ready</div>
+    </div>
+    <div class="stat-pill {% if bia_gap_count %}amber{% else %}green{% endif %}">
+        <div class="val">{{ bia_gap_count }}</div>
+        <div class="lbl">BIA / Continuity Gaps</div>
+    </div>
+</div>
+
 <table>
-    <thead><tr>
-        <th scope="col">Asset ID</th><th scope="col">Name</th><th scope="col">Hostname</th><th scope="col">IP</th>
-        <th scope="col">Type</th><th scope="col">Hosting</th><th scope="col">Cloud</th><th scope="col">OS</th><th scope="col">Criticality</th>
-    </tr></thead>
+    <thead>
+        <tr>
+            <th scope="col">Asset ID</th>
+            <th scope="col">Name</th>
+            <th scope="col">Host / IP</th>
+            <th scope="col">Type</th>
+            <th scope="col">Hosting / Cloud</th>
+            <th scope="col">OS</th>
+            <th scope="col" class="text-center">Criticality</th>
+            <th scope="col" class="text-center">BIA (RTO/RPO/MTPD)</th>
+            <th scope="col" class="text-center">Continuity</th>
+        </tr>
+    </thead>
     <tbody>
     {% for a in assets %}
         <tr>
-            <td><strong>{{ a.asset_id }}</strong></td>
-            <td>{{ a.name|truncatechars:40 }}</td>
-            <td>{{ a.hostname|default:"—" }}</td>
-            <td>{{ a.ip_address|default:"—" }}</td>
+            <td class="mono"><strong>{{ a.asset_id }}</strong></td>
+            <td>{{ a.name|truncatechars:36 }}</td>
+            <td class="mono">{{ a.host_line|default:"—"|truncatechars:30 }}</td>
             <td>{{ a.get_asset_type_display }}</td>
-            <td>{{ a.get_hosting_display }}</td>
-            <td>{{ a.get_cloud_provider_display }}</td>
+            <td>
+                {{ a.get_hosting_display }}
+                {% if a.cloud_provider and a.cloud_provider != 'none' %} · {{ a.get_cloud_provider_display }}{% endif %}
+            </td>
             <td>{{ a.get_os_family_display }}</td>
-            <td>{{ a.get_criticality_display }}</td>
+            <td class="text-center">
+                <span class="badge {% if a.criticality == 4 %}badge-critical{% elif a.criticality == 3 %}badge-high{% elif a.criticality == 2 %}badge-medium{% else %}badge-low{% endif %}">
+                    {{ a.get_criticality_display }}
+                </span>
+            </td>
+            <td class="text-center mono">
+                {{ a.rto_hours|default:"—" }}h / {{ a.rpo_hours|default:"—" }}h / {{ a.mtpd_hours|default:"—" }}h
+            </td>
+            <td class="text-center">
+                {% if a.continuity_complete %}<span class="badge badge-low">Ready</span>
+                {% else %}<span class="badge badge-warn">{{ a.continuity_gaps|length }} gap{{ a.continuity_gaps|length|pluralize }}</span>{% endif %}
+            </td>
         </tr>
+    {% empty %}
+        <tr><td colspan="9" class="text-center" style="color:#6B7280; padding:14px;">No assets matched the selected filter.</td></tr>
     {% endfor %}
     </tbody>
 </table>

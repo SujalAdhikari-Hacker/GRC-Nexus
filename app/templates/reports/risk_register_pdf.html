@@ -1,13 +1,60 @@
 ﻿{% extends "reports/base_pdf.html" %}
 {% block content %}
-<p>Total risks: {{ total }} · Breaches: {{ breached_count }}</p>
+<div class="stat-strip">
+    <div class="stat-pill blue">
+        <div class="val">{{ total }}</div>
+        <div class="lbl">Total Risks</div>
+    </div>
+    <div class="stat-pill amber">
+        <div class="val">{{ open_count }}</div>
+        <div class="lbl">Active / Open</div>
+    </div>
+    <div class="stat-pill red">
+        <div class="val">{{ critical_count }}</div>
+        <div class="lbl">Critical (≥20)</div>
+    </div>
+    <div class="stat-pill {% if breached_count %}red{% else %}green{% endif %}">
+        <div class="val">{{ breached_count }}</div>
+        <div class="lbl">Appetite Breaches</div>
+    </div>
+</div>
+
 <table>
-    <thead><tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Category</th><th scope="col">Inherent</th><th scope="col">Residual</th><th scope="col">Breach</th></tr></thead>
+    <thead>
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Title</th>
+            <th scope="col">Category</th>
+            <th scope="col">Dept</th>
+            <th scope="col" class="text-center">L×I</th>
+            <th scope="col" class="text-center">Inherent</th>
+            <th scope="col" class="text-center">Residual</th>
+            <th scope="col" class="text-center">Breach</th>
+            <th scope="col">Treatment</th>
+            <th scope="col">Status</th>
+            <th scope="col">Owner</th>
+        </tr>
+    </thead>
     <tbody>
     {% for r in risks %}
-        <tr><td>{{ r.pk }}</td><td>{{ r.title|truncatechars:50 }}</td><td>{{ r.category.name }}</td>
-            <td>{{ r.inherent_score }}</td><td>{{ r.residual_score }}</td>
-            <td>{% if r.appetite_breached %}Yes{% else %}No{% endif %}</td></tr>
+        <tr>
+            <td class="mono"><strong>RSK-{{ r.pk|stringformat:"04d" }}</strong></td>
+            <td>{{ r.title|truncatechars:48 }}</td>
+            <td>{{ r.category.name|default:"—"|truncatechars:18 }}</td>
+            <td>{{ r.owner_dept.name|default:"—"|truncatechars:14 }}</td>
+            <td class="text-center">{{ r.likelihood }}×{{ r.impact }}</td>
+            <td class="text-center">{{ r.inherent_score }}</td>
+            <td class="text-center"><strong>{{ r.residual_score }}</strong></td>
+            <td class="text-center">
+                {% if r.appetite_breached %}<span class="badge badge-yes">Yes</span>
+                {% else %}<span class="badge badge-no">No</span>{% endif %}
+            </td>
+            <td>{{ r.get_treatment_strategy_display }}</td>
+            <td>{{ r.get_status_display }}</td>
+            <td>{{ r.owner_user.username|default:"—" }}</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="11" class="text-center" style="color:#6B7280; padding:14px;">No risks matched the selected filter.</td></tr>
     {% endfor %}
     </tbody>
 </table>

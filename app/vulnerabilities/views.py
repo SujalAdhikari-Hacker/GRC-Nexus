@@ -130,6 +130,8 @@ class FindingListView(ReportMixin, DepartmentScopedMixin, CsvExportMixin, ListVi
             'findings': qs,
             'total': len(qs),
             'open_count': sum(1 for f in qs if f.status not in f.CLOSED_STATUSES),
+            'critical_count': sum(1 for f in qs if f.vulnerability.cvss_severity == 'critical'),
+            'kev_count': sum(1 for f in qs if f.vulnerability.kev_status),
             'overdue_count': sum(1 for f in qs if f.is_overdue),
         }
 

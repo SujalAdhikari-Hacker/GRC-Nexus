@@ -1,24 +1,59 @@
-<!doctype html>
+{% load static %}<!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>{{ entity.label }}</title>
+    <title>{{ entity.label }} · GRC Nexus</title>
     <style>
-        @page { size: A4 landscape; margin: 10mm; }
-        body { font-family: Helvetica, Arial, sans-serif; font-size: 8px; color: #111827; }
-        h1 { font-size: 15px; margin: 0 0 3px; }
-        .meta { color: #6b7280; margin-bottom: 8px; }
+        @page {
+            size: A4 landscape;
+            margin: 12mm 10mm 14mm;
+            @bottom-left {
+                content: "GRC Nexus v3.3.0 · Confidential";
+                font-size: 7.5pt;
+                color: #9CA3AF;
+            }
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 7.5pt;
+                color: #9CA3AF;
+            }
+        }
+        * { box-sizing: border-box; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 8px; color: #111827; margin: 0; }
+        .export-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #00A8E8;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+        .export-brand { display: flex; align-items: center; gap: 8px; }
+        .export-logo { width: 22px; height: 22px; border-radius: 5px; display: block; }
+        h1 { font-size: 14px; margin: 0; color: #0B1220; }
+        .meta { color: #6B7280; font-size: 8px; text-align: right; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: #0b1220; color: #ffffff; text-align: left; padding: 3px 4px; }
-        td { border-bottom: 1px solid #e5e7eb; padding: 2px 4px; vertical-align: top; }
-        tr:nth-child(even) td { background: #f6f7f9; }
+        thead { display: table-header-group; }
+        tr { page-break-inside: avoid; }
+        th { background: #0B1220; color: #FFFFFF; text-align: left; padding: 4px 5px; font-size: 7.5px; text-transform: uppercase; }
+        td { border-bottom: 1px solid #E5E7EB; padding: 3px 5px; vertical-align: top; }
+        tbody tr:nth-child(even) td { background: #F6F7F9; }
     </style>
 </head>
 <body>
-    <h1>{{ entity.label }}</h1>
-    <div class="meta">
-        {{ count }} record{{ count|pluralize }} &middot;
-        generated {{ generated_at|date:"Y-m-d H:i" }}{% if generated_by %} by {{ generated_by }}{% endif %}
+{% include "reports/_watermark.html" %}
+    <div class="export-header">
+        <div class="export-brand">
+            <img src="{% static 'img/logo.svg' %}" class="export-logo" alt="GRC Nexus">
+            <div>
+                <div style="font-size:8px; color:#6B7280; text-transform:uppercase; letter-spacing:.05em;">GRC Nexus Data Export</div>
+                <h1>{{ entity.label }}</h1>
+            </div>
+        </div>
+        <div class="meta">
+            {{ count }} record{{ count|pluralize }} &middot;
+            Generated {{ generated_at|date:"Y-m-d H:i" }} UTC{% if generated_by %} by {{ generated_by }}{% endif %}
+        </div>
     </div>
     <table>
         <thead>

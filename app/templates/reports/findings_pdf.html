@@ -1,16 +1,63 @@
 ﻿{% extends "reports/base_pdf.html" %}
 {% block content %}
-<p>Total findings: {{ total }} · Open: {{ open_count }} · Overdue: {{ overdue_count }}</p>
+<div class="stat-strip">
+    <div class="stat-pill blue">
+        <div class="val">{{ total }}</div>
+        <div class="lbl">Total Findings</div>
+    </div>
+    <div class="stat-pill amber">
+        <div class="val">{{ open_count }}</div>
+        <div class="lbl">Open</div>
+    </div>
+    <div class="stat-pill red">
+        <div class="val">{{ critical_count }}</div>
+        <div class="lbl">Critical Severity</div>
+    </div>
+    <div class="stat-pill red">
+        <div class="val">{{ kev_count }}</div>
+        <div class="lbl">CISA KEV</div>
+    </div>
+    <div class="stat-pill {% if overdue_count %}red{% else %}green{% endif %}">
+        <div class="val">{{ overdue_count }}</div>
+        <div class="lbl">SLA Overdue</div>
+    </div>
+</div>
+
 <table>
-    <thead><tr><th scope="col">CVE</th><th scope="col">Title</th><th scope="col">Severity</th><th scope="col">Asset</th><th scope="col">Status</th><th scope="col">SLA</th></tr></thead>
+    <thead>
+        <tr>
+            <th scope="col">CVE</th>
+            <th scope="col">Title</th>
+            <th scope="col" class="text-center">Severity</th>
+            <th scope="col" class="text-center">Score</th>
+            <th scope="col" class="text-center">KEV</th>
+            <th scope="col">Asset</th>
+            <th scope="col">Status</th>
+            <th scope="col">SLA Due</th>
+        </tr>
+    </thead>
     <tbody>
     {% for f in findings %}
-        <tr><td>{{ f.vulnerability.cve_id|default:"Manual" }}</td>
-            <td>{{ f.vulnerability.title|truncatechars:50 }}</td>
-            <td>{{ f.vulnerability.get_cvss_severity_display }}</td>
-            <td>{{ f.asset.asset_id }}</td>
+        <tr>
+            <td class="mono">{{ f.vulnerability.cve_id|default:"Manual" }}</td>
+            <td>{{ f.vulnerability.title|truncatechars:46 }}</td>
+            <td class="text-center">
+                <span class="badge badge-{{ f.vulnerability.cvss_severity }}">{{ f.vulnerability.get_cvss_severity_display }}</span>
+            </td>
+            <td class="text-center"><strong>{{ f.composite_score }}</strong></td>
+            <td class="text-center">
+                {% if f.vulnerability.kev_status %}<span class="badge badge-critical">KEV</span>
+                {% else %}—{% endif %}
+            </td>
+            <td class="mono">{{ f.asset.asset_id }}</td>
             <td>{{ f.get_status_display }}</td>
-            <td>{{ f.sla_due_date|default:"—" }}</td></tr>
+            <td>
+                {{ f.sla_due_date|date:"Y-m-d"|default:"—" }}
+                {% if f.is_overdue %}<span class="badge badge-critical" style="margin-left:3px;">Overdue</span>{% endif %}
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="8" class="text-center" style="color:#6B7280; padding:14px;">No vulnerability findings matched the selected filter.</td></tr>
     {% endfor %}
     </tbody>
 </table>

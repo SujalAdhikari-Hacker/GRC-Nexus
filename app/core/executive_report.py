@@ -3,6 +3,7 @@ Gathers all data + generates narratives for the executive report.
 """
 from collections import Counter
 
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.html import escape
 
@@ -10,14 +11,22 @@ from assets.models import Asset
 from risks.models import Risk
 from controls.models import Control
 from frameworks.models import Framework
+from incidents.models import Incident
 from vulnerabilities.models import Finding
 from policies.models import Policy
+from tickets.models import Ticket
 from vendors.models import Vendor
-from audits.models import AuditFinding, ActionItem
+from vendors.services import TIER_EXPECTED_SCORE
+from audits.models import AuditFinding, ActionItem, EvidenceItem
 from core.correlation import get_framework_coverage
 from core.dashboard_data import iter_month_bounds
 from core.mixins import scope_queryset
 from . import report_charts as charts
+
+
+def _fmt_money(val):
+    """Format a currency amount with thousands separators and zero decimals."""
+    return f'{(val or 0):,.0f}'
 
 
 def _get_scope(user):
@@ -36,14 +45,17 @@ def build_executive_report(user):
     dept = _get_scope(user)
 
     # ---------- Base querysets (respect object-level scoping, incl. sharing) ----------
-    risks      = scope_queryset(Risk.objects.all(), user)
+    risks      = scope_queryset(Risk.objects.select_related('category', 'owner_dept', 'owner_user').prefetch_related('assets'), user)
     controls   = scope_queryset(Control.objects.all(), user)
-    findings   = scope_queryset(Finding.objects.all(), user)
+    findings   = scope_queryset(Finding.objects.select_related('vulnerability', 'asset'), user)
     actions    = scope_queryset(ActionItem.objects.all(), user)
     policies   = scope_queryset(Policy.objects.all(), user)
-    assets     = scope_queryset(Asset.objects.filter(is_active=True), user)
+    assets     = scope_queryset(Asset.objects.filter(is_active=True).select_related('owner_dept', 'bcp_policy', 'drp_policy').prefetch_related('risks'), user)
     audit_find = scope_queryset(AuditFinding.objects.all(), user)
-    vendors    = scope_queryset(Vendor.objects.filter(status='active'), user)
+    vendors    = scope_queryset(Vendor.objects.filter(status='active').select_related('owner_dept').prefetch_related('assessments'), user)
+    incidents  = scope_queryset(Incident.objects.select_related('owner_dept', 'handler'), user)
+    tickets    = scope_queryset(Ticket.objects.all(), user)
+    evidence_items = scope_queryset(EvidenceItem.objects.all(), user)
 
     # ---------- Counts ----------
     # "Active" consistently means not closed — closed risks are not live
@@ -211,9 +223,11 @@ def build_executive_report(user):
     # Top 3 risks in plain English
     top_business_risks = []
     for r in active_risks.order_by('-residual_score')[:3]:
+        exp_val = _risk_exposure(r, residual=True)
         top_business_risks.append({
             'title': r.title,
-            'exposure': _risk_exposure(r, residual=True),
+            'exposure': exp_val,
+            'exposure_fmt': _fmt_money(exp_val),
             'status': r.get_status_display(),
             'breached': r.appetite_breached,
         })
@@ -266,6 +280,163 @@ def build_executive_report(user):
     chart_sla       = charts.sla_donut_png(sla_within, sla_overdue, sla_closed)
     chart_frameworks = charts.framework_coverage_png(fw_names, fw_percents)
 
+    # ---------- Incidents & NIS2 Article 23 ----------
+    incident_list = list(incidents)
+    total_incidents = len(incident_list)
+    open_incidents = sum(1 for i in incident_list if i.status != 'closed')
+    critical_incidents = sum(
+        1 for i in incident_list if i.status != 'closed' and i.severity == 'critical'
+    )
+    nis2_significant_count = sum(1 for i in incident_list if i.nis2_significant)
+    nis2_breached_count = sum(
+        1 for i in incident_list if i.nis2_significant and i.nis2_status == 'breached'
+    )
+    nis2_due_soon_count = sum(
+        1 for i in incident_list if i.nis2_significant and i.nis2_status == 'due_soon'
+    )
+    gdpr_pending_count = sum(1 for i in incident_list if i.breaching_event is not None)
+    triage_sla_breached_count = sum(1 for i in incident_list if i.sla_breached)
+
+    _nis2_rank = {'breached': 0, 'due_soon': 1, 'open': 2, 'complete': 3, None: 4}
+    priority_incidents = [
+        i for i in incident_list if i.nis2_significant or i.status != 'closed'
+    ]
+    priority_incidents.sort(
+        key=lambda i: (
+            _nis2_rank.get(i.nis2_status, 4),
+            -(i.detected_at.timestamp() if i.detected_at else 0),
+        )
+    )
+    incident_rows = []
+    for inc in priority_incidents[:8]:
+        clocks = (
+            {c.phase: c for c in inc.nis2_clocks}
+            if inc.nis2_significant and inc.detected_at
+            else {}
+        )
+        incident_rows.append({
+            'incident': inc,
+            'nis2_status': inc.nis2_status,
+            'clocks': clocks,
+        })
+
+    # ---------- Third-Party & Vendor Assurance (0-100 Scorecards) ----------
+    vendor_list = list(vendors)
+    vendor_band_counts = {'low': 0, 'moderate': 0, 'elevated': 0, 'high': 0}
+    vendor_scored = []
+    expired_contract_vendors = 0
+    vendors_below_target = 0
+    for v in vendor_list:
+        sc = v.scorecard
+        vendor_band_counts[sc.band] = vendor_band_counts.get(sc.band, 0) + 1
+        tier_target = TIER_EXPECTED_SCORE.get(v.tier, 50)
+        below_target = sc.score < tier_target
+        if below_target:
+            vendors_below_target += 1
+        if v.is_contract_expired:
+            expired_contract_vendors += 1
+        vendor_scored.append({
+            'vendor': v,
+            'scorecard': sc,
+            'components': {c.key: c for c in sc.components},
+            'tier_target': tier_target,
+            'below_target': below_target,
+        })
+
+    avg_vendor_score = (
+        round(sum(item['scorecard'].score for item in vendor_scored) / len(vendor_scored))
+        if vendor_scored else 0
+    )
+    high_risk_vendors = vendor_band_counts['high'] + vendor_band_counts['elevated']
+    vendor_scored.sort(
+        key=lambda item: (
+            not item['vendor'].is_contract_expired,
+            item['scorecard'].score,
+            item['vendor'].tier,
+            item['vendor'].name.lower(),
+        )
+    )
+    top_risk_vendors = vendor_scored[:8]
+    chart_vendor_scores = charts.vendor_risk_bands_png(vendor_band_counts)
+
+    # ---------- Business Continuity & BIA Readiness ----------
+    asset_list = list(assets)
+    bia_complete_count = 0
+    bia_gap_count = 0
+    rto_exceeds_mtpd_count = 0
+    missing_bcp_count = 0
+    missing_drp_count = 0
+    stale_continuity_test_count = 0
+    critical_bia_gap_count = 0
+    continuity_gap_rows = []
+    for a in asset_list:
+        gaps = a.continuity_gaps
+        if not gaps:
+            bia_complete_count += 1
+        else:
+            bia_gap_count += 1
+            if a.criticality == 4:
+                critical_bia_gap_count += 1
+            if 'RTO exceeds MTPD' in gaps:
+                rto_exceeds_mtpd_count += 1
+            if 'No BCP linked' in gaps:
+                missing_bcp_count += 1
+            if 'No DRP linked' in gaps:
+                missing_drp_count += 1
+            if a.continuity_test_stale:
+                stale_continuity_test_count += 1
+            continuity_gap_rows.append({'asset': a, 'gaps': gaps})
+
+    bia_readiness_pct = (
+        round(bia_complete_count / len(asset_list) * 100) if asset_list else 0
+    )
+    continuity_gap_rows.sort(
+        key=lambda item: (
+            -(item['asset'].criticality or 0),
+            -len(item['gaps']),
+            item['asset'].asset_id or '',
+        )
+    )
+    continuity_gap_assets = continuity_gap_rows[:8]
+    chart_bia = charts.bia_readiness_png(bia_complete_count, bia_gap_count)
+
+    # ---------- Audit Findings, Tickets, Evidence SHA-256 & Service Health ----------
+    audit_find_list = list(audit_find)
+    audit_findings_total = len(audit_find_list)
+    audit_findings_open = sum(
+        1 for af in audit_find_list if af.status not in ('resolved', 'accepted', 'closed')
+    )
+    audit_findings_overdue = sum(1 for af in audit_find_list if af.is_overdue)
+    audit_findings_awaiting_verification = sum(
+        1 for af in audit_find_list if af.awaiting_verification
+    )
+
+    ticket_list = list(tickets)
+    open_tickets = sum(1 for t in ticket_list if t.is_open)
+    overdue_tickets = sum(1 for t in ticket_list if t.is_overdue)
+    critical_tickets = sum(1 for t in ticket_list if t.is_open and t.priority == 4)
+
+    total_evidence = evidence_items.count()
+    checksummed_evidence = (
+        evidence_items.filter(versions__isnull=False)
+        .exclude(versions__sha256='')
+        .distinct()
+        .count()
+    )
+
+    if user.is_superuser:
+        from core.models import ServiceRun
+
+        latest_by_service = {}
+        for run in ServiceRun.objects.order_by('-started_at', '-id'):
+            if run.service not in latest_by_service:
+                latest_by_service[run.service] = run
+        service_health_rows = [latest_by_service[name] for name in sorted(latest_by_service)]
+        failed_services_count = sum(1 for r in service_health_rows if r.status == 'failed')
+    else:
+        service_health_rows = []
+        failed_services_count = 0
+
     # ---------- NARRATIVES ----------
     # Executive summary paragraph. org_label is interpolated into HTML that the
     # template renders with |safe, so it must be escaped here. Capitalisation is
@@ -307,14 +478,55 @@ def build_executive_report(user):
         f"<strong>{overall_coverage}%</strong>."
     )
 
+    resilience_line = (
+        f"Operational resilience: <strong>{open_incidents} open incident"
+        f"{'s' if open_incidents != 1 else ''}</strong>"
+    )
+    if nis2_breached_count:
+        resilience_line += (
+            f" (<span style='color:#DC2626;'><strong>{nis2_breached_count} NIS2 Art. 23 deadline"
+            f"{'s' if nis2_breached_count != 1 else ''} breached</strong></span>)"
+        )
+    elif nis2_due_soon_count:
+        resilience_line += (
+            f" (<strong>{nis2_due_soon_count} NIS2 Art. 23 report"
+            f"{'s' if nis2_due_soon_count != 1 else ''} due within 2 hours</strong>)"
+        )
+    resilience_line += (
+        f", active vendor assurance averages <strong>{avg_vendor_score}/100</strong> "
+        f"({expired_contract_vendors} expired contract{'s' if expired_contract_vendors != 1 else ''}), "
+        f"and <strong>{bia_readiness_pct}%</strong> of active assets meet BIA continuity readiness."
+    )
+
     # Recommendations — auto-generate based on worst signals
     recommendations = []
+    if nis2_breached_count:
+        recommendations.append({
+            'priority': 'high',
+            'text': f'File overdue NIS2 Article 23 regulatory report'
+                    f'{"s" if nis2_breached_count != 1 else ""} for {nis2_breached_count} significant incident'
+                    f'{"s" if nis2_breached_count != 1 else ""} and notify CSIRT immediately.',
+        })
+    if nis2_due_soon_count:
+        recommendations.append({
+            'priority': 'high',
+            'text': f'{nis2_due_soon_count} NIS2 Article 23 deadline'
+                    f'{"s are" if nis2_due_soon_count != 1 else " is"} within 2 hours of breach. '
+                    f'Submit early warning or notification filing immediately.',
+        })
     if breached_risks:
         recommendations.append({
             'priority': 'high',
             'text': f'Escalate {breached_risks} appetite-breaching risk'
                     f'{"s" if breached_risks != 1 else ""} to the Risk Committee. '
                     f'Review treatment plans and confirm timelines.',
+        })
+    if expired_contract_vendors:
+        recommendations.append({
+            'priority': 'high',
+            'text': f'Renew or remediate {expired_contract_vendors} active vendor contract'
+                    f'{"s" if expired_contract_vendors != 1 else ""} that ha'
+                    f'{"ve" if expired_contract_vendors != 1 else "s"} expired (contract score zeroed under NIS2 Art. 21).',
         })
     if overdue_findings:
         recommendations.append({
@@ -330,6 +542,20 @@ def build_executive_report(user):
                     f'{"e controls" if ineffective != 1 else "e control"}. '
                     f'Evaluate compensating controls in the interim.',
         })
+    if vendors_below_target:
+        recommendations.append({
+            'priority': 'medium',
+            'text': f'Address assurance gaps across {vendors_below_target} vendor'
+                    f'{"s" if vendors_below_target != 1 else ""} scoring below their tier target '
+                    f'(certifications, audit rights, or recency assessments).',
+        })
+    if critical_bia_gap_count or bia_gap_count:
+        recommendations.append({
+            'priority': 'medium',
+            'text': f'Close BIA & continuity gaps on {bia_gap_count} active asset'
+                    f'{"s" if bia_gap_count != 1 else ""} ({critical_bia_gap_count} critical) — '
+                    f'confirm RTO/RPO/MTPD, link BCP/DRP policies, and record annual DR tests.',
+        })
     if not_tested:
         recommendations.append({
             'priority': 'medium',
@@ -342,6 +568,13 @@ def build_executive_report(user):
             'text': f'{due_soon_findings} vulnerabilit'
                     f'{"ies are" if due_soon_findings != 1 else "y is"} approaching SLA breach. '
                     f'Accelerate remediation or request an exception.',
+        })
+    if audit_findings_overdue or overdue_tickets:
+        recommendations.append({
+            'priority': 'medium',
+            'text': f'Clear SLA-overdue remediation backlog: {audit_findings_overdue} audit finding'
+                    f'{"s" if audit_findings_overdue != 1 else ""} and {overdue_tickets} ticket'
+                    f'{"s" if overdue_tickets != 1 else ""} past due date.',
         })
     if overall_coverage < 60:
         recommendations.append({
@@ -356,6 +589,12 @@ def build_executive_report(user):
                     f'{"are" if overdue_actions != 1 else "is"} past due. '
                     f'Review with assigned teams.',
         })
+    if failed_services_count:
+        recommendations.append({
+            'priority': 'medium',
+            'text': f'Investigate {failed_services_count} failed scheduled background service'
+                    f'{"s" if failed_services_count != 1 else ""} in the Service Run Log.',
+        })
     if not recommendations:
         recommendations.append({
             'priority': 'low',
@@ -364,6 +603,7 @@ def build_executive_report(user):
 
     return {
         # meta
+        'report_version': 'v3.3.0',
         'org_label': org_label if dept else 'Organization-wide',
         'report_scope': f'{dept.name} department' if dept else 'Organization-wide',
         'generated_at': timezone.now(),
@@ -395,6 +635,47 @@ def build_executive_report(user):
         'open_actions': open_actions,
         'overdue_actions': overdue_actions,
 
+        # v3.3.0 modules
+        'total_incidents': total_incidents,
+        'open_incidents': open_incidents,
+        'critical_incidents': critical_incidents,
+        'nis2_significant_count': nis2_significant_count,
+        'nis2_breached_count': nis2_breached_count,
+        'nis2_due_soon_count': nis2_due_soon_count,
+        'gdpr_pending_count': gdpr_pending_count,
+        'triage_sla_breached_count': triage_sla_breached_count,
+        'incident_rows': incident_rows,
+
+        'avg_vendor_score': avg_vendor_score,
+        'high_risk_vendors': high_risk_vendors,
+        'expired_contract_vendors': expired_contract_vendors,
+        'vendors_below_target': vendors_below_target,
+        'vendor_band_counts': vendor_band_counts,
+        'top_risk_vendors': top_risk_vendors,
+        'chart_vendor_scores': chart_vendor_scores,
+
+        'bia_complete_count': bia_complete_count,
+        'bia_gap_count': bia_gap_count,
+        'bia_readiness_pct': bia_readiness_pct,
+        'rto_exceeds_mtpd_count': rto_exceeds_mtpd_count,
+        'missing_bcp_count': missing_bcp_count,
+        'missing_drp_count': missing_drp_count,
+        'stale_continuity_test_count': stale_continuity_test_count,
+        'continuity_gap_assets': continuity_gap_assets,
+        'chart_bia': chart_bia,
+
+        'audit_findings_total': audit_findings_total,
+        'audit_findings_open': audit_findings_open,
+        'audit_findings_overdue': audit_findings_overdue,
+        'audit_findings_awaiting_verification': audit_findings_awaiting_verification,
+        'open_tickets': open_tickets,
+        'overdue_tickets': overdue_tickets,
+        'critical_tickets': critical_tickets,
+        'total_evidence': total_evidence,
+        'checksummed_evidence': checksummed_evidence,
+        'service_health_rows': service_health_rows,
+        'failed_services_count': failed_services_count,
+
         # averages
         'avg_inherent': avg_inherent,
         'avg_residual': avg_residual,
@@ -420,18 +701,24 @@ def build_executive_report(user):
         'control_line': control_line,
         'vuln_line': vuln_line,
         'coverage_line': coverage_line,
+        'resilience_line': resilience_line,
         'recommendations': recommendations,
 
-                # Business Position
+        # Business Position
         'org_profile': org,
         'total_asset_value': total_asset_value,
+        'total_asset_value_fmt': _fmt_money(total_asset_value),
         'asset_by_crit': asset_by_crit,
         'asset_by_class': asset_by_class,
         'total_inherent_exposure': total_inherent_exposure,
+        'total_inherent_exposure_fmt': _fmt_money(total_inherent_exposure),
         'total_residual_exposure': total_residual_exposure,
+        'total_residual_exposure_fmt': _fmt_money(total_residual_exposure),
         'risk_reduction': risk_reduction,
+        'risk_reduction_fmt': _fmt_money(risk_reduction),
         'risk_reduction_pct': risk_reduction_pct,
         'top_business_risks': top_business_risks,
         'budget_pct_revenue': budget_pct_revenue,
         'exposure_pct_revenue': exposure_pct_revenue,
+        'annual_security_budget_fmt': _fmt_money(org.annual_security_budget),
     }

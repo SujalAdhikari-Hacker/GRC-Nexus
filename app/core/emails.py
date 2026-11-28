@@ -318,6 +318,35 @@ def send_board_report_email(recipients, pdf_bytes, *, report_data, period_label,
         },
     ]
 
+    if 'open_incidents' in report_data:
+        open_inc = report_data.get('open_incidents', 0)
+        nis2_breached = report_data.get('nis2_breached_count', 0)
+        nis2_due_soon = report_data.get('nis2_due_soon_count', 0)
+        items.append({
+            'title': (
+                f'Open incidents: {open_inc} '
+                f'({nis2_breached} NIS2 breached, {nis2_due_soon} due soon)'
+            ),
+            'meta': 'Incident Response & NIS2 Art. 23',
+            'url': '/incidents/',
+            'severity': 'danger' if nis2_breached else ('warning' if nis2_due_soon else 'info'),
+        })
+
+    if 'avg_vendor_score' in report_data or 'bia_readiness_pct' in report_data:
+        avg_v = report_data.get('avg_vendor_score', 0)
+        expired_v = report_data.get('expired_contract_vendors', 0)
+        bia_pct = report_data.get('bia_readiness_pct', 0)
+        bia_gaps = report_data.get('bia_gap_count', 0)
+        items.append({
+            'title': (
+                f'Vendor avg score: {avg_v}/100 ({expired_v} expired) · '
+                f'BIA readiness: {bia_pct}% ({bia_gaps} gaps)'
+            ),
+            'meta': 'Third-Party Assurance & Business Continuity',
+            'url': '/vendors/',
+            'severity': 'warning' if (expired_v or bia_gaps) else 'info',
+        })
+
     heading = f'Board Security Briefing — {period_label}'
     intro = (
         'Attached is this month\'s GRC Nexus executive PDF pack summarising '

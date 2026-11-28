@@ -766,9 +766,13 @@ class AuditReportView(DepartmentScopedMixin, DetailView):
             'related_control', 'owner_user'
         ).prefetch_related('action_items').order_by('-severity')
         tests = audit.control_tests.select_related('control', 'tester').order_by('-test_date')
-        evidence_items = audit.evidence_items.select_related(
-            'related_control', 'owner_user'
-        ).prefetch_related('scoring')
+        evidence_items = list(
+            audit.evidence_items.select_related(
+                'related_control', 'owner_user'
+            ).prefetch_related('scoring', 'versions')
+        )
+        for item in evidence_items:
+            item.latest_version = next(iter(item.versions.all()), None)
 
         ctx = {
             'audit': audit,

@@ -178,10 +178,12 @@ class RiskListView(SavedViewsMixin, ReportMixin, DepartmentScopedMixin, CsvExpor
         return headers, rows
 
     def build_pdf_context(self):
-        qs = list(self.get_queryset())
+        qs = list(self.get_queryset().select_related('category', 'owner_dept', 'owner_user'))
         return {
             'risks': qs,
             'total': len(qs),
+            'open_count': sum(1 for r in qs if r.status != 'closed'),
+            'critical_count': sum(1 for r in qs if r.status != 'closed' and r.inherent_score >= 20),
             'breached_count': sum(1 for r in qs if r.appetite_breached),
         }
 

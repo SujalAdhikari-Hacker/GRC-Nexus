@@ -1,26 +1,187 @@
-﻿<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>{{ title }}</title>
+﻿{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ title }} · GRC Nexus</title>
 <style>
-body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #111827; margin: 0; }
-h1 { color: #0B1220; font-size: 14pt; margin: 8px 0 0 0; }
-.header { border-bottom: 3px solid #00A8E8; padding-bottom: 10px; margin-bottom: 16px; }
-.brand-name { font-size: 16pt; font-weight: 700; color: #0B1220; }
-.meta { font-size: 9pt; color: #6B7280; text-align: right; float: right; }
-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-top: 14px; }
-thead { background: #0B1220; color: white; }
-thead th { text-align: left; padding: 6px 8px; font-size: 8pt; text-transform: uppercase; }
-tbody td { padding: 5px 8px; border: 1px solid #E5E7EB; }
-tbody tr:nth-child(even) { background: #FAFBFC; }
+    @page {
+        size: A4;
+        margin: 1.5cm 1.3cm;
+        @top-left {
+            content: "{{ title|escapejs }}";
+            font-size: 7.5pt;
+            color: #9CA3AF;
+        }
+        @top-right {
+            content: "GRC Nexus v3.3.0";
+            font-size: 7.5pt;
+            color: #9CA3AF;
+        }
+        @bottom-left {
+            content: "GRC Nexus · Confidential";
+            font-size: 8pt;
+            color: #9CA3AF;
+        }
+        @bottom-right {
+            content: "Page " counter(page) " of " counter(pages);
+            font-size: 8pt;
+            color: #9CA3AF;
+        }
+    }
+    {% block extra_page_css %}{% endblock %}
+
+    * { box-sizing: border-box; }
+    body {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 8.5pt;
+        color: #111827;
+        line-height: 1.45;
+        margin: 0;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        border-bottom: 3px solid #00A8E8;
+        padding-bottom: 10px;
+        margin-bottom: 14px;
+    }
+    .header-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .header-logo {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        display: block;
+    }
+    .brand-name {
+        font-size: 13pt;
+        font-weight: 700;
+        color: #0B1220;
+        line-height: 1.1;
+    }
+    .brand-tagline {
+        font-size: 7.5pt;
+        color: #6B7280;
+    }
+    .header h1 {
+        color: #0B1220;
+        font-size: 13.5pt;
+        margin: 6px 0 0 0;
+    }
+    .meta {
+        font-size: 8pt;
+        color: #6B7280;
+        text-align: right;
+        line-height: 1.4;
+    }
+
+    /* KPI Strip */
+    .stat-strip {
+        display: flex;
+        gap: 8px;
+        margin: 0 0 14px 0;
+    }
+    .stat-pill {
+        flex: 1;
+        border: 1px solid #E5E7EB;
+        border-left: 3px solid #0B1220;
+        border-radius: 4px;
+        padding: 7px 10px;
+        background: #FAFBFC;
+    }
+    .stat-pill.red { border-left-color: #DC2626; }
+    .stat-pill.amber { border-left-color: #D97706; }
+    .stat-pill.blue { border-left-color: #0284C7; }
+    .stat-pill.green { border-left-color: #059669; }
+    .stat-pill .val {
+        font-size: 13pt;
+        font-weight: 700;
+        color: #0B1220;
+        line-height: 1.1;
+    }
+    .stat-pill .lbl {
+        font-size: 7pt;
+        color: #6B7280;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-top: 2px;
+    }
+
+    /* Tables */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 8pt;
+        margin-top: 6px;
+    }
+    thead {
+        background: #0B1220;
+        color: #FFFFFF;
+        display: table-header-group;
+    }
+    thead th {
+        text-align: left;
+        padding: 6px 7px;
+        font-size: 7.2pt;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+    tr {
+        page-break-inside: avoid;
+    }
+    tbody td {
+        padding: 5px 7px;
+        border: 1px solid #E5E7EB;
+        vertical-align: top;
+    }
+    tbody tr:nth-child(even) { background: #FAFBFC; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .mono { font-family: 'Courier New', Courier, monospace; font-size: 7.5pt; }
+
+    /* Badges */
+    .badge {
+        display: inline-block;
+        padding: 1.5px 6px;
+        border-radius: 3px;
+        font-size: 6.8pt;
+        font-weight: 600;
+        color: #FFFFFF;
+    }
+    .badge-critical { background: #DC2626; }
+    .badge-high { background: #EA580C; }
+    .badge-warn { background: #D97706; }
+    .badge-medium { background: #0284C7; }
+    .badge-low { background: #059669; }
+    .badge-neutral { background: #6B7280; }
+    .badge-yes { background: #DC2626; }
+    .badge-no { background: #059669; }
 </style>
 </head>
 <body>
 {% include "reports/_watermark.html" %}
 
 <div class="header">
-    <div class="brand-name">GRC Nexus</div>
-    <h1>{{ title }}</h1>
-    <div class="meta">Generated {{ generated_at|date:"Y-m-d H:i" }}</div>
+    <div>
+        <div class="header-brand">
+            <img src="{% static 'img/logo.svg' %}" class="header-logo" alt="GRC Nexus">
+            <div>
+                <div class="brand-name">GRC Nexus</div>
+                <div class="brand-tagline">From Assets to Assurance</div>
+            </div>
+        </div>
+        <h1>{{ title }}</h1>
+    </div>
+    <div class="meta">
+        <div>Generated {{ generated_at|date:"Y-m-d H:i" }} UTC</div>
+        {% if generated_by %}<div>Prepared by {{ generated_by.username }}</div>{% endif %}
+        <div>Platform v3.3.0</div>
+    </div>
 </div>
 {% block content %}{% endblock %}
 </body>

@@ -220,11 +220,16 @@ class AssetListView(BulkActionsMixin, SavedViewsMixin, ReportMixin, DepartmentSc
         return headers, rows
 
     def build_pdf_context(self):
-        qs = list(self.get_queryset())
+        qs = list(
+            self.get_queryset().select_related('owner_dept', 'bcp_policy', 'drp_policy')
+        )
+        bia_gap_count = sum(1 for a in qs if a.continuity_gaps)
         return {
             'assets': qs,
             'total': len(qs),
             'critical_count': sum(1 for a in qs if a.criticality in (3, 4)),
+            'bia_ready_count': len(qs) - bia_gap_count,
+            'bia_gap_count': bia_gap_count,
         }
 
     def get_context_data(self, **kwargs):
