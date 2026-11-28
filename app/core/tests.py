@@ -2852,3 +2852,76 @@ class RoleDrivenDashboardTests(TestCase):
         self.assertContains(r_hod, 'Approvals &amp; Attention Queue')
         self.assertContains(r_hod, 'POL-DASH-2')
         self.assertContains(r_hod, 'Dash Exception Risk')
+
+
+class FormulaBreakdownTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        from datetime import date
+
+        from controls.models import Control
+        from frameworks.models import Framework, FrameworkControl
+        from risks.models import Risk, RiskCategory
+        from vendors.models import Vendor
+
+        cls.dept = Department.objects.create(name='Formula Dept')
+        cls.user = User.objects.create_user(
+            'formula_user', password='StrongPassword!123', department=cls.dept, is_hod=True,
+        )
+        cls.cat = RiskCategory.objects.create(name='Formula Cat')
+        cls.control = Control.objects.create(
+            code='CTL-FORM-1',
+            name='EDR Protection',
+            owner_dept=cls.dept,
+            control_type='preventive',
+            status='implemented',
+            lifecycle_status='operational',
+            effectiveness_rating='effective',
+            last_tested=date.today(),
+        )
+        cls.risk = Risk.objects.create(
+            title='Endpoint Malware Risk',
+            category=cls.cat,
+            owner_dept=cls.dept,
+            likelihood=4,
+            impact=4,
+        )
+        cls.risk.controls.add(cls.control)
+        cls.risk.save()
+
+        cls.fw = Framework.objects.create(name='ISO 27001 Formula Test', version='2022')
+        fc = FrameworkControl.objects.create(
+            framework=cls.fw, code='A.5.1', title='Policies for security',
+        )
+        cls.control.framework_controls.add(fc)
+
+        cls.vendor = Vendor.objects.create(
+            name='Formula Cloud Ltd',
+            owner_dept=cls.dept,
+            tier=1,
+            data_sensitivity=2,
+            jurisdiction='eu',
+        )
+
+    def test_residual_breakdown_and_formula_tooltips_render(self):
+        from risks.services import residual_score_breakdown
+
+        bd = residual_score_breakdown(self.risk)
+        self.assertEqual(bd['residual_score'], self.risk.residual_score)
+        self.assertEqual(len(bd['controls']), 1)
+        self.assertEqual(bd['controls'][0]['code'], 'CTL-FORM-1')
+
+        self.client.force_login(self.user)
+        r_risk = self.client.get(reverse('risks:detail', args=[self.risk.pk]))
+        self.assertEqual(r_risk.status_code, 200)
+        self.assertContains(r_risk, 'Residual score breakdown')
+        self.assertContains(r_risk, 'CTL-FORM-1')
+
+        r_fw = self.client.get(reverse('frameworks:detail', args=[self.fw.pk]))
+        self.assertEqual(r_fw.status_code, 200)
+        self.assertContains(r_fw, 'Weighted coverage =')
+        self.assertContains(r_fw, '1 full · 0 partial')
+
+        r_ven = self.client.get(reverse('vendors:detail', args=[self.vendor.pk]))
+        self.assertEqual(r_ven.status_code, 200)
+        self.assertContains(r_ven, 'Certifications (/25)')

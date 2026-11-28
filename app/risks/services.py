@@ -129,6 +129,39 @@ def calculate_residual_score(risk):
     return calculate_residual_from_controls(risk.inherent_score, controls)
 
 
+def residual_score_breakdown(risk):
+    """Transparent component breakdown for the Residual Score formula."""
+    controls = list(mitigating_controls(risk.controls.all()))
+    remaining = 1.0
+    rows = []
+    for control in controls:
+        ratio = control.effectiveness_ratio
+        weight = CONTROL_TYPE_WEIGHTS.get(control.control_type, DEFAULT_TYPE_WEIGHT)
+        reduction = min(MAX_SINGLE_CONTROL_REDUCTION, ratio * weight) * CONTROL_CONFIDENCE
+        remaining *= (1.0 - reduction)
+        rows.append({
+            'code': control.code,
+            'name': control.name,
+            'control_type': control.get_control_type_display(),
+            'type_weight': weight,
+            'effectiveness_pct': int(round(ratio * 100)),
+            'reduction_pct': round(reduction * 100, 1),
+        })
+
+    raw_residual = int(round(risk.inherent_score * remaining)) if controls else risk.inherent_score
+    floor_applied = bool(risk.inherent_score > 0 and raw_residual < RESIDUAL_FLOOR)
+    return {
+        'inherent_score': risk.inherent_score,
+        'likelihood': risk.likelihood,
+        'impact': risk.impact,
+        'residual_score': risk.residual_score,
+        'confidence_pct': int(round(CONTROL_CONFIDENCE * 100)),
+        'controls': rows,
+        'remaining_pct': round(remaining * 100, 1),
+        'floor_applied': floor_applied,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Risk appetite
 # ---------------------------------------------------------------------------

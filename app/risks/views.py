@@ -64,6 +64,7 @@ from .models import Risk, RiskAppetite, RiskCategory, RiskException, RiskTreatme
 from .services import (
     calculate_residual_from_controls,
     recalculate_risk,
+    residual_score_breakdown,
     severity_band,
 )
 
@@ -192,6 +193,7 @@ class RiskDetailView(DepartmentScopedMixin, DetailView):
 
         ctx = super().get_context_data(**kwargs)
         ctx.update(get_full_risk_context(self.object))
+        ctx['residual_breakdown'] = residual_score_breakdown(self.object)
         if user_can_change(self.object, self.request.user):
             linked_ids = self.object.controls.values_list('pk', flat=True)
             ctx['available_controls'] = (

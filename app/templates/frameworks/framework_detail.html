@@ -48,7 +48,12 @@
     <div class="col-md-3">
         <div class="stat-card">
             <div class="value">{{ coverage.percent }}%</div>
-            <div class="label">Coverage</div>
+            <div class="label">
+                Coverage
+                <i class="bi bi-question-circle text-muted ms-1"
+                   title="Weighted coverage = Σ(requirement weight) / Total × 100. Full/direct = 1.0, Functional partial = 0.7, Subset/intersects = 0.5."></i>
+                <div class="small text-muted">{{ coverage.covered_full }} full · {{ coverage.covered_partial }} partial</div>
+            </div>
         </div>
     </div>
 </div>
