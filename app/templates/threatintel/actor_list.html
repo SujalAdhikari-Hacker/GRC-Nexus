@@ -44,7 +44,22 @@
             </a>
         </div>
         {% empty %}
-        <div class="col-12"><div class="text-center text-muted py-5">No threat actors found. Run <code>sync_attack_data</code>.</div></div>
+        <div class="col-12">
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-incognito fs-2 d-block mb-2"></i>
+                <div class="fw-semibold text-body mb-1">No threat actors synced yet</div>
+                <div class="small mb-3">Populate known APT groups and intrusion sets from MITRE ATT&amp;CK to link adversary profiles to techniques and IOCs.</div>
+                {% if user.is_superuser %}
+                <form method="post" action="{% url 'threatintel:sync_attack' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'threatintel:actor_list' %}">
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-arrow-repeat"></i> Sync ATT&amp;CK &amp; Threat Actors</button>
+                </form>
+                {% else %}
+                <code>sync_attack_data</code>
+                {% endif %}
+            </div>
+        </div>
         {% endfor %}
     </div>
 </div>

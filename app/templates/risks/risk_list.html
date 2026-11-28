@@ -102,7 +102,10 @@
                     </td>
                 </tr>
             {% empty %}
-                <tr><td colspan="9" class="text-center text-muted py-4">No risks match your filters.</td></tr>
+                <tr><td colspan="9" class="text-center text-muted py-5">
+                    <div class="mb-2">No risks match your filters.</div>
+                    <a href="{% url 'risks:create' %}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Log first risk</a>
+                </td></tr>
             {% endfor %}
             </tbody>
         </table>

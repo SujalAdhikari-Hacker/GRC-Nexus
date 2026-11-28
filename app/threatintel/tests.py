@@ -53,3 +53,49 @@ class IOCFilterTests(TestCase):
                     reverse('threatintel:ioc_feed'), params,
                 )
                 self.assertEqual(response.status_code, 400)
+
+
+class AttackSyncAndEmptyStateTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(
+            'ti_viewer', 'tiviewer@example.com', 'StrongPassword!123',
+        )
+        cls.superuser = User.objects.create_superuser(
+            'ti_admin', 'tiadmin@example.com', 'StrongPassword!123',
+        )
+
+    def test_empty_states_render_sync_guidance(self):
+        self.client.force_login(self.superuser)
+        r_matrix = self.client.get(reverse('threatintel:attack_matrix'))
+        self.assertContains(r_matrix, 'Sync ATT&amp;CK Matrix')
+        r_actors = self.client.get(reverse('threatintel:actor_list'))
+        self.assertContains(r_actors, 'Sync ATT&amp;CK &amp; Threat Actors')
+
+    def test_seed_baseline_populates_tactics_techniques_actors_and_service_run(self):
+        from io import StringIO
+        from django.core.management import call_command
+        from core.models import ServiceRun
+        from .models import Tactic, Technique, ThreatActor
+
+        call_command('sync_attack_data', seed_baseline=True, stdout=StringIO())
+        self.assertGreaterEqual(Tactic.objects.count(), 14)
+        self.assertGreaterEqual(Technique.objects.count(), 25)
+        self.assertGreaterEqual(ThreatActor.objects.count(), 10)
+
+        run = ServiceRun.objects.get(service='sync_attack_data')
+        self.assertEqual(run.status, 'ok')
+        self.assertGreaterEqual(run.counts.get('actors', 0), 10)
+
+    def test_sync_attack_view_requires_superuser(self):
+        url = reverse('threatintel:sync_attack')
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.post(url).status_code, 403)
+
+        self.client.force_login(self.superuser)
+        from unittest.mock import patch
+        with patch('threatintel.management.commands.sync_attack_data.safe_get', side_effect=RuntimeError('offline')):
+            resp = self.client.post(url)
+        self.assertRedirects(resp, reverse('threatintel:attack_matrix'))
+        from .models import ThreatActor
+        self.assertGreaterEqual(ThreatActor.objects.count(), 10)

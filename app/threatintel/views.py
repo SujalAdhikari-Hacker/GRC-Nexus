@@ -1,8 +1,16 @@
 from datetime import timedelta
 
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
+from django.core.management import call_command
 from django.db.models import Count, Q
+from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 from django.views.generic import ListView, DetailView, TemplateView
 
 from core.input_validation import choice, integer, search_query, text
@@ -267,3 +275,25 @@ class ThreatActorDetailView(LoginRequiredMixin, DetailView):
         ctx['techniques'] = self.object.techniques.select_related().prefetch_related('tactics').all()
         ctx['iocs'] = self.object.iocs.filter(is_active=True)[:30]
         return ctx
+
+
+@login_required
+@require_POST
+def sync_attack_view(request):
+    """Superuser-only trigger to populate/refresh MITRE ATT&CK & Threat Actors."""
+    if not request.user.is_superuser:
+        raise PermissionDenied('Only superadmins can sync MITRE ATT&CK data.')
+
+    call_command('sync_attack_data', fallback_baseline=True)
+    messages.success(
+        request,
+        f'MITRE ATT&CK catalogue synced ({Tactic.objects.count()} tactics, '
+        f'{Technique.objects.filter(deprecated=False).count()} techniques, '
+        f'{ThreatActor.objects.count()} threat actors).',
+    )
+    next_url = request.POST.get('next', '')
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect(reverse('threatintel:attack_matrix'))
