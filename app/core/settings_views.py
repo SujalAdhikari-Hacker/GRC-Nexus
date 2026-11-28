@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from .middleware import session_timeouts_for_user
 from .models import OrganisationProfile
 from .settings_model import UserPreference
 from .settings_forms import UserPreferenceForm
@@ -36,6 +37,7 @@ def settings_view(request):
     else:
         form = UserPreferenceForm(instance=pref)
 
+    idle_secs, abs_secs = session_timeouts_for_user(request.user)
     ctx = {
         'form': form,
         'pref': pref,
@@ -46,6 +48,8 @@ def settings_view(request):
         'server_timezone': timezone.get_default_timezone(),
         'email_status': describe(),
         'org_profile': OrganisationProfile.get() if request.user.is_superuser else None,
+        'session_idle_minutes': idle_secs // 60,
+        'session_absolute_hours': abs_secs // 3600,
     }
     return render(request, 'core/settings.html', ctx)
 

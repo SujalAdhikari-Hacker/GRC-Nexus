@@ -89,6 +89,8 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'core.middleware.RequestValidationMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Enforce role-based idle (15m superadmin / 30m user) and 8h absolute timeouts.
+    'core.middleware.SessionTimeoutMiddleware',
     # Set the PostgreSQL RLS context before any view query runs.
     'core.middleware.RLSMiddleware',
     # Rate limits, MFA and forced password rotation run after authentication
@@ -286,9 +288,19 @@ BOARD_REPORT_RECIPIENTS = config(
 # --------------------------------------------------------------------------
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = config('SESSION_COOKIE_SAMESITE', default='Lax')
-# Eight hours: long enough for a working day, short enough that a stolen
-# session does not remain valid for Django's two-week default.
+# Absolute and idle session timeouts.
+# Normal users: 30 min idle / 8 h absolute.
+# Superadmins:  15 min idle / 8 h absolute.
 SESSION_COOKIE_AGE = config('SESSION_COOKIE_AGE', default=8 * 60 * 60, cast=int)
+SESSION_ABSOLUTE_TIMEOUT = config(
+    'SESSION_ABSOLUTE_TIMEOUT', default=8 * 60 * 60, cast=int
+)
+SESSION_IDLE_TIMEOUT = config(
+    'SESSION_IDLE_TIMEOUT', default=30 * 60, cast=int
+)
+SESSION_SUPERADMIN_IDLE_TIMEOUT = config(
+    'SESSION_SUPERADMIN_IDLE_TIMEOUT', default=15 * 60, cast=int
+)
 CSRF_COOKIE_SAMESITE = 'Lax'
 # The CSRF cookie is intentionally readable by same-origin JavaScript so the
 # HTMX header can echo it. It is not an authentication token.

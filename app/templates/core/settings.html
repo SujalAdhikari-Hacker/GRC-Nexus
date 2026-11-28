@@ -255,7 +255,9 @@
                 <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
                     <div>
                         <strong>Active sessions</strong>
-                        <div class="small text-muted">Invalidate every signed-in browser and device</div>
+                        <div class="small text-muted">
+                            {{ session_idle_minutes }} min idle &middot; {{ session_absolute_hours }} h max &middot; Sign out every browser and device
+                        </div>
                     </div>
                     <form method="post" action="{% url 'core:sign_out_all_devices' %}">
                         {% csrf_token %}

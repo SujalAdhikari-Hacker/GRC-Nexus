@@ -7,11 +7,13 @@ closed (no CORS headers unless an origin is explicitly configured).
 """
 import logging
 import secrets
+import time
 import uuid
 from urllib.parse import quote
 
 from django.conf import settings
 from django.db import connection
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -364,4 +366,78 @@ class ForcePasswordChangeMiddleware:
             and not request.path.startswith(self.EXEMPT_PREFIXES)
         ):
             return redirect('password_change')
+        return self.get_response(request)
+
+
+# ---------------------------------------------------------------------------
+# Idle and absolute session timeouts
+# ---------------------------------------------------------------------------
+
+SESSION_STARTED_AT_KEY = '_session_started_at'
+SESSION_LAST_ACTIVITY_KEY = '_session_last_activity'
+
+
+def session_timeouts_for_user(user):
+    """Return ``(idle_seconds, absolute_seconds)`` for ``user``.
+
+    Normal users get 30 minutes idle and 8 hours absolute lifetime;
+    superadmins get 15 minutes idle and 8 hours absolute lifetime.
+    """
+    absolute = int(getattr(settings, 'SESSION_ABSOLUTE_TIMEOUT', 8 * 60 * 60))
+    if getattr(user, 'is_superuser', False):
+        idle = int(getattr(settings, 'SESSION_SUPERADMIN_IDLE_TIMEOUT', 15 * 60))
+    else:
+        idle = int(getattr(settings, 'SESSION_IDLE_TIMEOUT', 30 * 60))
+    return idle, absolute
+
+
+class SessionTimeoutMiddleware:
+    """Enforce per-role idle and 8-hour absolute session timeouts."""
+
+    EXEMPT_PREFIXES = ('/logout/', '/login/', '/static/')
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = getattr(request, 'user', None)
+        if (
+            user is None
+            or not user.is_authenticated
+            or request.path.startswith(self.EXEMPT_PREFIXES)
+        ):
+            return self.get_response(request)
+
+        now = time.time()
+        idle_limit, absolute_limit = session_timeouts_for_user(user)
+        started_at = request.session.get(SESSION_STARTED_AT_KEY)
+        last_activity = request.session.get(SESSION_LAST_ACTIVITY_KEY)
+
+        if started_at is None:
+            started_at = now
+            request.session[SESSION_STARTED_AT_KEY] = now
+        if last_activity is None:
+            last_activity = now
+            request.session[SESSION_LAST_ACTIVITY_KEY] = now
+
+        reason = None
+        if (now - float(started_at)) >= absolute_limit:
+            reason = 'absolute'
+        elif (now - float(last_activity)) >= idle_limit:
+            reason = 'idle'
+
+        if reason:
+            from django.contrib.auth import logout
+
+            logout(request)
+            login_url = reverse(settings.LOGIN_URL)
+            next_url = quote(request.get_full_path(), safe='/')
+            target = f'{login_url}?expired={reason}&next={next_url}'
+            if request.headers.get('HX-Request') == 'true':
+                return HttpResponse(status=204, headers={'HX-Redirect': target})
+            return redirect(target)
+
+        request.session[SESSION_LAST_ACTIVITY_KEY] = now
+        remaining_abs = max(1, int(absolute_limit - (now - float(started_at))))
+        request.session.set_expiry(min(idle_limit, remaining_abs))
         return self.get_response(request)

@@ -52,6 +52,14 @@
                 <div class="alert alert-info py-2 small mb-3">
                     You have been signed out from all devices. Please sign in again.
                 </div>
+            {% elif request.GET.expired == 'idle' %}
+                <div class="alert alert-warning py-2 small mb-3">
+                    Your session expired due to inactivity. Please sign in again.
+                </div>
+            {% elif request.GET.expired == 'absolute' %}
+                <div class="alert alert-warning py-2 small mb-3">
+                    Your session reached the 8-hour maximum duration. Please sign in again.
+                </div>
             {% endif %}
 
             {% if form.errors %}

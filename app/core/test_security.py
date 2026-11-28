@@ -1036,3 +1036,100 @@ class SessionRevocationTests(TestCase):
             victim_client.get(reverse('core:dashboard')),
             f"{reverse('login')}?next={reverse('core:dashboard')}",
         )
+
+
+class SessionTimeoutTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Timeout Dept')
+        cls.normal_user = User.objects.create_user(
+            username='timeout_user',
+            password='StrongPassword!123',
+            department=cls.dept,
+        )
+        cls.superuser = User.objects.create_superuser(
+            username='timeout_admin',
+            email='timeout-admin@example.com',
+            password='StrongPassword!123',
+        )
+
+    def test_timeout_settings_match_policy(self):
+        self.assertEqual(settings.SESSION_IDLE_TIMEOUT, 30 * 60)
+        self.assertEqual(settings.SESSION_SUPERADMIN_IDLE_TIMEOUT, 15 * 60)
+        self.assertEqual(settings.SESSION_ABSOLUTE_TIMEOUT, 8 * 60 * 60)
+
+    def _set_session_times(self, client, started_at, last_activity):
+        session = client.session
+        session['_session_started_at'] = started_at
+        session['_session_last_activity'] = last_activity
+        session.save()
+
+    def test_normal_user_30m_idle_and_8h_absolute(self):
+        import time
+
+        self.client.force_login(self.normal_user)
+        now = time.time()
+
+        # 29 minutes idle -> stays signed in and refreshes activity
+        self._set_session_times(self.client, now - 3600, now - (29 * 60))
+        resp_ok = self.client.get(reverse('core:dashboard'))
+        self.assertEqual(resp_ok.status_code, 200)
+
+        # 30 minutes + 1s idle -> idle expiry
+        now = time.time()
+        self._set_session_times(self.client, now - 3600, now - (30 * 60 + 1))
+        resp_idle = self.client.get(reverse('core:dashboard'))
+        self.assertRedirects(
+            resp_idle,
+            f"{reverse('login')}?expired=idle&next={reverse('core:dashboard')}",
+        )
+
+        # Re-authenticate: active user (<10s idle) past 8h absolute -> absolute expiry
+        self.client.force_login(self.normal_user)
+        now = time.time()
+        self._set_session_times(self.client, now - (8 * 60 * 60 + 1), now - 10)
+        resp_abs = self.client.get(reverse('core:dashboard'))
+        self.assertRedirects(
+            resp_abs,
+            f"{reverse('login')}?expired=absolute&next={reverse('core:dashboard')}",
+        )
+
+    def test_superadmin_15m_idle_and_8h_absolute(self):
+        import time
+
+        self.client.force_login(self.superuser)
+        now = time.time()
+
+        # 14 minutes idle -> stays signed in
+        self._set_session_times(self.client, now - 1800, now - (14 * 60))
+        resp_ok = self.client.get(reverse('core:dashboard'))
+        self.assertEqual(resp_ok.status_code, 200)
+
+        # 15 minutes + 1s idle -> idle expiry
+        now = time.time()
+        self._set_session_times(self.client, now - 1800, now - (15 * 60 + 1))
+        resp_idle = self.client.get(reverse('core:dashboard'))
+        self.assertRedirects(
+            resp_idle,
+            f"{reverse('login')}?expired=idle&next={reverse('core:dashboard')}",
+        )
+
+        # Active superadmin past 8h absolute -> absolute expiry
+        self.client.force_login(self.superuser)
+        now = time.time()
+        self._set_session_times(self.client, now - (8 * 60 * 60 + 1), now - 5)
+        resp_abs = self.client.get(reverse('core:dashboard'))
+        self.assertRedirects(
+            resp_abs,
+            f"{reverse('login')}?expired=absolute&next={reverse('core:dashboard')}",
+        )
+
+    def test_htmx_expired_session_returns_hx_redirect(self):
+        import time
+
+        self.client.force_login(self.normal_user)
+        now = time.time()
+        self._set_session_times(self.client, now - 3600, now - (31 * 60))
+        resp = self.client.get(reverse('core:dashboard'), HTTP_HX_REQUEST='true')
+        self.assertEqual(resp.status_code, 204)
+        self.assertIn('expired=idle', resp.headers.get('HX-Redirect', ''))
