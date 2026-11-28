@@ -2509,3 +2509,128 @@ class AnonymousUserExclusionTests(TestCase):
                 resp = self.client.get(url)
                 self.assertEqual(resp.status_code, 200)
                 self.assertNotContains(resp, 'AnonymousUser')
+
+
+class SearchDeleteAndSettingsFixTests(TestCase):
+    """Regression coverage for Fix 7: RSK/AuditFinding search, deletes, settings & copy."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.dept = Department.objects.create(name='Fix7 Dept')
+        cls.other_dept = Department.objects.create(name='Fix7 Other Dept')
+        cls.hod = User.objects.create_user(
+            'fix7_hod', 'f7hod@example.com', 'pw', department=cls.dept, is_hod=True,
+        )
+        cls.member = User.objects.create_user(
+            'fix7_member', 'f7mem@example.com', 'pw', department=cls.dept, is_hod=False,
+        )
+
+    def test_risk_code_search_and_large_number_safety(self):
+        from risks.models import Risk, RiskCategory
+
+        cat = RiskCategory.objects.create(name='Search Ops')
+        risk = Risk.objects.create(
+            title='Unrelated Payment Gateway Name', category=cat, owner_dept=self.dept,
+        )
+        code = f'RSK-{risk.pk:04d}'
+        self.client.force_login(self.hod)
+
+        for url in (reverse('risks:list'), reverse('core:search')):
+            with self.subTest(url=url):
+                resp = self.client.get(url, {'q': code})
+                self.assertEqual(resp.status_code, 200)
+                self.assertContains(resp, risk.title)
+
+                # Lowercase and bare digits also work, and huge integer does not 500
+                resp_lower = self.client.get(url, {'q': code.lower()})
+                self.assertEqual(resp_lower.status_code, 200)
+                self.assertContains(resp_lower, risk.title)
+
+                resp_huge = self.client.get(url, {'q': '99999999999999999999'})
+                self.assertEqual(resp_huge.status_code, 200)
+
+    def test_global_search_includes_scoped_audit_findings(self):
+        from audits.models import Audit, AuditFinding
+
+        audit = Audit.objects.create(name='Fix7 Audit', owner_dept=self.dept)
+        own_finding = AuditFinding.objects.create(
+            title='Fix7 Visible Control Gap', audit=audit, owner_dept=self.dept,
+        )
+        other_audit = Audit.objects.create(name='Other Audit', owner_dept=self.other_dept)
+        AuditFinding.objects.create(
+            title='Fix7 Hidden Control Gap', audit=other_audit, owner_dept=self.other_dept,
+        )
+
+        self.client.force_login(self.hod)
+        resp = self.client.get(reverse('core:search'), {'q': 'Fix7'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, own_finding.title)
+        self.assertNotContains(resp, 'Fix7 Hidden Control Gap')
+
+    def test_userdate_settings_and_policy_copy(self):
+        import datetime as _dt
+        from django.template import Context, Template
+        from policies.forms import PolicyForm
+
+        tpl = Template('{% load user_formats %}{% userdate dt %}')
+        rendered = tpl.render(Context({'dt': _dt.date(2026, 1, 15)}))
+        self.assertEqual(rendered, '2026-01-15')
+
+        self.client.force_login(self.hod)
+        resp = self.client.get(reverse('core:settings'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'v3.2.0')
+        self.assertNotContains(resp, 'Today prints as: <code>Y-m-d</code>')
+
+        help_text = PolicyForm().fields['content'].help_text
+        self.assertIn('below', help_text)
+        self.assertNotIn('above', help_text)
+
+    def test_missing_delete_views_work_for_hod_and_reject_non_hod(self):
+        import datetime as _dt
+        from assets.models import Asset
+        from kris.models import KRI
+        from vendors.models import Vendor, VendorAssessment
+        from vulnerabilities.models import Finding, Vulnerability
+
+        vendor = Vendor.objects.create(name='Delete Me Vendor', owner_dept=self.dept)
+        assessment = VendorAssessment.objects.create(
+            vendor=vendor, vendor_tier=vendor.tier, assessment_date=_dt.date.today(),
+            security_score=10, compliance_score=10, financial_score=10,
+            reputation_score=10, operational_score=10,
+        )
+        kri = KRI.objects.create(
+            name='Delete Me KRI', owner_dept=self.dept,
+            amber_threshold=5, red_threshold=10,
+        )
+        asset = Asset.objects.create(asset_id='QA-DEL-1', name='Del Host', owner_dept=self.dept)
+        vuln = Vulnerability.objects.create(cve_id='CVE-2099-9999', title='Del CVE', cvss_score='7.5')
+        finding = Finding.objects.create(
+            vulnerability=vuln, asset=asset, owner_dept=self.dept, discovered_date=_dt.date.today(),
+        )
+
+        delete_urls = [
+            reverse('vendors:assessment_delete', kwargs={'pk': assessment.pk}),
+            reverse('vendors:delete', kwargs={'pk': vendor.pk}),
+            reverse('kris:delete', kwargs={'pk': kri.pk}),
+            reverse('vulnerabilities:finding_delete', kwargs={'pk': finding.pk}),
+        ]
+
+        self.client.force_login(self.member)
+        for url in delete_urls:
+            with self.subTest(role='member', url=url):
+                self.assertEqual(self.client.get(url).status_code, 403)
+                self.assertEqual(self.client.post(url).status_code, 403)
+
+        self.client.force_login(self.hod)
+        for url in delete_urls:
+            with self.subTest(role='hod', url=url):
+                get_resp = self.client.get(url)
+                self.assertEqual(get_resp.status_code, 200)
+                post_resp = self.client.post(url)
+                self.assertEqual(post_resp.status_code, 302)
+
+        self.assertFalse(VendorAssessment.objects.filter(pk=assessment.pk).exists())
+        self.assertFalse(Vendor.objects.filter(pk=vendor.pk).exists())
+        self.assertFalse(KRI.objects.filter(pk=kri.pk).exists())
+        self.assertFalse(Finding.objects.filter(pk=finding.pk).exists())

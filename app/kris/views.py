@@ -1,6 +1,7 @@
+from django.contrib import messages
 from django.db.models import Q
-from django.urls import reverse_lazy
-from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django.urls import reverse, reverse_lazy
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from core.input_validation import choice, search_query
 from core.mixins import (
@@ -9,6 +10,7 @@ from core.mixins import (
     DepartmentCreateMixin,
     DepartmentPinnedMixin,
     DepartmentScopedMixin,
+    HODOrSuperuserMixin,
     SavedViewsMixin,
 )
 from .models import KRI
@@ -123,3 +125,22 @@ class KRIUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
     ]
     success_url = reverse_lazy('kris:list')
     department_field = 'owner_dept'
+
+
+class KRIDeleteView(HODOrSuperuserMixin, ChangeScopedMixin, DeleteView):
+    model = KRI
+    template_name = 'core/confirm_delete.html'
+    success_url = reverse_lazy('kris:list')
+    department_field = 'owner_dept'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['object_verbose_name'] = 'KRI'
+        ctx['cancel_url'] = reverse('kris:detail', kwargs={'pk': self.object.pk})
+        return ctx
+
+    def form_valid(self, form):
+        name = self.object.name
+        response = super().form_valid(form)
+        messages.success(self.request, f'KRI "{name}" deleted.')
+        return response

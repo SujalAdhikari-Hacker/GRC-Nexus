@@ -19,6 +19,9 @@
     <div class="d-flex gap-2">
         <a href="{% url 'vendors:update' vendor.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
         <a href="{% url 'vendors:assessment_create_for_vendor' vendor.pk %}" class="btn btn-sm btn-primary">+ New Assessment</a>
+        {% if user.is_superuser or user.is_hod %}
+        <a href="{% url 'vendors:delete' vendor.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Delete</a>
+        {% endif %}
         {% if user.is_staff %}
         <a href="{% url 'admin:vendors_vendor_change' vendor.pk %}" class="btn btn-sm btn-outline-dark">Admin</a>
         {% endif %}

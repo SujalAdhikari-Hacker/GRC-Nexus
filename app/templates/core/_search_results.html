@@ -61,6 +61,17 @@
         {% endfor %}
     {% endif %}
 
+    {% if results.audit_findings %}
+        <div class="palette-section-title">Audit findings</div>
+        {% for af in results.audit_findings %}
+            <a href="{% url 'audits:finding_detail' af.pk %}" class="palette-item">
+                <i class="bi bi-clipboard-x"></i>
+                <span>{{ af.title|truncatechars:60 }}</span>
+                <span class="item-meta">{{ af.get_severity_display }} · {{ af.get_status_display }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+
     {% if results.audits %}
         <div class="palette-section-title">Audits</div>
         {% for a in results.audits %}

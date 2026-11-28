@@ -20,9 +20,7 @@ def userdate(context, value):
         return '—'
     fmt = _get_format(context, 'user_date_format', 'Y-m-d')
     try:
-        if hasattr(value, 'strftime'):
-            return value.strftime(fmt)
-        # Django's date filter handles both
+        # Django's date filter handles both date/datetime objects and format tokens
         from django.template.defaultfilters import date as date_filter
         return date_filter(value, fmt)
     except Exception:

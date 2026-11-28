@@ -8,13 +8,15 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from django.views.generic import DetailView, FormView, ListView
-from django.urls import reverse_lazy
+from django.views.generic import DeleteView, DetailView, FormView, ListView
+from django.urls import reverse, reverse_lazy
 
 from core.input_validation import boolean, choice, integer, search_query
 from core.mixins import (
+    ChangeScopedMixin,
     CsvExportMixin,
     DepartmentScopedMixin,
+    HODOrSuperuserMixin,
     scope_queryset,
     user_can_change,
 )
@@ -350,3 +352,26 @@ class ManualVulnerabilityCreateView(LoginRequiredMixin, FormView):
             'cvss_severity': 'medium',
             'cvss_score': 5.0,
         }
+
+
+class FindingDeleteView(HODOrSuperuserMixin, ChangeScopedMixin, DeleteView):
+    model = Finding
+    template_name = 'core/confirm_delete.html'
+    success_url = reverse_lazy('vulnerabilities:finding_list')
+    department_field = 'owner_dept'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['object_verbose_name'] = 'vulnerability finding'
+        ctx['cancel_url'] = reverse('vulnerabilities:finding_detail', kwargs={'pk': self.object.pk})
+        ctx['related_warning'] = (
+            'Deleting this finding also removes any unassessed cascaded risks and '
+            'cancels linked open alert tickets.'
+        )
+        return ctx
+
+    def form_valid(self, form):
+        label = str(self.object)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Vulnerability finding "{label}" deleted.')
+        return response

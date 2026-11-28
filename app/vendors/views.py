@@ -3,9 +3,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from core.correlation import get_full_vendor_context
 from core.input_validation import choice, integer, search_query
@@ -15,6 +15,7 @@ from core.mixins import (
     DepartmentCreateMixin,
     DepartmentPinnedMixin,
     DepartmentScopedMixin,
+    HODOrSuperuserMixin,
     scope_queryset,
     user_can_change,
 )
@@ -150,6 +151,27 @@ class VendorUpdateView(DepartmentPinnedMixin, ChangeScopedMixin, UpdateView):
         form.instance.updated_by = self.request.user
         response = super().form_valid(form)
         messages.success(self.request, f'Vendor {self.object.vendor_id} updated.')
+        return response
+
+
+class VendorDeleteView(HODOrSuperuserMixin, ChangeScopedMixin, DeleteView):
+    model = Vendor
+    template_name = 'core/confirm_delete.html'
+    success_url = reverse_lazy('vendors:list')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['object_verbose_name'] = 'vendor'
+        ctx['cancel_url'] = reverse('vendors:detail', kwargs={'pk': self.object.pk})
+        ctx['related_warning'] = (
+            'Deleting this vendor also removes all associated vendor risk assessments.'
+        )
+        return ctx
+
+    def form_valid(self, form):
+        vid = self.object.vendor_id
+        response = super().form_valid(form)
+        messages.success(self.request, f'Vendor {vid} deleted.')
         return response
 
 
@@ -298,11 +320,32 @@ class VendorAssessmentDetailView(DepartmentScopedMixin, DetailView):
         a = self.object
         ctx['vendor'] = a.vendor
         ctx['dimensions'] = [
-            {'label': 'Security',     'value': a.security_score,     'max': 25},
-            {'label': 'Compliance',   'value': a.compliance_score,   'max': 25},
-            {'label': 'Financial',    'value': a.financial_score,    'max': 25},
-            {'label': 'Reputation',   'value': a.reputation_score,   'max': 25},
-            {'label': 'Operational',  'value': a.operational_score,  'max': 25},
+            {'label': 'Security',     'value': a.security_score,     'max': 20},
+            {'label': 'Compliance',   'value': a.compliance_score,   'max': 20},
+            {'label': 'Financial',    'value': a.financial_score,    'max': 20},
+            {'label': 'Reputation',   'value': a.reputation_score,   'max': 20},
+            {'label': 'Operational',  'value': a.operational_score,  'max': 20},
         ]
         ctx['now_date'] = timezone.localdate()
         return ctx
+
+
+class VendorAssessmentDeleteView(HODOrSuperuserMixin, ChangeScopedMixin, DeleteView):
+    model = VendorAssessment
+    template_name = 'core/confirm_delete.html'
+    department_field = 'vendor__owner_dept'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['object_verbose_name'] = 'vendor assessment'
+        ctx['cancel_url'] = reverse('vendors:assessment_detail', kwargs={'pk': self.object.pk})
+        return ctx
+
+    def get_success_url(self):
+        return reverse('vendors:detail', kwargs={'pk': self.object.vendor_id})
+
+    def form_valid(self, form):
+        aid = self.object.assessment_id
+        response = super().form_valid(form)
+        messages.success(self.request, f'Vendor assessment {aid} deleted.')
+        return response

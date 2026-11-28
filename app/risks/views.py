@@ -1,3 +1,5 @@
+import re
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -15,6 +17,19 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
+
+_RISK_CODE_RE = re.compile(r'^(?:rsk[-_\s]*)?0*(\d+)$', re.IGNORECASE)
+
+
+def risk_search_filter(q):
+    """Build a search Q filter for Risk title/description plus RSK-<pk> codes."""
+    cond = Q(title__icontains=q) | Q(description__icontains=q)
+    match = _RISK_CODE_RE.match(q.strip())
+    if match:
+        pk_val = int(match.group(1))
+        if 0 < pk_val <= 2_147_483_647:
+            cond |= Q(pk=pk_val)
+    return cond
 
 from core.correlation import get_full_risk_context
 from core.mixins import (
@@ -86,7 +101,7 @@ class RiskListView(SavedViewsMixin, ReportMixin, DepartmentScopedMixin, CsvExpor
         qs = super().get_queryset()
         q = search_query(self.request.GET.get('q', ''))
         if q:
-            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q))
+            qs = qs.filter(risk_search_filter(q))
         cat = self.request.GET.get('category')
         if cat:
             qs = qs.filter(category_id=positive_int(cat, 'category'))

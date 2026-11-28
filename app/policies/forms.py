@@ -35,7 +35,7 @@ class PolicyForm(forms.ModelForm):
             'next_review_date': 'When this policy must be re-reviewed.',
             'document':      'Optional PDF of the policy document.',
             'applies_to_departments': 'Departments this policy applies to. Leave empty for org-wide. Hold Ctrl/Cmd to select multiple.',
-            'content':       'Policy body text. Leave empty if you uploaded a PDF above.',
+            'content':       'Policy body text. Leave empty if you upload a PDF document below.',
         }
 
     def clean_code(self):

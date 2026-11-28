@@ -235,13 +235,14 @@ def global_search(request):
 
     results = {
         'assets': [], 'risks': [], 'controls': [], 'policies': [], 'vendors': [],
-        'findings': [], 'audits': [], 'frameworks': [], 'kris': [],
-        'tickets': [], 'actors': [],
+        'findings': [], 'audit_findings': [], 'audits': [], 'frameworks': [],
+        'kris': [], 'tickets': [], 'actors': [],
     }
 
     if q:
-        from audits.models import Audit
+        from audits.models import Audit, AuditFinding
         from kris.models import KRI
+        from risks.views import risk_search_filter
         from tickets.models import Ticket
         from threatintel.models import ThreatActor
 
@@ -252,7 +253,7 @@ def global_search(request):
         )
         results['risks'] = list(
             scope_queryset(Risk.objects.all(), user).filter(
-                Q(title__icontains=q) | Q(description__icontains=q)
+                risk_search_filter(q)
             )[:5]
         )
         results['controls'] = list(
@@ -277,6 +278,13 @@ def global_search(request):
                 Q(vulnerability__cve_id__icontains=q)
                 | Q(vulnerability__title__icontains=q)
                 | Q(asset__name__icontains=q)
+            )[:5]
+        )
+        results['audit_findings'] = list(
+            scope_queryset(
+                AuditFinding.objects.select_related('audit', 'related_control'), user
+            ).filter(
+                Q(title__icontains=q) | Q(description__icontains=q)
             )[:5]
         )
         results['audits'] = list(
